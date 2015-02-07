@@ -1,0 +1,99 @@
+package util
+
+import (
+	"io/ioutil"
+	"log"
+	"math"
+	"os"
+	"os/signal"
+	"path"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/nu7hatch/gouuid"
+)
+
+func Uuid() string {
+	u4, err := uuid.NewV4()
+	if err != nil {
+		return ""
+	}
+	return strings.ToUpper(u4.String())
+}
+
+func InitLogger() {
+	logFlag := log.LstdFlags | log.Lmicroseconds | log.Lshortfile
+	log.SetFlags(logFlag)
+}
+
+func InitLoggerNoFile() {
+	logFlag := log.LstdFlags | log.Lmicroseconds
+	log.SetFlags(logFlag)
+}
+
+type Hash map[string]interface{}
+
+func WaitForInterupt() {
+	c := make(chan os.Signal, 1)
+	//SIGINT je ctrl-C u shell-u, SIGTERM salje upstart kada se napravi sudo stop ...
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	<-c
+}
+
+func Hostname() string {
+	name, err := os.Hostname()
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
+type StringArray []string
+
+func (a *StringArray) Set(s string) error {
+	*a = append(*a, s)
+	return nil
+}
+
+func (a *StringArray) String() string {
+	return strings.Join(*a, ",")
+}
+
+// return rounded version of x with prec precision.
+func Round(x float64, prec int) float64 {
+	var rounder float64
+	pow := math.Pow(10, float64(prec))
+	intermed := x * pow
+	_, frac := math.Modf(intermed)
+	intermed += .5
+	x = .5
+	if frac < 0.0 {
+		x = -.5
+		intermed -= 1
+	}
+	if frac >= x {
+		rounder = math.Ceil(intermed)
+	} else {
+		rounder = math.Floor(intermed)
+	}
+
+	return rounder / pow
+}
+
+//UnixMilli - unix timestamp u milisekundama, pogodan za js
+func UnixMilli() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
+
+//WriteFile - napravi direktorij (ako ne postoji) i sinimi tamo file
+func WriteFile(file string, buf []byte) error {
+	dir, _ := path.Split(file)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(file, buf, 0644); err != nil {
+		return err
+	}
+	return nil
+}

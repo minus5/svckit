@@ -1,0 +1,114 @@
+package jsonu
+
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/stretchrcom/testify/assert"
+)
+
+type testCase struct {
+	before string
+	after  string
+	diff   string
+}
+
+func testCases() []testCase {
+	return []testCase{
+		{
+			before: `{"attr1":"v1","attr2":2,"attr3":3.3,"attr4":true}`,
+			after:  `{"attr1":"v2","attr2":2,"attr3":3.3,"attr4":true}`,
+			diff:   `{"attr1":"v2"}`,
+		},
+		{
+			before: `{"attr1":"v1","attr2":2,"attr3":3.3,"attr4":true}`,
+			after:  `{"attr1":"v1","attr2":3,"attr3":3.3,"attr4":true}`,
+			diff:   `{"attr2":3}`,
+		},
+		{
+			before: `{"attr1":"v1","attr2":2,"attr3":3.3,"attr4":true}`,
+			after:  `{"attr1":"v1","attr2":3,"attr3":3.4,"attr4":true}`,
+			diff:   `{"attr2":3,"attr3":3.4}`,
+		},
+		{
+			before: `{"attr1":"v1","attr2":2,"attr3":3.3,"attr4":true}`,
+			after:  `{"attr1":"v1","attr2":3,"attr3":3.4,"attr4":false}`,
+			diff:   `{"attr2":3,"attr3":3.4,"attr4":false}`,
+		},
+		{ //atribut koji vise ne postoji postavlja se na null
+			before: `{"attr1":"v1","attr3":3.3}`,
+			after:  `{"attr1":"v1","attr2":3}`,
+			diff:   `{"attr2":3,"attr3":null}`,
+		},
+		{ //array
+			before: `{"arr1":[1,2,3]}`,
+			after:  `{"arr1":[1,2,4]}`,
+			diff:   `{"arr1":[1,2,4]}`,
+		},
+		{ //dva ista array-a
+			before: `{"arr1":[1,2,3]}`,
+			after:  `{"arr1":[1,2,3]}`,
+			diff:   `{}`,
+		},
+		{ //object
+			before: `{"o1":{"k1":"v1","k2":"v2"}}`,
+			after:  `{"o1":{"k1":"v1","k2":"v3"}}`,
+			diff:   `{"o1":{"k2":"v3"}}`,
+		},
+		{ //dva ista object-a
+			before: `{"o1":{"k1":"v1","k2":"v2"}}`,
+			after:  `{"o1":{"k1":"v1","k2":"v2"}}`,
+			diff:   `{}`,
+		},
+		{ //object na drugom nivou
+			before: `{"o1":{"k1":"v1","k2":{"k3":3,"k4":5}}}`,
+			after:  `{"o1":{"k1":"v1","k2":{"k3":3,"k4":6,"k5":5}}}`,
+			diff:   `{"o1":{"k2":{"k4":6,"k5":5}}}`,
+		},
+		{ //object na drugom nivou
+			before: `{"o1":{"k1":"v1","k2":{"-1":3,"-2":5}}}`,
+			after:  `{"o1":{"k1":"v1","k2":{"-1":3,"-2":6,"-3":5}}}`,
+			diff:   `{"o1":{"k2":{"-2":6,"-3":5}}}`,
+		},
+		{ //dva object key-a
+			before: `{"o1":{"k1":"v1","k2":"v2"},"o2":{"k3":"v3"}}`,
+			after:  `{"o1":{"k1":"v1","k2":"v3"},"o2":{"k3":"v4"}}`,
+			diff:   `{"o1":{"k2":"v3"},"o2":{"k3":"v4"}}`,
+		},
+	}
+}
+
+func TestJsonDiff(t *testing.T) {
+	for _, d := range testCases() {
+		//log.Printf("%v", d)
+		diff := diff([]byte(d.before), []byte(d.after))
+		assert.Equal(t, string(diff), d.diff)
+	}
+}
+
+func TestSameKeyIntArray(t *testing.T) {
+	m1 := map[string]interface{}{"k": []int{1, 2, 3}}
+	m2 := map[string]interface{}{"k": []int{1, 2, 4}}
+	m3 := map[string]interface{}{"k": []int{1, 2, 3}}
+	j1 := MapToSimplejson(m1)
+	j2 := MapToSimplejson(m2)
+	j3 := MapToSimplejson(m3)
+	assert.True(t, sameKey("k", j1, j2) == areDifferent)
+	assert.True(t, sameKey("k", j1, j3) == areSame)
+}
+
+func TestJsonMerge(t *testing.T) {
+	for _, c := range testCases() {
+		var before, diff map[string]interface{}
+		json.Unmarshal([]byte(c.before), &before)
+		json.Unmarshal([]byte(c.diff), &diff)
+		JsonMerge(before, diff)
+		aa, _ := json.Marshal(before)
+		afterActual := string(aa)
+		if afterActual != c.after {
+			t.Logf("actual:   %s", afterActual)
+			t.Logf("expected: %s", c.after)
+		}
+		assert.Equal(t, afterActual, c.after)
+	}
+}
