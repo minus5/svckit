@@ -2,9 +2,11 @@ package stat
 
 import (
 	"fmt"
-	"github.com/cactus/go-statsd-client/statsd"
 	"log"
 	"os"
+	"pkg/util"
+
+	"github.com/cactus/go-statsd-client/statsd"
 )
 
 type StatsdClient struct {
@@ -58,6 +60,30 @@ func Timing(name string, value int64) {
 	}
 }
 
+func Time(name string, f func()) {
+	stopwatch := util.NewStopwatch()
+	f()
+	duration := stopwatch.GetMs()
+	Timing(name, int64(duration))
+}
+
+func Inc(name string) {
+	IncCounter(name)
+}
+
+type inf struct{}
+
+func (*inf) Time(name string, f func()) {
+	Time(name, f)
+}
+func (*inf) Gauge(name string, value int) {
+	Gauge(name, int64(value))
+}
+
+func Interface() *inf {
+	return &inf{}
+}
+
 func hostname() string {
 	name, err := os.Hostname()
 	if err != nil {
@@ -65,4 +91,3 @@ func hostname() string {
 	}
 	return name
 }
-
