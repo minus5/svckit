@@ -87,6 +87,10 @@ func sameValue(k string, vl *simplejson.Json, vr *simplejson.Json) int {
 		if vl.MustInt() == vr.MustInt() {
 			return areSame
 		}
+	case int64:
+		if vl.MustInt64() == vr.MustInt64() {
+			return areSame
+		}
 	case []interface{}:
 		al := vl.MustArray()
 		ar := vr.MustArray()
