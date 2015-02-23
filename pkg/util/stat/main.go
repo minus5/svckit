@@ -64,7 +64,11 @@ func Time(name string, f func()) {
 	stopwatch := util.NewStopwatch()
 	f()
 	duration := stopwatch.GetMs()
-	Timing(name, int64(duration))
+	if client == nil {
+		log.Printf("timer %s %8.4f ms", name, duration)
+	} else {
+		Timing(name, int64(duration))
+	}
 }
 
 func Inc(name string) {
