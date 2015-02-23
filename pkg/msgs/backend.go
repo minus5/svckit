@@ -16,7 +16,8 @@ type Backend struct {
 	From    string
 	To      string
 	IsDel   bool
-	Gzip    bool   //da li je body inicijalno bio gzip-an
+	Gzip    bool //da li je body inicijalno bio gzip-an
+	Ts      int
 	Body    []byte //raspakovan body
 }
 
@@ -53,6 +54,7 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 		IgracId   string `json:"igrac_id"`
 		From      string `json:"from"`
 		To        string `json:"to"`
+		Ts        int    `json:"ts"`
 		No        int64  `json:"no"`
 		Encoding  string `json:"encoding"`
 	}{
@@ -80,6 +82,7 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 		From:    header.From,
 		To:      header.To,
 		Gzip:    header.Encoding == "gzip",
+		Ts:      header.Ts,
 	}
 	if len(parts) > 1 {
 		body := parts[1]
