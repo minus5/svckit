@@ -83,6 +83,9 @@ func (*inf) Time(name string, f func()) {
 func (*inf) Gauge(name string, value int) {
 	Gauge(name, int64(value))
 }
+func (*inf) Counter(name string) {
+	IncCounter(name)
+}
 
 func Interface() *inf {
 	return &inf{}
