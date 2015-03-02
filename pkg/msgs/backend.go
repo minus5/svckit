@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"pkg/util"
+	"strings"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -99,4 +100,12 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 
 func (b *Backend) bodyStr() string {
 	return string(b.Body)
+}
+
+func (b *Backend) IsDiff() bool {
+	return strings.HasSuffix(b.Type, "/diff")
+}
+
+func (b *Backend) IsFull() bool {
+	return strings.HasSuffix(b.Type, "/full")
 }

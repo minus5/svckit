@@ -30,6 +30,14 @@ func NewConnection(nsqLookupdHttpAddress []string, nsqdAddress string) *Connecti
 
 type MessageHandler func([]byte) error
 
+func (f *Connection) MustNewConsumer(topic, channel string, concurency int, handler MessageHandler) *nsq.Consumer {
+	c, err := f.NewConsumer(topic, channel, concurency, handler)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return c
+}
+
 func (f *Connection) NewConsumer(topic, channel string, concurency int, handler MessageHandler) (*nsq.Consumer, error) {
 	//replace %s in channel with hostname
 	if strings.Contains(channel, "%") {
