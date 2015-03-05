@@ -13,6 +13,7 @@ type PushNot struct {
 
 type PushNotListic struct {
 	Id      string
+	Tip     int
 	Status  int
 	Dobitak float64
 	Broj    string
@@ -39,10 +40,10 @@ func NewPushNotText(id int, tip int, gcmId, appleId string, tekst string) *PushN
 	return &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, Tekst: tekst}
 }
 
-func NewPushNotListic(id int, tip int, gcmId, appleId string, listicId string, status int, dobitak float64, broj string) *PushNot {
+func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId string, listicId string, status int, dobitak float64, broj string) *PushNot {
 	pn := &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId}
 	if tip == tipListic {
-		pn.Listic = &PushNotListic{Id: listicId, Status: status, Dobitak: dobitak, Broj: broj}
+		pn.Listic = &PushNotListic{Id: listicId, Tip: lTip, Status: status, Dobitak: dobitak, Broj: broj}
 	}
 	return pn
 }
