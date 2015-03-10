@@ -2,7 +2,7 @@ package util
 
 import (
 	"testing"
-	"github.com/stretchrcom/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCalcRetryInterval(t *testing.T) {
