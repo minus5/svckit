@@ -94,7 +94,10 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 		} else {
 			msg.Body = body
 		}
+	} else {
+		msg.Body, _ = util.GunzipIf(buf)
 	}
+
 	return msg, nil
 }
 
@@ -103,9 +106,13 @@ func (b *Backend) bodyStr() string {
 }
 
 func (b *Backend) IsDiff() bool {
-	return strings.HasSuffix(b.Type, "/diff")
+	return !strings.HasSuffix(b.Type, "/full")
 }
 
 func (b *Backend) IsFull() bool {
-	return strings.HasSuffix(b.Type, "/full")
+	return !strings.HasSuffix(b.Type, "/diff")
+}
+
+func (b *Backend) RootType() string {
+	return strings.TrimSuffix(strings.TrimSuffix(b.Type, "/full"), "/diff")
 }

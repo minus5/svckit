@@ -1,9 +1,9 @@
 package util
 
 import (
+	"bytes"
 	"compress/gzip"
 	"io/ioutil"
-	"bytes"
 )
 
 //Gzip - compess input
@@ -33,6 +33,13 @@ func Gunzip(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+func GunzipIf(data []byte) ([]byte, error) {
+	if IsGziped(data) {
+		return Gunzip(data)
+	}
+	return data, nil
 }
 
 //GunzipStr - cast for me
