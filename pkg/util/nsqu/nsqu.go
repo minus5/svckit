@@ -53,7 +53,7 @@ func (f *Connection) NewConsumer(topic, channel string, concurency int, handler 
 	consumer.AddConcurrentHandlers(nsq.HandlerFunc(func(m *nsq.Message) error {
 		return handler(m.Body)
 	}), concurency)
-	if f.nsqdAddress != "" {
+	if len(f.nsqLookupdHttpAddress) == 0 {
 		return nil, consumer.ConnectToNSQD(f.nsqdAddress)
 	}
 	return consumer, consumer.ConnectToNSQLookupds(f.nsqLookupdHttpAddress)
