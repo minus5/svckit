@@ -20,6 +20,7 @@ type Backend struct {
 	Gzip    bool //da li je body inicijalno bio gzip-an
 	Ts      int
 	Body    []byte //raspakovan body
+	RawBody []byte
 }
 
 func NewBackend(buf []byte) (*Backend, error) {
@@ -87,6 +88,7 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 	}
 	if len(parts) > 1 {
 		body := parts[1]
+		msg.RawBody = body
 		if msg.Gzip && util.IsGziped(body) {
 			if msg.Body, err = util.Gunzip(body); err != nil {
 				return nil, err
@@ -96,6 +98,7 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 		}
 	} else {
 		msg.Body, _ = util.GunzipIf(buf)
+		msg.RawBody = buf
 	}
 
 	return msg, nil
@@ -115,4 +118,17 @@ func (b *Backend) IsFull() bool {
 
 func (b *Backend) RootType() string {
 	return strings.TrimSuffix(strings.TrimSuffix(b.Type, "/full"), "/diff")
+}
+
+//todo - test za ovo
+func (m *Backend) FileName() string {
+	fn := strings.Replace(m.Type, "/", "_", -1)
+	if m.No != -1 {
+		fn = fmt.Sprintf("%s_%d", fn, m.No)
+	} else {
+		if m.From != "" || m.To != "" {
+			fn = fmt.Sprintf("%s_%s-%s", fn, m.From, m.To)
+		}
+	}
+	return fmt.Sprintf("%s.json", fn)
 }
