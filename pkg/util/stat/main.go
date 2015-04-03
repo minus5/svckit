@@ -42,6 +42,10 @@ func IncCounter(name string) {
 	}
 }
 
+func Counter(name string) {
+	IncCounter(name)
+}
+
 func Gauge(name string, value int64) {
 	if client != nil {
 		err := client.Gauge(name, value, 1)
