@@ -68,7 +68,8 @@ func (r *JsonRequest) do() ([]byte, error, bool, int) {
 	defer rsp.Body.Close()
 
 	if rsp.StatusCode >= 300 && rsp.StatusCode < 500 {
-		return nil, errors.New(fmt.Sprintf("%s response status code: %d", r.url, rsp.StatusCode)), false, rsp.StatusCode
+		rspBody, _ := ioutil.ReadAll(rsp.Body)
+		return rspBody, errors.New(fmt.Sprintf("%s response status code: %d", r.url, rsp.StatusCode)), false, rsp.StatusCode
 	}
 	if rsp.StatusCode < 200 || rsp.StatusCode >= 500 {
 		return nil, errors.New(fmt.Sprintf("%s response status code: %d", r.url, rsp.StatusCode)), true, rsp.StatusCode
