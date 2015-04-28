@@ -11,7 +11,7 @@ import (
 // Done() oznacava task kao zavrsen (inicijalno je u working stanju).
 
 type WaitTimeout struct {
-  queue chan bool
+	queue   chan bool
 	working bool
 }
 
@@ -33,11 +33,15 @@ func (w *WaitTimeout) Done() {
 func (w *WaitTimeout) notifyWaiters() {
 	for {
 		select {
-		case <- w.queue:
-		default: 
+		case <-w.queue:
+		default:
 			return
 		}
 	}
+}
+
+func (w *WaitTimeout) WaitInfinite() bool {
+	return w.Wait(0)
 }
 
 //Will wait here until Done is called or waitDuration is reached.
@@ -50,10 +54,10 @@ func (w *WaitTimeout) Wait(waitDuration time.Duration) bool {
 		waitDuration = time.Hour
 	}
 	select {
-		//block until someone starts reading from queue
+	//block until someone starts reading from queue
 	case w.queue <- true:
 		return true
-	case <- time.After(waitDuration):
+	case <-time.After(waitDuration):
 		return false
 	}
 }
