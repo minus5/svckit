@@ -28,9 +28,18 @@ func NewBackend(buf []byte) (*Backend, error) {
 }
 
 func CreateBackend(typ string, no int, body []byte) []byte {
+	return CreateBackendTs(typ, no, 0, body)
+}
+
+func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
 	header := map[string]interface{}{
 		"type": typ,
-		"no":   no,
+	}
+	if no != -1 {
+		header["no"] = no
+	}
+	if ts != 0 {
+		header["ts"] = ts
 	}
 	if len(body) > 1024 {
 		body = util.Gzip(body)
