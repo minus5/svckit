@@ -83,7 +83,7 @@ func TestIsFullIsDiff(t *testing.T) {
 	assert.True(t, (&Backend{Type: "pero/zdero/diff"}).IsDiff())
 	assert.True(t, (&Backend{Type: "pero/zdero/nesto"}).IsDiff())
 
-	assert.Equal(t, "pero/zdero", (&Backend{Type: "pero/zdero/diff"}).RootType())
-	assert.Equal(t, "pero/zdero", (&Backend{Type: "pero/zdero/full"}).RootType())
-	assert.Equal(t, "pero/zdero/nesto", (&Backend{Type: "pero/zdero/nesto"}).RootType())
+	assert.Equal(t, "pero.zdero", (&Backend{Type: "pero/zdero/diff"}).RootType())
+	assert.Equal(t, "pero.zdero", (&Backend{Type: "pero/zdero/full"}).RootType())
+	assert.Equal(t, "pero.zdero.nesto", (&Backend{Type: "pero/zdero/nesto"}).RootType())
 }

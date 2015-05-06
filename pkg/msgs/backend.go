@@ -126,7 +126,7 @@ func (b *Backend) IsFull() bool {
 }
 
 func (b *Backend) RootType() string {
-	return strings.TrimSuffix(strings.TrimSuffix(b.Type, "/full"), "/diff")
+	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(b.Type, "/full"), "/diff"), "/", ".", -1)
 }
 
 //todo - test za ovo
