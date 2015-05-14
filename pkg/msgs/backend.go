@@ -28,10 +28,14 @@ func NewBackend(buf []byte) (*Backend, error) {
 }
 
 func CreateBackend(typ string, no int, body []byte) []byte {
-	return CreateBackendTs(typ, no, 0, body)
+	return createBackend(typ, no, 0, body, true)
 }
 
-func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
+func CreateBackendNoGzip(typ string, no int, body []byte) []byte {
+	return createBackend(typ, no, 0, body, false)
+}
+
+func createBackend(typ string, no int, ts int, body []byte, compress bool) []byte {
 	header := map[string]interface{}{
 		"type": typ,
 	}
@@ -41,7 +45,7 @@ func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
 	if ts != 0 {
 		header["ts"] = ts
 	}
-	if len(body) > 1024 {
+	if compress && len(body) > 1024 {
 		body = util.Gzip(body)
 		header["encoding"] = "gzip"
 	}
@@ -49,6 +53,10 @@ func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
 	buf = append(buf, []byte{10}...)
 	buf = append(buf, body...)
 	return buf
+}
+
+func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
+	return createBackend(typ, no, ts, body, true)
 }
 
 func parseAsBackend(buf []byte) (*Backend, error) {
