@@ -140,12 +140,12 @@ func (r *request) do() ([]byte, error) {
 }
 
 func (r *request) one() ([]byte, error, bool) {
-	log.Printf("[dubug] http.NewRequest(%s, %s)", r.method, r.url)
+	log.Printf("[debug] http.NewRequest(%s, %s)", r.method, r.url)
 	req, err := http.NewRequest(r.method, r.url, bytes.NewReader(r.body))
 	if err != nil {
 		return nil, err, true
 	}
-	log.Printf("[dubug] req.URL %s %s", req.URL.Host, req.URL.Path)
+	log.Printf("[debug] req.URL %s %s", req.URL.Host, req.URL.Path)
 	if r.headers != nil {
 		r.copyHeader(req.Header, r.headers)
 	}
