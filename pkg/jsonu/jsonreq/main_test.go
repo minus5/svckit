@@ -7,6 +7,7 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
+	t.Skip()
 	jr := New("http://localhost:8091/tecajna/zadrske")
 	rsp, err := jr.Get()
 	assert.Nil(t, err)
@@ -28,6 +29,7 @@ func TestIntegration(t *testing.T) {
 }
 
 func TestIntegrationGetWithVersion(t *testing.T) {
+	t.Skip()
 	v := ""
 	rsp, v2, err := GetWithVersion("http://localhost:8091/tecajna/zadrske", v)
 	assert.Nil(t, err)
