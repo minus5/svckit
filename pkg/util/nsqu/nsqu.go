@@ -59,6 +59,33 @@ func (f *Connection) NewConsumer(topic, channel string, concurency int, handler 
 	return consumer, consumer.ConnectToNSQLookupds(f.nsqLookupdHttpAddress)
 }
 
+//Consume - zakaci za na topic na channel
+// sve sto dobije salje u handler
+// rjesava clean stop tako da ceka da se closa exitChan
+// opcionalno zove register/unregisterProcess na pocetku i na kraju
+func (f *Connection) Consume(topic, channel string, concurency int, handler MessageHandler,
+	exitChan chan struct{}, registerProcess, unregisterProcess func()) {
+	consumer, err := f.NewConsumer(topic, channel, concurency, func(buf []byte) error {
+		return handler(buf)
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if registerProcess != nil {
+		registerProcess()
+	}
+	<-exitChan
+	if consumer != nil {
+		consumer.Stop()
+		<-consumer.StopChan
+		log.Printf("nsqConsumer zaustavio %s", topic)
+	}
+	if unregisterProcess != nil {
+		unregisterProcess()
+	}
+}
+
 func (f *Connection) NewProducer() (*nsq.Producer, error) {
 	config := nsq.NewConfig()
 	p, err := nsq.NewProducer(f.nsqdAddress, config)
