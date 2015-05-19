@@ -158,7 +158,9 @@ func (r *request) one() ([]byte, error, bool) {
 	r.rsp = rsp
 	//non retryable errors
 	if rsp.StatusCode >= 300 && rsp.StatusCode < 500 {
-		return nil, fmt.Errorf("%s response status code: %d", r.url, rsp.StatusCode), false
+		//try read body
+		rspBody, _ := ioutil.ReadAll(rsp.Body)
+		return rspBody, fmt.Errorf("%s response status code: %d", r.url, rsp.StatusCode), false
 	}
 	//retryable errors
 	if rsp.StatusCode < 200 || rsp.StatusCode >= 500 {
