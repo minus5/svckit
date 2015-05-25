@@ -42,3 +42,11 @@ func ReadFixture(t *testing.T, name string) []byte {
 func SaveFixture(name string, buf []byte) {
 	ioutil.WriteFile(name, buf, 0644)
 }
+
+func RunShellScript(t *testing.T, name string) {
+	cmd := exec.Command("/bin/sh", name)
+	err := cmd.Start()
+	assert.Nil(t, err)
+	err = cmd.Wait()
+	assert.Nil(t, err)
+}
