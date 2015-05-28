@@ -94,4 +94,13 @@ func TestIsFullIsDiff(t *testing.T) {
 func TestCreateBackend(t *testing.T) {
 	buf := createBackend("pero", 12, 14, nil, true)
 	assert.NotNil(t, buf)
+
+	buf = CreateBackendNoGzip("pero", 12, nil)
+	assert.NotNil(t, buf)
+
+	buf = CreateBackend("pero", 12, nil)
+	assert.NotNil(t, buf)
+
+	buf = CreateBackendTs("pero", 12, 2, nil)
+	assert.NotNil(t, buf)
 }

@@ -8,11 +8,10 @@ import (
 )
 
 func TestPushNotSerializeListic(t *testing.T) {
-	m := &PushNot{Tip: 3,
-		Listic: &PushNotListic{Id: "guid", Status: 2, Dobitak: 123.45, Broj: "broj"},
-	}
+	m := NewPushNotListic(1, tipListic, 0, "apn", "gcm", "guid", 2, 123.45, "broj")
+
 	d := m.Serialize()
-	assert.Equal(t, d["tip"], 3)
+	assert.Equal(t, d["tip"], tipListic)
 	assert.NotNil(t, d["listic"])
 	assert.Nil(t, d["tekst"])
 	assert.Equal(t, len(d), 2)
@@ -24,10 +23,13 @@ func TestPushNotSerializeListic(t *testing.T) {
 
 	buf, _ := json.Marshal(d)
 	assert.Equal(t, string(buf), `{"listic":{"broj":"broj","dobitak":123.45,"id":"guid","status":2},"tip":3}`)
+
+	assert.True(t, m.IsApn())
+	assert.True(t, m.IsGcm())
 }
 
 func TestPushNotSerializeTekst(t *testing.T) {
-	m := &PushNot{Tip: 1, Tekst: "iso medo u ducan"}
+	m := NewPushNotText(1, 1, "", "", "iso medo u ducan")
 	d := m.Serialize()
 	assert.Equal(t, d["tip"], 1)
 	assert.Nil(t, d["listic"])

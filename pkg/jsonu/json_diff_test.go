@@ -112,3 +112,12 @@ func TestJsonMerge(t *testing.T) {
 		assert.Equal(t, afterActual, c.after)
 	}
 }
+
+func TestDeepCopyMap(t *testing.T) {
+	s := `{"o1":{"k1":"v1","k2":"v2"},"o2":{"k3":"v3"}}`
+	var m map[string]interface{}
+	json.Unmarshal([]byte(s), &m)
+	m2 := DeepCopyMap(m)
+	s2, _ := json.Marshal(m2)
+	assert.Equal(t, s, string(s2))
+}

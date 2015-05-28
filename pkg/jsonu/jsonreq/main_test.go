@@ -1,49 +1,26 @@
 package jsonreq
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIntegration(t *testing.T) {
-	t.Skip()
-	jr := New("http://localhost:8091/tecajna/zadrske")
-	rsp, err := jr.Get()
+func TestGetWithVersion(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		versionIn := r.Header.Get(versionHeaderKey)
+		assert.Equal(t, "123", versionIn)
+		w.Header().Set(versionHeaderKey, "456")
+	}))
+	defer ts.Close()
+
+	_, v, err := GetWithVersion(ts.URL, "123")
 	assert.Nil(t, err)
-	assert.Equal(t, 200, jr.StatusCode())
-	assert.Equal(t, string(rsp),
-		`[{"sportId":2,"liga":"Poljska - Ekstraklasa","zadrska":10},{"sportId":2,"liga":"Rumunjska - Kup","zadrska":12}]`)
-	assert.Equal(t, "260527", jr.VersionHeader())
+	assert.Equal(t, "456", v)
 
-	jr = New("http://localhost:8091/tecajna/zadrske",
-		VersionHeader("260526"))
-	rsp, err = jr.Post(nil)
-	assert.Nil(t, err)
-	assert.Equal(t, 200, jr.StatusCode())
-	assert.Equal(t, string(rsp),
-		`[{"sportId":2,"liga":"Poljska - Ekstraklasa","zadrska":10}]`)
-	assert.Equal(t, "260527", jr.VersionHeader())
-
-	//New("http://localhost:8090/tecajna/zadrske").Get()
-}
-
-func TestIntegrationGetWithVersion(t *testing.T) {
-	t.Skip()
-	v := ""
-	rsp, v2, err := GetWithVersion("http://localhost:8091/tecajna/zadrske", v)
-	assert.Nil(t, err)
-	assert.Equal(t, string(rsp),
-		`[{"sportId":2,"liga":"Poljska - Ekstraklasa","zadrska":10},{"sportId":2,"liga":"Rumunjska - Kup","zadrska":12}]`)
-	assert.Equal(t, "260527", v2)
-
-	rsp, v3, err := GetWithVersion("http://localhost:8091/tecajna/zadrske", "260526")
-	assert.Nil(t, err)
-	assert.Equal(t, string(rsp),
-		`[{"sportId":2,"liga":"Poljska - Ekstraklasa","zadrska":10}]`)
-	assert.Equal(t, "260527", v3)
-
-	//New("http://localhost:8090/tecajna/zadrske").Get()
 }
 
 func TestCalcRetryInterval(t *testing.T) {
@@ -57,4 +34,21 @@ func TestCalcRetryInterval(t *testing.T) {
 	assert.Equal(t, 148, r.calcRetryInterval(5))
 	assert.Equal(t, 403, r.calcRetryInterval(6))
 	assert.Equal(t, 1000, r.calcRetryInterval(7))
+}
+
+func TestGet(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "hello")
+	}))
+	defer ts.Close()
+
+	j := New(ts.URL, Retries(2, 1), Header("key", "value"))
+	assert.Equal(t, 2, j.retries)
+	assert.Equal(t, 1, j.retrySleep)
+	assert.NotNil(t, j.headers)
+
+	buf, err := j.Get()
+	assert.Nil(t, err)
+	assert.Equal(t, "hello\n", string(buf))
+	assert.Equal(t, http.StatusOK, j.StatusCode())
 }
