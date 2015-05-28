@@ -24,6 +24,15 @@ func TestGeoIpCheck(t *testing.T) {
 	assert.True(t, g.Check("127.0.0.1"))
 	assert.True(t, g.Check("10.103.46.121"))
 	assert.True(t, g.Check("212.15.168.195"))
+
+	assert.False(t, g.Check("sto je ovo "))
+}
+
+func TestGeoIpOk(t *testing.T) {
+	assert.True(t, IpOk("bilo sta"))
+	Init(os.Getenv("GEOIP_DB_PATH"))
+	assert.False(t, IpOk("208.117.229.99"))
+	assert.True(t, IpOk("212.15.168.195"))
 }
 
 func TestGeoIsLocalAddress(t *testing.T) {

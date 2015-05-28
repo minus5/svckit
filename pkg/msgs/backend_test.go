@@ -86,4 +86,12 @@ func TestIsFullIsDiff(t *testing.T) {
 	assert.Equal(t, "pero.zdero", (&Backend{Type: "pero/zdero/diff"}).RootType())
 	assert.Equal(t, "pero.zdero", (&Backend{Type: "pero/zdero/full"}).RootType())
 	assert.Equal(t, "pero.zdero.nesto", (&Backend{Type: "pero/zdero/nesto"}).RootType())
+
+	assert.Equal(t, "pero_zdero_nesto_0.json", (&Backend{Type: "pero/zdero/nesto"}).FileName())
+	assert.Equal(t, "pero_zdero_nesto.json", (&Backend{Type: "pero/zdero/nesto", No: -1}).FileName())
+}
+
+func TestCreateBackend(t *testing.T) {
+	buf := createBackend("pero", 12, 14, nil, true)
+	assert.NotNil(t, buf)
 }
