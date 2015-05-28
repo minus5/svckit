@@ -11,51 +11,36 @@ import (
 // Done() oznacava task kao zavrsen (inicijalno je u working stanju).
 
 type WaitTimeout struct {
-	queue   chan bool
-	working bool
+	doneCh chan struct{}
 }
 
 func NewWaitTimeout() *WaitTimeout {
-	return &WaitTimeout{queue: make(chan bool), working: true}
+	return &WaitTimeout{doneCh: make(chan struct{})}
 }
 
 //Mark task as done, will release all goroutines blocked in Wait()
 func (w *WaitTimeout) Done() {
-	if !w.working {
+	if !w.Finished() {
+		close(w.doneCh)
+	}
+}
+
+func (w *WaitTimeout) WaitInfinite() {
+	select {
+	case <-w.doneCh:
 		return
 	}
-	w.working = false
-	w.notifyWaiters()
-	close(w.queue)
-}
-
-//reading from queue will release all writers
-func (w *WaitTimeout) notifyWaiters() {
-	for {
-		select {
-		case <-w.queue:
-		default:
-			return
-		}
-	}
-}
-
-func (w *WaitTimeout) WaitInfinite() bool {
-	return w.Wait(0)
 }
 
 //Will wait here until Done is called or waitDuration is reached.
 //Returns false if times out, otherwise true.
 func (w *WaitTimeout) Wait(waitDuration time.Duration) bool {
-	if w.Finished() {
+	if waitDuration == 0 {
+		w.WaitInfinite()
 		return true
 	}
-	if waitDuration == 0 {
-		waitDuration = time.Hour
-	}
 	select {
-	//block until someone starts reading from queue
-	case w.queue <- true:
+	case <-w.doneCh: //block until Done is called
 		return true
 	case <-time.After(waitDuration):
 		return false
@@ -63,5 +48,10 @@ func (w *WaitTimeout) Wait(waitDuration time.Duration) bool {
 }
 
 func (w *WaitTimeout) Finished() bool {
-	return !w.working
+	select {
+	case <-w.doneCh:
+		return true
+	default:
+		return false
+	}
 }
