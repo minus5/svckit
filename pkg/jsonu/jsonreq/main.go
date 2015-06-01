@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -23,9 +22,16 @@ type request struct {
 	body       []byte
 	retries    int
 	retrySleep int
-	headers    http.Header
+	headers    map[string]string
 	method     string
+	timeout    time.Duration
 	rsp        *http.Response
+}
+
+func Timeout(t time.Duration) func(*request) {
+	return func(r *request) {
+		r.timeout = t
+	}
 }
 
 //Retries set number of retries and max delay between them
@@ -40,10 +46,7 @@ func Retries(retries, maxRetrySleepSec int) func(*request) {
 //Header set header for request
 func Header(key, value string) func(*request) {
 	return func(r *request) {
-		if r.headers == nil {
-			r.headers = http.Header{}
-		}
-		r.headers.Set(key, value)
+		r.headers[key] = value
 	}
 }
 
@@ -100,7 +103,9 @@ func New(url string, options ...func(*request)) *request {
 		url:        url,
 		retries:    defaultRetries,
 		retrySleep: maxRetrySleep,
+		timeout:    15 * time.Minute,
 		method:     "POST",
+		headers:    make(map[string]string),
 	}
 	//apply options
 	for _, o := range options {
@@ -144,13 +149,17 @@ func (r *request) one() ([]byte, error, bool) {
 	if err != nil {
 		return nil, err, true
 	}
-	if r.headers != nil {
-		r.copyHeader(req.Header, r.headers)
-	}
+	//headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	for k, v := range r.headers {
+		req.Header.Set(k, v)
+	}
+	//req.Header.Set("Content-Type", "application/octet-stream")
 	req.ContentLength = int64(len(r.body))
-	rsp, err := http.DefaultClient.Do(req)
+
+	client := &http.Client{Timeout: r.timeout}
+	rsp, err := client.Do(req)
 	if err != nil {
 		return nil, err, true
 	}
@@ -179,14 +188,4 @@ func (r *request) calcRetryInterval(retry int) int {
 		retryAfter = r.retrySleep
 	}
 	return retryAfter
-}
-
-func (r *request) copyHeader(dst, src http.Header) {
-	for k, vv := range src {
-		if !strings.Contains(k, "Accept-Encoding") {
-			for _, v := range vv {
-				dst.Add(k, v)
-			}
-		}
-	}
 }
