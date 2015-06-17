@@ -91,35 +91,8 @@ func sameValue(k string, vl *simplejson.Json, vr *simplejson.Json) int {
 		if vl.MustInt64() == vr.MustInt64() {
 			return areSame
 		}
-	case []interface{}:
-		al := vl.MustArray()
-		ar := vr.MustArray()
-		if len(ar) != len(al) {
-			return areDifferent
-		}
-		for i, _ := range al {
-			if sameValue(k, vl.GetIndex(i), vr.GetIndex(i)) != areSame {
-				return areDifferent
-			}
-		}
-		return areSame
-	case []int:
-		al, okl := vl.Interface().([]int)
-		ar, okr := vr.Interface().([]int)
-		if !okl || !okr {
-			return areDifferent
-		}
-		if len(ar) != len(al) {
-			return areDifferent
-		}
-		for i, _ := range al {
-			if al[i] != ar[i] {
-				return areDifferent
-			}
-		}
-		return areSame
-		//uspredba serijalizacijom u json
-	case []int64, [2][2]int, [][2]int:
+	//uspredba serijalizacijom u json
+	case []int, []int64, [2][2]int, [][2]int, []interface{}:
 		bl, _ := vl.Encode()
 		br, _ := vr.Encode()
 		if string(bl) == string(br) {
