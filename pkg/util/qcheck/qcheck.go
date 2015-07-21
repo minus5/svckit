@@ -1,48 +1,58 @@
 package qcheck
 
 import (
-	"sync/atomic"
+	"fmt"
+	"sync"
 	"time"
+)
+
+const (
+	CHANNEL_BUFFER = 1000000
 )
 
 type timeFunc func() time.Duration
 
 type QueueChecker struct {
-	c            chan struct{}
-	count        uint64
+	c            chan time.Time
 	last         time.Time
 	ticker       *time.Ticker
 	intervalFunc timeFunc
+	sync.RWMutex
 }
 
-func New(c chan struct{}, intervalFunc timeFunc) *QueueChecker {
+func New(intervalFunc timeFunc) *QueueChecker {
 	qc := &QueueChecker{
-		c:            c,
+		c:            make(chan time.Time, CHANNEL_BUFFER),
 		intervalFunc: intervalFunc,
 	}
-	qc.check()
+	go qc.drain()
 	return qc
 }
 
-func (t *QueueChecker) check() {
-	go func() {
-		for range t.c {
-			atomic.AddUint64(&t.count, 1)
-			t.last = time.Now()
-		}
-	}()
-	go func() {
-		for {
-			time.Sleep(t.intervalFunc())
-			atomic.StoreUint64(&t.count, 0)
-		}
-	}()
+func (t *QueueChecker) drain() {
+	for tm := range t.c {
+		time.Sleep(tm.Sub(time.Now()))
+	}
 }
 
-func (t *QueueChecker) Count() uint64 {
-	return atomic.LoadUint64(&t.count)
+func (t *QueueChecker) Push() error {
+	t.Lock()
+	t.last = time.Now()
+	t.Unlock()
+	select {
+	case t.c <- time.Now().Add(t.intervalFunc()):
+		return nil
+	default:
+		return fmt.Errorf("qheck: channel full")
+	}
+}
+
+func (t *QueueChecker) Count() int {
+	return len(t.c)
 }
 
 func (t *QueueChecker) Last() time.Time {
+	t.RLock()
+	defer t.RUnlock()
 	return t.last
 }

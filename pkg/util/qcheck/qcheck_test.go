@@ -1,6 +1,7 @@
 package qcheck
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -8,26 +9,29 @@ import (
 )
 
 func TestCount(t *testing.T) {
-	c := make(chan struct{}, 1000)
-	qc := New(c, func() time.Duration {
+	qc := New(func() time.Duration {
 		return time.Millisecond * 100
 	})
-	assert.NotNil(t, c)
 	assert.NotNil(t, qc)
-	assert.Equal(t, uint64(0), qc.Count())
+	assert.Equal(t, 0, qc.Count())
 	go func() {
 		for range time.NewTicker(time.Millisecond * 10).C {
-			qc.c <- struct{}{}
+			err := qc.Push()
+			assert.Nil(t, err)
 		}
 		close(qc.c)
 	}()
-	time.Sleep(time.Second)
-	assert.True(t, func() bool {
-		c := qc.Count()
-		return c > 8 && c < 12
-	}())
-	assert.True(t, func() bool {
-		lastDelta := qc.Last().Sub(time.Now())
-		return lastDelta > -time.Millisecond*20 && lastDelta < 0
-	}())
+	for i := 0; i < 50; i++ {
+		time.Sleep(time.Second)
+		assert.True(t, func() bool {
+			c := qc.Count()
+			fmt.Printf("count: %d\n", c)
+			return c > 8 && c < 12
+		}())
+		assert.True(t, func() bool {
+			lastDelta := qc.Last().Sub(time.Now())
+			fmt.Printf("last delta: %v\n", lastDelta)
+			return lastDelta > -time.Millisecond*20 && lastDelta < 0
+		}())
+	}
 }
