@@ -9,7 +9,7 @@ import (
 )
 
 func TestCount(t *testing.T) {
-	qc := New(func() time.Duration {
+	qc := New(1000, func() time.Duration {
 		return time.Millisecond * 100
 	})
 	assert.NotNil(t, qc)
@@ -21,7 +21,7 @@ func TestCount(t *testing.T) {
 		}
 		close(qc.c)
 	}()
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 10; i++ {
 		time.Sleep(time.Second)
 		assert.True(t, func() bool {
 			c := qc.Count()
