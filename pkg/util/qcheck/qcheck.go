@@ -16,6 +16,8 @@ type QueueChecker struct {
 	ticker       *time.Ticker
 	intervalFunc timeFunc
 	sync.RWMutex
+	first sync.Once
+	any   bool
 }
 
 func New(maxSize int, intervalFunc timeFunc) *QueueChecker {
@@ -39,6 +41,9 @@ func (t *QueueChecker) Push() error {
 	t.Lock()
 	t.last = time.Now()
 	t.Unlock()
+	t.first.Do(func() {
+		t.any = true
+	})
 	select {
 	case t.c <- time.Now().Add(t.intervalFunc()):
 		return nil
@@ -55,4 +60,8 @@ func (t *QueueChecker) Last() time.Time {
 	t.RLock()
 	defer t.RUnlock()
 	return t.last
+}
+
+func (t *QueueChecker) Any() bool {
+	return t.any
 }
