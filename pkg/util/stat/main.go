@@ -10,10 +10,10 @@ import (
 )
 
 type StatsdClient struct {
-	client *statsd.Client
+	client statsd.Statter
 }
 
-var client *statsd.Client
+var client statsd.Statter
 
 //Initialize connection to statsd server.
 func Init(addr, prefix string, includeHostNameInPrefix bool) error {
