@@ -1,6 +1,8 @@
 package candy
 
 import (
+	"fmt"
+
 	cjs "github.com/mcuadros/go-candyjs"
 )
 
@@ -23,5 +25,10 @@ func (t *Candy) Eval(src string) (interface{}, error) {
 	if err := t.c.PevalString(src); err != nil {
 		return nil, err
 	}
-	return t.c.GetString(-1), nil
+	s := t.c.GetString(-1)
+	if s != "" {
+		return s, nil
+	} else {
+		return fmt.Sprint(t.c.GetNumber(-1)), nil
+	}
 }
