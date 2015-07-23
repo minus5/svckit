@@ -30,14 +30,14 @@ func TestEval(t *testing.T) {
 
 func TestEvalConcurrent(t *testing.T) {
 	c := make(chan string)
-	for int i := 0; i < 10; i++{
+	for i := 0; i < 10; i++ {
 		go func() {
-		fmt.Println("first start")
-		defer fmt.Println("first end")
-		r, err := v.Eval(TEST_JS_SOURCE)
-		assert.Nil(t, err)
-		assert.Equal(t, TEST_EXPECT, r)
-	}()
+			fmt.Println("first start")
+			defer fmt.Println("first end")
+			r, err := v.Eval(TEST_JS_SOURCE)
+			assert.Nil(t, err)
+			assert.Equal(t, TEST_EXPECT, r)
+		}()
 	}
 	go func() {
 		fmt.Println("first start")

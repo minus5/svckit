@@ -21,7 +21,7 @@ func TestMsgListic(t *testing.T) {
 	assert.Equal(t, "listici", msg.Type)
 	assert.Equal(t, "235436360ef4e64add59b56894a488be0f89ff57", msg.IgracId)
 	assert.Equal(t, "F405BEBC-A1CA-4AA4-90C8-331D52AF7904", msg.Id)
-	assert.Equal(t, 254, msg.No)
+	assert.Equal(t, int64(254), msg.No)
 	assert.True(t, strings.HasPrefix(msg.bodyStr(), `{"_id":"F405BEBC-A1CA-4AA4-90C8-331D52AF7904","listic_id":50000693,"igrac_id":`))
 }
 
@@ -50,7 +50,7 @@ func TestTecajnaManifest(t *testing.T) {
 	assert.Equal(t, "tecajna/manifest", msg.Type)
 	assert.Equal(t, "*", msg.IgracId)
 	assert.Equal(t, "", msg.Id)
-	assert.Equal(t, -1, msg.No)
+	assert.Equal(t, int64(-1), msg.No)
 	assert.True(t, strings.HasPrefix(msg.bodyStr(), `["152_1378994257",`))
 }
 
@@ -71,7 +71,7 @@ func TestMsgLiveDogadjaj(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, msg)
 	assert.Equal(t, "live/dogadjaj_web2_6430239/full", msg.Type)
-	assert.Equal(t, 311, msg.No)
+	assert.Equal(t, int64(311), msg.No)
 	assert.Equal(t, false, msg.IsDel)
 	assert.Equal(t, true, msg.Gzip)
 }
