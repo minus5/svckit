@@ -15,11 +15,12 @@ type LeaderElection struct {
 	sync.RWMutex
 }
 
-func New(addr, dc, acl, key string) (*LeaderElection, error) {
+func New(addr, dc, key string) (*LeaderElection, error) {
 	config := consulapi.DefaultConfig()
 	config.Address = addr
-	config.Datacenter = dc
-	config.Token = acl
+	if dc != "" {
+		config.Datacenter = dc
+	}
 	client, err := consulapi.NewClient(config)
 	if err != nil {
 		return nil, err
