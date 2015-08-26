@@ -2,11 +2,14 @@ package geo
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +34,19 @@ func Init(file string) {
 	lock.Lock()
 	defer lock.Unlock()
 	geoIpCheck, _ = NewIpCheck(file)
+}
+
+func Default() error {
+	for _, p := range strings.Split(os.Getenv("GOPATH"), ":") {
+		path := path.Join(p, "src/pkg/geo/testGeoIP.dat")
+		log.Printf("trying to load Geo IP from: %s", path)
+		if _, err := os.Stat(path); err == nil {
+			Init(path)
+			log.Printf("loaded default Geo IP: %s", path)
+			return nil
+		}
+	}
+	return fmt.Errorf("default Geo IP file doesnt exist")
 }
 
 func NewIpCheck(file string) (*IpCheck, error) {
@@ -125,16 +141,20 @@ func getGeoIpFile(url, savePath string) error {
 	return nil
 }
 
-func checkGeoIpFile(path string) (time.Time, error) {
+func checkGeoIpFile(path string) (*time.Time, error) {
+	log.Printf("checking geo ip at %s", path)
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Printf("geo ip file doesn't exist")
+			return nil, fmt.Errorf("geo ip file doesn't exist")
 		} else {
-			log.Printf("geo ip file unreadable")
+			return nil, fmt.Errorf("geo ip file unreadable")
 		}
 	}
-	return fi.ModTime(), nil
+	log.Printf("found geo ip at %s", path)
+	tm := new(time.Time)
+	*tm = fi.ModTime()
+	return tm, nil
 }
 
 func Maintain(url, savePath string, interval time.Duration) {
@@ -143,13 +163,14 @@ func Maintain(url, savePath string, interval time.Duration) {
 		for {
 			mt, err := checkGeoIpFile(savePath)
 			if err != nil {
+				log.Println(err)
 				if err := getGeoIpFile(url, savePath); err != nil {
 					log.Printf("error getting GeoIP file: %v", err)
 					time.Sleep(GET_FILE_RETRY_INTERVAL_SECONDS * time.Second)
 				}
 			} else {
 				Init(savePath)
-				return mt
+				return *mt
 			}
 		}
 	}()
@@ -163,9 +184,11 @@ func Maintain(url, savePath string, interval time.Duration) {
 			if err != nil {
 				log.Printf("error: %v", err)
 			} else {
+				log.Printf("curent geo ip: %v, new geo ip: %v", mt, newMt)
 				if newMt.After(mt) {
+					log.Printf("loading geo ip")
 					Init(savePath)
-					mt = newMt
+					mt = *newMt
 				}
 			}
 		}
