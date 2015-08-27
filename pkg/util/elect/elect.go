@@ -3,6 +3,7 @@ package elect
 import (
 	"log"
 	"sync"
+	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -45,6 +46,7 @@ func (t *LeaderElection) Start() {
 			clean = true
 		default:
 			log.Println("Running for leader election...")
+			time.Sleep(time.Second)
 			intChan, _ := t.lock.Lock(t.stopChannel)
 			if intChan != nil {
 				log.Println("Now acting as leader.")
