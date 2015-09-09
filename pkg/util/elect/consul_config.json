@@ -1,6 +1,0 @@
-{
-	"bootstrap": true,
-	"server": true,
-	"datacenter": "local",
-	"data_dir": "consul_data/"
-}
