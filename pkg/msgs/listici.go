@@ -5,10 +5,11 @@ type ListiciBrisiMessage struct {
 	Listici []string `json:"listici"`
 }
 
-type ListiciDopuna struct {
+type DokumentiDopuna struct {
+	IgracId    string `json:"igrac_id"`
 	Tip        string `json:"tip"`
-	Count      int    `json:"count"`
-	MongoCount int    `json:"mongo_count"`
-	Offset     int    `json:"offset"`
-	Limit      int    `json:"limit"`
+	Count      int64  `json:"count"`
+	MongoCount int64  `json:"mongo_count"`
+	Offset     int64  `json:"offset"`
+	Limit      int64  `json:"limit"`
 }
