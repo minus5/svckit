@@ -6,9 +6,9 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"path"
+	"pkg/httpu"
 	"strings"
 	"sync"
 	"time"
@@ -113,7 +113,7 @@ func getGeoIpFile(url, savePath string) error {
 		return err
 	}
 	defer out.Close()
-	res, err := http.Get(url)
+	res, err := httpu.Get(url)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"pkg/httpu"
 	"time"
 )
 
@@ -145,7 +146,7 @@ func (r *request) do() ([]byte, error) {
 }
 
 func (r *request) one() ([]byte, error, bool) {
-	req, err := http.NewRequest(r.method, r.url, bytes.NewReader(r.body))
+	req, err := httpu.NewRequest(r.method, r.url, bytes.NewReader(r.body))
 	if err != nil {
 		return nil, err, true
 	}
