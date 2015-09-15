@@ -97,3 +97,25 @@ func WriteFile(file string, buf []byte) error {
 	}
 	return nil
 }
+
+func RetryDouble(first, max time.Duration, f func() bool) {
+	Retry(first, max, 2, f)
+}
+
+func Retry(first, max time.Duration, base float64, f func() bool) {
+	total := time.Duration(0)
+	d := first
+	i := 0
+	for total < max {
+		if !f() {
+			nd := math.Pow(base, float64(i))
+			d = time.Duration(float64(first.Nanoseconds())*nd) * time.Nanosecond
+			log.Printf("sleeping %v", d)
+			time.Sleep(d)
+			total += d
+			i++
+		} else {
+			return
+		}
+	}
+}
