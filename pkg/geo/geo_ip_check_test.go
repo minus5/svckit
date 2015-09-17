@@ -39,6 +39,7 @@ func TestGeoIpOk(t *testing.T) {
 	Init(TEST_GEO_IP_FILE)
 	assert.False(t, IpOk("208.117.229.99"))
 	assert.True(t, IpOk("212.15.168.195"))
+	assert.True(t, IpOk("127.0.0.1"))
 }
 
 func TestGeoIsLocalAddress(t *testing.T) {
