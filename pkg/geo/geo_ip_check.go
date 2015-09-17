@@ -33,7 +33,12 @@ type IpCheck struct {
 func Init(file string) {
 	lock.Lock()
 	defer lock.Unlock()
-	geoIpCheck, _ = NewIpCheck(file)
+	c, err := NewIpCheck(file)
+	if err != nil {
+		log.Printf("could not initialize Geo IP check from %s", file)
+		return
+	}
+	geoIpCheck = c
 }
 
 func Default() error {
@@ -108,11 +113,6 @@ func isLocalAddress(ip string) bool {
 }
 
 func getGeoIpFile(url, savePath string) error {
-	out, err := os.Create(savePath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
 	res, err := httpu.Get(url)
 	if err != nil {
 		return err
@@ -128,6 +128,11 @@ func getGeoIpFile(url, savePath string) error {
 		return err
 	}
 	defer gzReader.Close()
+	out, err := os.Create(savePath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
 	n, err := io.Copy(out, gzReader)
 	if err != nil {
 		return err
@@ -170,6 +175,13 @@ func Maintain(url, savePath string, interval time.Duration) {
 				}
 			} else {
 				Init(savePath)
+				if geoIpCheck == nil {
+					if err := getGeoIpFile(url, savePath); err != nil {
+						log.Printf("error getting GeoIP file: %v", err)
+						time.Sleep(GET_FILE_RETRY_INTERVAL_SECONDS * time.Second)
+					}
+					continue
+				}
 				return *mt
 			}
 		}
