@@ -3,6 +3,7 @@ package testu
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"testing"
 
@@ -49,4 +50,14 @@ func RunShellScript(t *testing.T, name string) {
 	assert.Nil(t, err)
 	err = cmd.Wait()
 	assert.Nil(t, err)
+}
+
+func ShowDiff(file1, file2 string) {
+	cmd := exec.Command("icdiff", "--highlight", "--line-numbers", "-U 1", "--cols=128", file1, file2)
+	out, err := cmd.Output()
+	if err == nil {
+		fmt.Printf("%s", out)
+	} else {
+		log.Printf("diff status %s", err)
+	}
 }
