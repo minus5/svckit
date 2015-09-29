@@ -10,17 +10,18 @@ import (
 
 //Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
-	Type    string
-	Id      string
-	IgracId string
-	No      int64
-	From    string
-	To      string
-	IsDel   bool
-	Gzip    bool //da li je body inicijalno bio gzip-an
-	Ts      int
-	Body    []byte //raspakovan body
-	RawBody []byte
+	Type      string
+	Id        string
+	IgracId   string
+	No        int64
+	From      string
+	To        string
+	IsDel     bool
+	Gzip      bool //da li je body inicijalno bio gzip-an
+	Ts        int
+	Body      []byte //raspakovan body
+	RawBody   []byte
+	RawHeader []byte
 }
 
 func NewBackend(buf []byte) (*Backend, error) {
@@ -93,15 +94,16 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 	}
 
 	msg := &Backend{
-		Type:    header.Type,
-		IgracId: header.IgracId,
-		Id:      header.Id,
-		No:      header.No,
-		IsDel:   header.DocAction == "del" || header.Action == "del",
-		From:    header.From,
-		To:      header.To,
-		Gzip:    header.Encoding == "gzip",
-		Ts:      header.Ts,
+		Type:      header.Type,
+		IgracId:   header.IgracId,
+		Id:        header.Id,
+		No:        header.No,
+		IsDel:     header.DocAction == "del" || header.Action == "del",
+		From:      header.From,
+		To:        header.To,
+		Gzip:      header.Encoding == "gzip",
+		Ts:        header.Ts,
+		RawHeader: rawHeader,
 	}
 	if len(parts) > 1 {
 		body := parts[1]

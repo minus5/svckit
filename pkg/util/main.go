@@ -88,14 +88,33 @@ func UnixMilli() int64 {
 
 //WriteFile - napravi direktorij (ako ne postoji) i sinimi tamo file
 func WriteFile(file string, buf []byte) error {
-	dir, _ := path.Split(file)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+	if err := makeDirFor(file); err != nil {
 		return err
 	}
 	if err := ioutil.WriteFile(file, buf, 0644); err != nil {
 		return err
 	}
 	return nil
+}
+
+func AppendToFile(file string, buf []byte) error {
+	if err := makeDirFor(file); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err = f.Write(buf); err != nil {
+		return nil
+	}
+	return nil
+}
+
+func makeDirFor(file string) error {
+	dir, _ := path.Split(file)
+	return os.MkdirAll(dir, os.ModePerm)
 }
 
 func RetryDouble(first, max time.Duration, f func() bool) {
