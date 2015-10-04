@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"pkg/jsonu"
 	"pkg/util"
 	"strings"
 )
@@ -26,6 +29,14 @@ type Backend struct {
 
 func NewBackend(buf []byte) (*Backend, error) {
 	return parseAsBackend(buf)
+}
+
+func MustNewBackend(buf []byte) *Backend {
+	m, err := parseAsBackend(buf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return m
 }
 
 func CreateBackend(typ string, no int, body []byte) []byte {
@@ -150,4 +161,27 @@ func (m *Backend) FileName() string {
 		}
 	}
 	return fmt.Sprintf("%s.json", fn)
+}
+
+func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
+	var b bytes.Buffer
+
+	body := m.Body
+	if prettyJson {
+		body, _ = jsonu.MarshalPrettyBuf([]byte(body))
+	}
+
+	if !noHeader {
+		b.Write(m.RawHeader)
+		b.Write([]byte{10})
+	}
+	if len(body) > 0 {
+		b.Write(body)
+		if body[len(body)-1] != 10 {
+			b.Write([]byte{10})
+		}
+	}
+	b.Write([]byte{10})
+
+	return &b
 }

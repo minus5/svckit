@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -97,7 +98,7 @@ func WriteFile(file string, buf []byte) error {
 	return nil
 }
 
-func AppendToFile(file string, buf []byte) error {
+func AppendToFile(file string, rdr io.Reader) error {
 	if err := makeDirFor(file); err != nil {
 		return err
 	}
@@ -106,10 +107,8 @@ func AppendToFile(file string, buf []byte) error {
 		return err
 	}
 	defer f.Close()
-	if _, err = f.Write(buf); err != nil {
-		return nil
-	}
-	return nil
+	_, err = io.Copy(f, rdr)
+	return err
 }
 
 func makeDirFor(file string) error {
