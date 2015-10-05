@@ -9,6 +9,7 @@ import (
 	"pkg/jsonu"
 	"pkg/util"
 	"strings"
+	"time"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -56,6 +57,8 @@ func createBackend(typ string, no int, ts int, body []byte, compress bool) []byt
 	}
 	if ts != 0 {
 		header["ts"] = ts
+	} else {
+		header["ts"] = time.Now().UnixNano
 	}
 	if compress && len(body) > 1024 {
 		body = util.Gzip(body)
