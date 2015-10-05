@@ -165,12 +165,12 @@ func (m *Backend) FileName() string {
 	return fmt.Sprintf("%s.json", fn)
 }
 
-func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
+func (m *Backend) format(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
 	var b bytes.Buffer
 
 	body := m.Body
-	if prettyJson {
-		body, _ = jsonu.MarshalPrettyBuf([]byte(body))
+	if bufferMarshalFunc != nil {
+		body, _ = bufferMarshalFunc([]byte(body))
 	}
 
 	if !noHeader {
@@ -186,4 +186,16 @@ func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
 	b.Write([]byte{10})
 
 	return &b
+}
+
+func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
+	if prettyJson {
+		return m.format(jsonu.MarshalPrettyBuf, noHeader)
+	} else {
+		return m.format(nil, noHeader)
+	}
+}
+
+func (m *Backend) FormatWith(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
+	return m.format(bufferMarshalFunc, noHeader)
 }

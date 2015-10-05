@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/xml"
 	"io"
 	"io/ioutil"
 	"log"
@@ -136,4 +137,10 @@ func Retry(first, max time.Duration, base float64, f func() bool) {
 			return
 		}
 	}
+}
+
+func MarshalXMLPrettyBuf(buf []byte) ([]byte, error) {
+	var data map[string]interface{}
+	xml.Unmarshal(buf, &data)
+	return xml.MarshalIndent(data, "", "  ")
 }
