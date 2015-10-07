@@ -10,11 +10,16 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/nu7hatch/gouuid"
+)
+
+var (
+	sanitizeRx = regexp.MustCompile("[^a-zA-Z0-9-]*")
 )
 
 func Uuid() string {
@@ -159,4 +164,8 @@ func XMLPretty(data []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
+}
+
+func Sanitize(s string) string {
+	return sanitizeRx.ReplaceAllString(s, "")
 }
