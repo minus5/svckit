@@ -39,6 +39,17 @@ func MustNewBackend(buf []byte) *Backend {
 	return m
 }
 
+// Poruka za zatvaranja kanala ima samo tip i action, nema body
+func CreateBackendDel(typ string) []byte {
+	header := map[string]interface{}{
+		"type":   typ,
+		"action": "del",
+	}
+	buf, _ := json.Marshal(header)
+	buf = append(buf, []byte{10}...)
+	return buf
+}
+
 func CreateBackend(typ string, no int, body []byte) []byte {
 	return createBackend(typ, no, 0, body, true)
 }
