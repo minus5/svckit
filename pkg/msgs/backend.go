@@ -9,6 +9,7 @@ import (
 	"pkg/jsonu"
 	"pkg/util"
 	"strings"
+	"time"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -67,9 +68,9 @@ func createBackend(typ string, no int, ts int, body []byte, compress bool) []byt
 	}
 	if ts != 0 {
 		header["ts"] = ts
-	} /*else {
-		header["ts"] = time.Now().UnixNano
-	}*/
+	} else {
+		header["ts"] = time.Now().UnixNano()
+	}
 	if compress && len(body) > 1024 {
 		body = util.Gzip(body)
 		header["encoding"] = "gzip"
@@ -108,7 +109,7 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 
 	err := json.Unmarshal(rawHeader, &header)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing json header: %s", rawHeader)
+		return nil, fmt.Errorf("error parsing json header: %s, %v", rawHeader, err)
 	}
 	if header.Type == "" && header.DocType != "" {
 		header.Type = header.DocType
