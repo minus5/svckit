@@ -36,3 +36,8 @@ func TestStopwatch(t *testing.T) {
 	elapsed := sw.GetMs()
 	assert.InDelta(t, 10, elapsed, 10)
 }
+
+func TestSanitize(t *testing.T) {
+	s := "Smeće: -/* Sí, Señor!"
+	assert.Equal(t, "Smece-SiSenor", Sanitize(s))
+}

@@ -19,8 +19,78 @@ import (
 )
 
 var (
-	sanitizeRx = regexp.MustCompile("[^a-zA-Z0-9-]*")
+	sanitizeRx   = regexp.MustCompile("[^a-zA-Z0-9-]*")
+	diacriticMap = map[string]string{
+		"č": "c",
+		"ć": "c",
+		"đ": "dj",
+		"ž": "z",
+		"š": "s",
+		"Č": "C",
+		"Ć": "C",
+		"Đ": "Dj",
+		"Ž": "Z",
+		"Š": "S",
+		"ö": "oe",
+		"Ö": "Oe",
+		"ä": "ae",
+		"Ä": "Ae",
+		"ü": "ue",
+		"Ü": "Ue",
+		"ß": "ss",
+		"ñ": "n",
+		"Ñ": "N",
+		"ç": "c",
+		"Ç": "c",
+		"á": "a",
+		"é": "e",
+		"í": "i",
+		"ó": "o",
+		"ú": "u",
+		"à": "a",
+		"è": "e",
+		"ì": "i",
+		"ò": "o",
+		"ù": "u",
+		"ë": "e",
+		"ï": "i",
+		"â": "a",
+		"ê": "e",
+		"î": "i",
+		"ô": "o",
+		"û": "u",
+		"ã": "a",
+		"õ": "o",
+		"Á": "A",
+		"É": "E",
+		"Í": "I",
+		"Ó": "O",
+		"Ú": "U",
+		"À": "A",
+		"È": "E",
+		"Ì": "I",
+		"Ò": "O",
+		"Ù": "U",
+		"Ë": "E",
+		"Ï": "I",
+		"Â": "A",
+		"Ê": "E",
+		"Î": "I",
+		"Ô": "O",
+		"Û": "U",
+		"Ã": "A",
+		"Õ": "O",
+	}
+	diacriticReplacer = initDiacriticReplacer()
 )
+
+func initDiacriticReplacer() *strings.Replacer {
+	args := []string{}
+	for key, val := range diacriticMap {
+		args = append(args, key, val)
+	}
+	return strings.NewReplacer(args...)
+}
 
 func Uuid() string {
 	u4, err := uuid.NewV4()
@@ -166,6 +236,14 @@ func XMLPretty(data []byte) ([]byte, error) {
 	}
 }
 
+func diacriticReplace(s string) string {
+	for key, val := range diacriticMap {
+		s = strings.Replace(s, key, val, -1)
+	}
+	return s
+}
+
 func Sanitize(s string) string {
+	s = diacriticReplacer.Replace(s)
 	return sanitizeRx.ReplaceAllString(s, "")
 }
