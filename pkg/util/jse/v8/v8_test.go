@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	TEST_JS_SOURCE = `27 + 15`
-	TEST_EXPECT    = `42`
+	TestJsSource = `27 + 15`
+	TestExpect    = `42`
 )
 
 var v *V8
@@ -21,7 +21,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestEval(t *testing.T) {
-	r, err := v.Eval(TEST_JS_SOURCE)
+	r, err := v.Eval(TestJsSource)
 	assert.Nil(t, err)
-	assert.Equal(t, TEST_EXPECT, r)
+	assert.Equal(t, TestExpect, r)
 }

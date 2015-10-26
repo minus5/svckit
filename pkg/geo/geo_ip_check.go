@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	GET_FILE_RETRY_INTERVAL_SECONDS = 30
+	GetFileRetryIntervalSeconds = 30
 )
 
 var geoIpCheck *IpCheck
@@ -171,14 +171,14 @@ func Maintain(url, savePath string, interval time.Duration) {
 				log.Println(err)
 				if err := getGeoIpFile(url, savePath); err != nil {
 					log.Printf("error getting GeoIP file: %v", err)
-					time.Sleep(GET_FILE_RETRY_INTERVAL_SECONDS * time.Second)
+					time.Sleep(GetFileRetryIntervalSeconds * time.Second)
 				}
 			} else {
 				Init(savePath)
 				if geoIpCheck == nil {
 					if err := getGeoIpFile(url, savePath); err != nil {
 						log.Printf("error getting GeoIP file: %v", err)
-						time.Sleep(GET_FILE_RETRY_INTERVAL_SECONDS * time.Second)
+						time.Sleep(GetFileRetryIntervalSeconds * time.Second)
 					}
 					continue
 				}

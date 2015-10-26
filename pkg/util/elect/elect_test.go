@@ -9,16 +9,16 @@ import (
 )
 
 const (
-	CANDIDATE_COUNT  = 5
-	TEST_CONSUL_ADDR = "127.0.0.1:8500"
-	TEST_CONSUL_DC   = ""
-	TEST_KEY         = "testkey"
+	CandidateCount = 5
+	TestConsulAddr = "127.0.0.1:8500"
+	TestConsulDc   = ""
+	TestKey        = "testkey"
 )
 
 func TestElection(t *testing.T) {
 	candidates := map[int]*LeaderElection{}
-	for i := 0; i < CANDIDATE_COUNT; i++ {
-		c, err := New(TEST_CONSUL_ADDR, TEST_CONSUL_DC, TEST_KEY)
+	for i := 0; i < CandidateCount; i++ {
+		c, err := New(TestConsulAddr, TestConsulDc, TestKey)
 		assert.Nil(t, err)
 		assert.NotNil(t, c)
 		go c.Start()
