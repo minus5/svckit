@@ -41,3 +41,8 @@ func TestSanitize(t *testing.T) {
 	s := "Smeće: -/* Sí, Señor!"
 	assert.Equal(t, "Smece-SiSenor", Sanitize(s))
 }
+
+func TestTimeUnixMilli(t *testing.T) {
+	tt, _ := time.Parse("Jan 2, 2006 at 3:04 (MST)", "Oct 1, 2015 at 9:30 (CET)")
+	assert.Equal(t, int64(1443688200000), TimeUnixMilli(tt))
+}

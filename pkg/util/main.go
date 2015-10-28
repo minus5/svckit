@@ -161,7 +161,11 @@ func Round(x float64, prec int) float64 {
 
 //UnixMilli - unix timestamp u milisekundama, pogodan za js
 func UnixMilli() int64 {
-	return time.Now().UnixNano() / int64(time.Millisecond)
+	return TimeUnixMilli(time.Now())
+}
+
+func TimeUnixMilli(t time.Time) int64 {
+	return t.UnixNano() / int64(time.Millisecond)
 }
 
 //WriteFile - napravi direktorij (ako ne postoji) i sinimi tamo file
