@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+var (
+	HeaderSeparator []byte = []byte{10} //new line
+)
+
 //Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
 	Type      string
@@ -28,15 +32,33 @@ type Backend struct {
 	RawHeader []byte
 }
 
+func NewBackendFromTopic(buf []byte, topic string) *Backend {
+	if topic == "igraci" {
+		//mogu doci i kao multipart i bez headera
+		if hasHeader(buf) {
+			parseAsBackend(buf)
+		}
+		//igraci su specificni jer u igrac_id imaju int, a ne string kao svi drugi
+		//pa ih ovdje tretiram posebno
+		return newIgraciBackend(buf)
+	}
+	m := parseAsBackend(buf)
+	if m.Type == "" {
+		m.Type = topic
+	}
+	switch topic {
+	case "listici.novi", "listici.promjene", "listici.dopuna", "listici":
+		m.Type = "listici"
+	}
+	return m
+}
+
 func NewBackend(buf []byte) (*Backend, error) {
-	return parseAsBackend(buf)
+	return parseAsBackend(buf), nil
 }
 
 func MustNewBackend(buf []byte) *Backend {
-	m, err := parseAsBackend(buf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	m := parseAsBackend(buf)
 	return m
 }
 
@@ -47,7 +69,7 @@ func CreateBackendDel(typ string) []byte {
 		"action": "del",
 	}
 	buf, _ := json.Marshal(header)
-	buf = append(buf, []byte{10}...)
+	buf = append(buf, HeaderSeparator...)
 	return buf
 }
 
@@ -76,7 +98,7 @@ func createBackend(typ string, no int, ts int, body []byte, compress bool) []byt
 		header["encoding"] = "gzip"
 	}
 	buf, _ := json.Marshal(header)
-	buf = append(buf, []byte{10}...)
+	buf = append(buf, HeaderSeparator...)
 	buf = append(buf, body...)
 	return buf
 }
@@ -85,10 +107,22 @@ func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
 	return createBackend(typ, no, ts, body, true)
 }
 
-func parseAsBackend(buf []byte) (*Backend, error) {
-	parts := bytes.SplitN(buf, []byte{10}, 2)
+func parseAsBackend(buf []byte) *Backend {
+	parts := bytes.SplitN(buf, HeaderSeparator, 2)
 	rawHeader := parts[0]
+	msg, err := parseHeader(rawHeader)
+	if len(parts) == 1 || err != nil {
+		msg.Body, _ = util.GunzipIf(buf)
+		msg.RawBody = buf
+		return msg
+	}
+	body := parts[1]
+	msg.RawBody = body
+	msg.Body, _ = util.GunzipIf(body)
+	return msg
+}
 
+func parseHeader(rawHeader []byte) (*Backend, error) {
 	header := struct {
 		DocType   string `json:"doc_type"`
 		Type      string `json:"type"`
@@ -102,6 +136,8 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 		Ts        int    `json:"ts"`
 		No        int64  `json:"no"`
 		Encoding  string `json:"encoding"`
+		DeletedId string `json:"_deleted_id"`
+		Id2       string `json:"_id"`
 	}{
 		No:      -1,
 		IgracId: "*",
@@ -109,7 +145,11 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 
 	err := json.Unmarshal(rawHeader, &header)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing json header: %s, %v", rawHeader, err)
+		log.Printf("[ERROR]: %s, rawHeader: %s", err, rawHeader)
+		return &Backend{}, fmt.Errorf("error parsing json header: %s, %v", rawHeader, err)
+	}
+	if header.Id == "" && header.Id2 != "" {
+		header.Id = header.Id2
 	}
 	if header.Type == "" && header.DocType != "" {
 		header.Type = header.DocType
@@ -117,8 +157,12 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 	if header.Id == "" && header.DocId != "" {
 		header.Id = header.DocId
 	}
+	if header.Id == "" && header.DeletedId != "" {
+		header.Id = header.DeletedId
+		header.Action = "del"
+	}
 
-	msg := &Backend{
+	return &Backend{
 		Type:      header.Type,
 		IgracId:   header.IgracId,
 		Id:        header.Id,
@@ -129,23 +173,8 @@ func parseAsBackend(buf []byte) (*Backend, error) {
 		Gzip:      header.Encoding == "gzip",
 		Ts:        header.Ts,
 		RawHeader: rawHeader,
-	}
-	if len(parts) > 1 {
-		body := parts[1]
-		msg.RawBody = body
-		if msg.Gzip && util.IsGziped(body) {
-			if msg.Body, err = util.Gunzip(body); err != nil {
-				return nil, err
-			}
-		} else {
-			msg.Body = body
-		}
-	} else {
-		msg.Body, _ = util.GunzipIf(buf)
-		msg.RawBody = buf
-	}
+	}, nil
 
-	return msg, nil
 }
 
 func (b *Backend) bodyStr() string {
@@ -187,15 +216,15 @@ func (m *Backend) format(bufferMarshalFunc func(buf []byte) ([]byte, error), noH
 
 	if !noHeader {
 		b.Write(m.RawHeader)
-		b.Write([]byte{10})
+		b.Write(HeaderSeparator)
 	}
 	if len(body) > 0 {
 		b.Write(body)
 		if body[len(body)-1] != 10 {
-			b.Write([]byte{10})
+			b.Write(HeaderSeparator)
 		}
 	}
-	b.Write([]byte{10})
+	b.Write(HeaderSeparator)
 
 	return &b
 }
@@ -210,4 +239,36 @@ func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
 
 func (m *Backend) FormatWith(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
 	return m.format(bufferMarshalFunc, noHeader)
+}
+
+func hasHeader(buf []byte) bool {
+	return bytes.Contains(buf, HeaderSeparator)
+}
+
+func newIgraciBackend(buf []byte) *Backend {
+	var msg struct {
+		Id        string `json:"_id"`
+		DeletedId string `json:"_deleted_id"`
+		IgracId   int    `json:"igrac_id"`
+	}
+	if err := json.Unmarshal(buf, &msg); err != nil {
+		log.Printf("[ERROR] unmarshal error %s %s", err, buf)
+		return nil
+	}
+	id := msg.Id
+	if msg.DeletedId != "" && id == "" {
+		id = msg.DeletedId
+	}
+	if id == "" {
+		log.Printf("[ERROR] ovo nije igraci poruka %s", buf)
+		return nil
+	}
+	return &Backend{
+		Type:    "igraci",
+		Id:      id,
+		IgracId: id,
+		IsDel:   msg.DeletedId != "",
+		Body:    buf,
+		RawBody: buf,
+	}
 }
