@@ -27,17 +27,15 @@ type Backend struct {
 	IsDel     bool
 	Gzip      bool //da li je body inicijalno bio gzip-an
 	Ts        int
+	Dc        string
 	Body      []byte //raspakovan body
 	RawBody   []byte
+	Header    map[string]interface{}
 	RawHeader []byte
 }
 
 func NewBackendFromTopic(buf []byte, topic string) *Backend {
-	if topic == "igraci" {
-		//mogu doci i kao multipart i bez headera
-		if hasHeader(buf) {
-			parseAsBackend(buf)
-		}
+	if topic == "igraci" && !hasHeader(buf) {
 		//igraci su specificni jer u igrac_id imaju int, a ne string kao svi drugi
 		//pa ih ovdje tretiram posebno
 		return newIgraciBackend(buf)
@@ -138,6 +136,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		Encoding  string `json:"encoding"`
 		DeletedId string `json:"_deleted_id"`
 		Id2       string `json:"_id"`
+		Dc        string `json:"dc"`
 	}{
 		No:      -1,
 		IgracId: "*",
@@ -173,6 +172,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		Gzip:      header.Encoding == "gzip",
 		Ts:        header.Ts,
 		RawHeader: rawHeader,
+		Dc:        header.Dc,
 	}, nil
 
 }
@@ -229,6 +229,12 @@ func (m *Backend) format(bufferMarshalFunc func(buf []byte) ([]byte, error), noH
 	return &b
 }
 
+func (m *Backend) Pack() []byte {
+	buf := append([]byte{}, m.RawHeader...)
+	buf = append(buf, HeaderSeparator...)
+	return append(buf, m.RawBody...)
+}
+
 func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
 	if prettyJson {
 		return m.format(jsonu.MarshalPrettyBuf, noHeader)
@@ -271,4 +277,33 @@ func newIgraciBackend(buf []byte) *Backend {
 		Body:    buf,
 		RawBody: buf,
 	}
+}
+
+func (m *Backend) SetDc(dc string) bool {
+	ok := m.AddToHeader("dc", dc)
+	if ok {
+		m.Dc = dc
+	}
+	return ok
+}
+
+func (m *Backend) SameDc(dc string) bool {
+	return m.Dc == dc
+}
+
+func (m *Backend) AddToHeader(key string, value interface{}) bool {
+	if m.Header == nil {
+		m.Header = make(map[string]interface{})
+		err := json.Unmarshal(m.RawHeader, &m.Header)
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+			return false
+		}
+	}
+	if _, ok := m.Header[key]; !ok {
+		m.Header[key] = value
+		m.RawHeader, _ = json.Marshal(m.Header)
+		return true
+	}
+	return false
 }

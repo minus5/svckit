@@ -117,14 +117,12 @@ func TestListiciDel(t *testing.T) {
 
 var igraciMessage string = `{"_id":"69fe88b8105f62b8622dec7b4cab34c6cf673e2e","adresa":"kresimirova 54","beta_programi":["konji2web"],"datum_rodjenja":"1953-01-15T00:00:00+01:00","dokumenata":{"internet":1,"listica":1,"poruka":0,"poslovnica":0,"transakcija":1609,"www":0},"drzava":"Hrvatska","email":"brunokapor@gmail.com","filename":null,"grad":"Rijeka","identitet_potvrdjen":false,"igrac_id":207879,"ime":"bruno","nadimak":"setter","neodigrani_iznos":0,"neodigrano":0,"original_filename":null,"pending_email":null,"postanski_broj":"51000","poziv_na_broj":"0839101776","prezime":"kapor","racuni":[],"raspolozivo":58,"state":"internet_active","stranac_potvrdjen":false,"telefon":"214655","tip":null,"ts":6304258350,"zadnja_isplata_broj_racuna":null,"zadnja_isplata_poslovnica_id":null,"zadnja_isplata_tip":null,"zadnja_procitana_poruka":16122928}`
 
-func TestIgraciParse(t *testing.T) {
-	msg := parseMessageStr(igraciMessage)
-	assert.Equal(t, "igraci", msg.Type)
-	assert.Equal(t, "69fe88b8105f62b8622dec7b4cab34c6cf673e2e", msg.IgracId)
-	assert.Equal(t, "69fe88b8105f62b8622dec7b4cab34c6cf673e2e", msg.Id)
-	assert.False(t, msg.IsDel)
-	assert.Equal(t, string(msg.Body), igraciMessage)
-}
+// func TestIgraciParse(t *testing.T) {
+// 	msg := parseMessageStr(igraciMessage)
+// 	assert.Equal(t, "", msg.Type)
+// 	assert.Equal(t, "", msg.IgracId)
+// 	assert.Equal(t, "", msg.Id)
+// }
 
 func TestIgraciNonBackend(t *testing.T) {
 	msg := NewBackendFromTopic([]byte(igraciMessage), "igraci")
@@ -137,7 +135,9 @@ func TestIgraciNonBackend(t *testing.T) {
 
 func TestIgraciBackend(t *testing.T) {
 	header := `{"type":"igraci","id":"neki","igrac_id":"drugi"}`
-	msg := NewBackendFromTopic([]byte(header+"\n"+igraciMessage), "igraci")
+	m := []byte(header + "\n" + igraciMessage)
+	assert.True(t, hasHeader(m))
+	msg := NewBackendFromTopic(m, "igraci")
 	assert.Equal(t, "igraci", msg.Type)
 	assert.Equal(t, "drugi", msg.IgracId)
 	assert.Equal(t, "neki", msg.Id)
@@ -180,4 +180,50 @@ func TestListiciBackend(t *testing.T) {
 	assert.Equal(t, "neki", msg.Id)
 	assert.False(t, msg.IsDel)
 	assert.Equal(t, string(msg.Body), listiciMessage)
+
+	//msg.SetDc("ec2")
+	//t.Logf("packed: %s", msg.Pack())
+}
+
+func TestSetDc(t *testing.T) {
+	header := []byte(`{"dc":"ec2"}`)
+	msg := NewBackendFromTopic(header, "topic")
+	assert.Equal(t, "topic", msg.Type)
+	assert.Equal(t, "ec2", msg.Dc)
+	assert.True(t, msg.SameDc("ec2"))
+	assert.False(t, msg.SetDc("pero"))
+}
+
+func TestParsePackHeaders(t *testing.T) {
+	before := []string{
+		`{"encoding":"gzip","no":3720164,"ts":1450259323479380960,"type":"dogadjaj"}`,
+		`{"doc_type":"live/simple/diff","action":"upd","from":"15938004","to":"15938005","no":15938005,"ts":1450259324462,"encoding":"gzip"}`,
+		`{"version":"5398519451","message_type":"multipart","encoding":"gzip"}`,
+		`{"igrac_id":"*","no":281,"created_at":1450259340,"doc_type":"konji20/kraj_oklada","encoding":"gzip"}`,
+		`{"no":4686,"ts":1450259322467155236,"type":"betradar"}`,
+		`{"type":"loto/lucky","encoding":"gzip"}`,
+		`{"version":"1450263005","encoding":"gzip"}`,
+		`{"version":"344705_1450259522","message_type":"insert/delete","encoding":"gzip"}`,
+		`{"igrac_id":"*","msg_no":1466,"created_at":1450259536,"from":"344705_1450259091","to":"344705_1450259522","doc_type":"tecajna/diff"}`,
+	}
+
+	after := []string{
+		`{"dc":"ec2","encoding":"gzip","no":3.720164e+06,"ts":1.450259323479381e+18,"type":"dogadjaj"}`,
+		`{"action":"upd","dc":"ec2","doc_type":"live/simple/diff","encoding":"gzip","from":"15938004","no":1.5938005e+07,"to":"15938005","ts":1.450259324462e+12}`,
+		`{"dc":"ec2","encoding":"gzip","message_type":"multipart","version":"5398519451"}`,
+		`{"created_at":1.45025934e+09,"dc":"ec2","doc_type":"konji20/kraj_oklada","encoding":"gzip","igrac_id":"*","no":281}`,
+		`{"dc":"ec2","no":4686,"ts":1.4502593224671552e+18,"type":"betradar"}`,
+		`{"dc":"ec2","encoding":"gzip","type":"loto/lucky"}`,
+		`{"dc":"ec2","encoding":"gzip","version":"1450263005"}`,
+		`{"dc":"ec2","encoding":"gzip","message_type":"insert/delete","version":"344705_1450259522"}`,
+		`{"created_at":1.450259536e+09,"dc":"ec2","doc_type":"tecajna/diff","from":"344705_1450259091","igrac_id":"*","msg_no":1466,"to":"344705_1450259522"}`,
+	}
+	for i, header := range before {
+		m, err := parseHeader([]byte(header))
+		assert.Nil(t, err)
+		ok := m.AddToHeader("dc", "ec2")
+		assert.True(t, ok)
+		assert.Equal(t, string(m.Pack()), after[i]+"\n")
+		//t.Logf("%s", m.Pack())
+	}
 }
