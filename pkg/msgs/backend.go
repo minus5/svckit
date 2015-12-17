@@ -18,20 +18,23 @@ var (
 
 //Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
-	Type      string
-	Id        string
-	IgracId   string
-	No        int64
-	From      string
-	To        string
-	IsDel     bool
-	Gzip      bool //da li je body inicijalno bio gzip-an
-	Ts        int
-	Dc        string
-	Body      []byte //raspakovan body
-	RawBody   []byte
-	Header    map[string]interface{}
-	RawHeader []byte
+	Type        string                 `json:"type,omitempty"`
+	Id          string                 `json:"id,omitempty"`
+	IgracId     string                 `json:"igrac_id,omitempty"`
+	No          int                    `json:"no,omitempty"`
+	From        string                 `json:"from,omitempty"`
+	To          string                 `json:"to,omitempty"`
+	IsDel       bool                   `json:"is_del,omitempty"`
+	Gzip        bool                   `json:"-"` //da li je body inicijalno bio gzip-an
+	Ts          int                    `json:"ts,omitempty"`
+	Dc          string                 `json:"dc,omitempty"`
+	Version     string                 `json:"version,omitempty"`
+	Encoding    string                 `json:"encoding,omitempty"`
+	MessageType string                 `json:"message_type,omitempty"`
+	Body        []byte                 `json:"-"` //raspakovan body
+	RawBody     []byte                 `json:"-"`
+	Header      map[string]interface{} `json:"-"`
+	RawHeader   []byte                 `json:"-"`
 }
 
 func NewBackendFromTopic(buf []byte, topic string) *Backend {
@@ -112,6 +115,7 @@ func parseAsBackend(buf []byte) *Backend {
 	if len(parts) == 1 || err != nil {
 		msg.Body, _ = util.GunzipIf(buf)
 		msg.RawBody = buf
+		msg.RawHeader = nil
 		return msg
 	}
 	body := parts[1]
@@ -122,21 +126,25 @@ func parseAsBackend(buf []byte) *Backend {
 
 func parseHeader(rawHeader []byte) (*Backend, error) {
 	header := struct {
-		DocType   string `json:"doc_type"`
-		Type      string `json:"type"`
-		DocId     string `json:"doc_id"`
-		Id        string `json:"id"`
-		DocAction string `json:"doc_action"`
-		Action    string `json:"action"`
-		IgracId   string `json:"igrac_id"`
-		From      string `json:"from"`
-		To        string `json:"to"`
-		Ts        int    `json:"ts"`
-		No        int64  `json:"no"`
-		Encoding  string `json:"encoding"`
-		DeletedId string `json:"_deleted_id"`
-		Id2       string `json:"_id"`
-		Dc        string `json:"dc"`
+		DocType     string `json:"doc_type"`
+		Type        string `json:"type"`
+		DocId       string `json:"doc_id"`
+		Id          string `json:"id"`
+		DocAction   string `json:"doc_action"`
+		Action      string `json:"action"`
+		IgracId     string `json:"igrac_id"`
+		From        string `json:"from"`
+		To          string `json:"to"`
+		Ts          int    `json:"ts"`
+		No          int    `json:"no"`
+		MsgNo       int    `json:"msg_no"`
+		Encoding    string `json:"encoding"`
+		DeletedId   string `json:"_deleted_id"`
+		IsDel       bool   `json:"is_del"`
+		Id2         string `json:"_id"`
+		Dc          string `json:"dc"`
+		Version     string `json:"version"`
+		MessageType string `json:"message_type,omitempty"`
 	}{
 		No:      -1,
 		IgracId: "*",
@@ -160,19 +168,25 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		header.Id = header.DeletedId
 		header.Action = "del"
 	}
+	if header.MsgNo != 0 && header.No == -1 {
+		header.No = header.MsgNo
+	}
 
 	return &Backend{
-		Type:      header.Type,
-		IgracId:   header.IgracId,
-		Id:        header.Id,
-		No:        header.No,
-		IsDel:     header.DocAction == "del" || header.Action == "del",
-		From:      header.From,
-		To:        header.To,
-		Gzip:      header.Encoding == "gzip",
-		Ts:        header.Ts,
-		RawHeader: rawHeader,
-		Dc:        header.Dc,
+		Type:        header.Type,
+		IgracId:     header.IgracId,
+		Id:          header.Id,
+		No:          header.No,
+		IsDel:       header.DocAction == "del" || header.Action == "del" || header.IsDel,
+		From:        header.From,
+		To:          header.To,
+		Gzip:        header.Encoding == "gzip",
+		Ts:          header.Ts,
+		RawHeader:   rawHeader,
+		Dc:          header.Dc,
+		Version:     header.Version,
+		Encoding:    header.Encoding,
+		MessageType: header.MessageType,
 	}, nil
 
 }
@@ -230,6 +244,23 @@ func (m *Backend) format(bufferMarshalFunc func(buf []byte) ([]byte, error), noH
 }
 
 func (m *Backend) Pack() []byte {
+	//igracid i no imaju defaulte koji se ne serijaliziraju lijepo uz ommitempty, pa malo kemijam oko toga
+	//volio bi neko inteligentnije rjesenje
+	igracId := m.IgracId
+	no := m.No
+	if m.IgracId == "*" {
+		m.IgracId = ""
+	}
+	if m.No == -1 {
+		m.No = 0
+	}
+	var err error
+	m.RawHeader, err = json.Marshal(m)
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+	}
+	m.IgracId = igracId
+	m.No = no
 	buf := append([]byte{}, m.RawHeader...)
 	buf = append(buf, HeaderSeparator...)
 	return append(buf, m.RawBody...)
@@ -280,11 +311,11 @@ func newIgraciBackend(buf []byte) *Backend {
 }
 
 func (m *Backend) SetDc(dc string) bool {
-	ok := m.AddToHeader("dc", dc)
-	if ok {
+	if m.Dc == "" {
 		m.Dc = dc
+		return true
 	}
-	return ok
+	return false
 }
 
 func (m *Backend) SameDc(dc string) bool {
@@ -299,6 +330,10 @@ func (m *Backend) AddToHeader(key string, value interface{}) bool {
 			log.Printf("[ERROR] %s", err)
 			return false
 		}
+		//kad raspakiram u map svi brojevi odu u float64
+		//pa onda kada zapakujem u exp notaciji poslije pukne na slijedecem raspakiravanju u int
+		toInt(m.Header, "ts")
+		toInt(m.Header, "no")
 	}
 	if _, ok := m.Header[key]; !ok {
 		m.Header[key] = value
@@ -306,4 +341,13 @@ func (m *Backend) AddToHeader(key string, value interface{}) bool {
 		return true
 	}
 	return false
+}
+
+func toInt(m map[string]interface{}, key string) {
+	if v, ok := m[key]; ok {
+		f, ok := v.(float64)
+		if ok {
+			m[key] = int(f)
+		}
+	}
 }
