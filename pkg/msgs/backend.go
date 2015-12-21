@@ -8,12 +8,16 @@ import (
 	"log"
 	"pkg/jsonu"
 	"pkg/util"
+	"strconv"
 	"strings"
 	"time"
 )
 
 var (
-	HeaderSeparator []byte = []byte{10} //new line
+	HeaderSeparator  []byte = []byte{10} //new line
+	IgraciTopic             = "igraci"
+	PorukeTopic             = "poruke"
+	TransakcijeTopic        = "transakcije"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -38,10 +42,19 @@ type Backend struct {
 }
 
 func NewBackendFromTopic(buf []byte, topic string) *Backend {
-	if topic == "igraci" && !hasHeader(buf) {
-		//igraci su specificni jer u igrac_id imaju int, a ne string kao svi drugi
-		//pa ih ovdje tretiram posebno
-		return newIgraciBackend(buf)
+	if !hasHeader(buf) {
+		switch topic {
+		case IgraciTopic:
+			//igraci su specificni jer u igrac_id imaju int, a ne string kao svi drugi
+			//pa ih ovdje tretiram posebno
+			return newIgraciBackend(buf)
+		case PorukeTopic:
+			//poruke imaju _id int
+			return newPorukeBackend(buf)
+		case TransakcijeTopic:
+			//transakcije imaju id int
+			return newTransakcijeBackend(buf)
+		}
 	}
 	m := parseAsBackend(buf)
 	if m.Type == "" {
@@ -301,10 +314,51 @@ func newIgraciBackend(buf []byte) *Backend {
 		return nil
 	}
 	return &Backend{
-		Type:    "igraci",
+		Type:    IgraciTopic,
 		Id:      id,
 		IgracId: id,
 		IsDel:   msg.DeletedId != "",
+		Body:    buf,
+		RawBody: buf,
+	}
+}
+
+func newTransakcijeBackend(buf []byte) *Backend {
+	var msg struct {
+		Id      string `json:"_id"`
+		IgracId string `json:"igrac_id"`
+		DbId    int    `json:"id"`
+		Ts      int    `json:"ts"`
+	}
+	if err := json.Unmarshal(buf, &msg); err != nil {
+		log.Printf("[ERROR] unmarshal error %s %s", err, buf)
+		return nil
+	}
+	return &Backend{
+		Type:    TransakcijeTopic,
+		Id:      msg.Id,
+		Ts:      msg.Ts,
+		IgracId: msg.IgracId,
+		Body:    buf,
+		RawBody: buf,
+	}
+}
+
+func newPorukeBackend(buf []byte) *Backend {
+	var msg struct {
+		Id      int    `json:"_id"`
+		IgracId string `json:"igrac_id"`
+		Ts      int    `json:"ts"`
+	}
+	if err := json.Unmarshal(buf, &msg); err != nil {
+		log.Printf("[ERROR] unmarshal error %s %s", err, buf)
+		return nil
+	}
+	return &Backend{
+		Type:    PorukeTopic,
+		Id:      strconv.Itoa(msg.Id),
+		Ts:      msg.Ts,
+		IgracId: msg.IgracId,
 		Body:    buf,
 		RawBody: buf,
 	}

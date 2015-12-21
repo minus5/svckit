@@ -125,8 +125,8 @@ var igraciMessage string = `{"_id":"69fe88b8105f62b8622dec7b4cab34c6cf673e2e","a
 // }
 
 func TestIgraciNonBackend(t *testing.T) {
-	msg := NewBackendFromTopic([]byte(igraciMessage), "igraci")
-	assert.Equal(t, "igraci", msg.Type)
+	msg := NewBackendFromTopic([]byte(igraciMessage), IgraciTopic)
+	assert.Equal(t, IgraciTopic, msg.Type)
 	assert.Equal(t, "69fe88b8105f62b8622dec7b4cab34c6cf673e2e", msg.IgracId)
 	assert.Equal(t, "69fe88b8105f62b8622dec7b4cab34c6cf673e2e", msg.Id)
 	assert.False(t, msg.IsDel)
@@ -137,8 +137,8 @@ func TestIgraciBackend(t *testing.T) {
 	header := `{"type":"igraci","id":"neki","igrac_id":"drugi"}`
 	m := []byte(header + "\n" + igraciMessage)
 	assert.True(t, hasHeader(m))
-	msg := NewBackendFromTopic(m, "igraci")
-	assert.Equal(t, "igraci", msg.Type)
+	msg := NewBackendFromTopic(m, IgraciTopic)
+	assert.Equal(t, IgraciTopic, msg.Type)
 	assert.Equal(t, "drugi", msg.IgracId)
 	assert.Equal(t, "neki", msg.Id)
 	assert.False(t, msg.IsDel)
@@ -218,4 +218,28 @@ func TestParsePackHeaders(t *testing.T) {
 		assert.Equal(t, string(m.Pack()), after[i]+"\n")
 		//t.Logf("%s", m.Pack())
 	}
+}
+
+func TestParseTransakcije(t *testing.T) {
+	buf := []byte(`{"_id":"27302A97-8B21-407E-A68F-22D89220D83B","broj_listica":"999-02518899","created_at":"2015-12-21T11:14:06.08+01:00","id":248019016,"igrac_id":"1a3ee64c0003c7bdedc192231236ddc1763c68a3","iznos":-3,"raspolozivo":31,"tip":"uplata listića","ts":6324292907}`)
+	m := NewBackendFromTopic(buf, TransakcijeTopic)
+	assert.NotNil(t, m)
+	assert.Equal(t, "27302A97-8B21-407E-A68F-22D89220D83B", m.Id)
+	assert.Equal(t, 6324292907, m.Ts)
+	assert.Equal(t, "1a3ee64c0003c7bdedc192231236ddc1763c68a3", m.IgracId)
+	assert.Equal(t, buf, m.Body)
+	assert.Equal(t, buf, m.RawBody)
+	//t.Logf("%s", m.Pack())
+}
+
+func TestParsePoruke(t *testing.T) {
+	buf := []byte(`{"_id":16667654,"created_at":"2015-12-21T11:04:03.886666666+01:00","igrac_id":"4e1f30b96807887d9734d103396c2bbbedc99e56","text":"        \u003cp\u003e \n          Izvršena je uplata na Vaš račun u iznosu od: 98,37 Kn.\n          \u003cbr/\u003e\n          Trenutno stanje Vašeg računa je 101,93 Kn.\n        \u003c/p\u003e\n","ts":6324281979}`)
+	m := NewBackendFromTopic(buf, PorukeTopic)
+	assert.NotNil(t, m)
+	assert.Equal(t, "16667654", m.Id)
+	assert.Equal(t, 6324281979, m.Ts)
+	assert.Equal(t, "4e1f30b96807887d9734d103396c2bbbedc99e56", m.IgracId)
+	assert.Equal(t, buf, m.Body)
+	assert.Equal(t, buf, m.RawBody)
+	//t.Logf("%s", m.Pack())
 }
