@@ -133,13 +133,18 @@ func (r *request) do() ([]byte, error) {
 	var err error
 	for retry := 0; retry < r.retries; retry++ {
 		var retryable bool
+		log.Print("one")
 		rsp, err, retryable = r.one()
 		if err == nil || !retryable {
 			break
 		} else {
-			retryAfter := r.calcRetryInterval(retry)
-			log.Printf("error: %s, will retry in %d seconds, retry no %d/%d", err, retryAfter, retry+1, r.retries)
-			time.Sleep(time.Duration(1e9 * retryAfter))
+			if retry == r.retries-1 {
+				log.Printf("error: %s, retry no %d/%d", err, retry+1, r.retries)
+			} else {
+				retryAfter := r.calcRetryInterval(retry)
+				log.Printf("error: %s, will retry in %d seconds, retry no %d/%d", err, retryAfter, retry+1, r.retries)
+				time.Sleep(time.Duration(1e9 * retryAfter))
+			}
 		}
 	}
 	return rsp, err
