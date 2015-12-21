@@ -133,7 +133,6 @@ func (r *request) do() ([]byte, error) {
 	var err error
 	for retry := 0; retry < r.retries; retry++ {
 		var retryable bool
-		log.Print("one")
 		rsp, err, retryable = r.one()
 		if err == nil || !retryable {
 			break
