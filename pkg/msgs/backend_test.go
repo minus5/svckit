@@ -2,6 +2,7 @@ package msgs
 
 import (
 	"io/ioutil"
+	"pkg/common"
 	"strings"
 	"testing"
 
@@ -242,4 +243,52 @@ func TestParsePoruke(t *testing.T) {
 	assert.Equal(t, buf, m.Body)
 	assert.Equal(t, buf, m.RawBody)
 	//t.Logf("%s", m.Pack())
+}
+
+func TestListiciBrisi(t *testing.T) {
+	buf := []byte(`{"igrac_id":"0ceb682759f558654ae308a3fd0d8d307ac14f6a","listici":["42D5506D-1751-4563-A996-7AFEDD26DC67"]}`)
+	m := NewBackendFromTopic(buf, "listici.brisi")
+	assert.NotNil(t, m)
+	assert.Equal(t, "0ceb682759f558654ae308a3fd0d8d307ac14f6a", m.IgracId)
+	assert.Equal(t, buf, m.Body)
+	assert.Equal(t, buf, m.RawBody)
+	//t.Logf("%s", m.Pack())
+
+	var lb ListiciBrisiMessage
+	err := m.UnmarshalBody(&lb)
+	assert.Nil(t, err)
+	assert.Equal(t, "0ceb682759f558654ae308a3fd0d8d307ac14f6a", lb.IgracId)
+	assert.Equal(t, 1, len(lb.Listici))
+}
+
+func TestPushNotSubscribe(t *testing.T) {
+	buf := []byte(`{"igrac_id":"707e46ff7fdf7c3815210a91cc9dce35f077acab","uredjaj":{"gcm_id":"APA91bGrkydnlbNUNm15S5pGcfFNmvIa5OfuVeJW-iQvXAewqzWEuxXqNRsG0Ue3Yk7v9nl4m80_Af7i45x0JqIbk_QXFxrwe_CTdkjaSdeaG5VCqNljgbA","apple_id":"","aktivan":true},"pretplate":{"privatne_poruke":true,"novosti":true,"listic_vrednovan":true}}`)
+	m := NewBackendFromTopic(buf, "push_not.subscribe")
+	assert.NotNil(t, m)
+	assert.Equal(t, "707e46ff7fdf7c3815210a91cc9dce35f077acab", m.IgracId)
+	assert.Equal(t, buf, m.Body)
+	assert.Equal(t, buf, m.RawBody)
+	//t.Logf("%s", m.Pack())
+
+	var p PushNotSubscribe
+	err := m.UnmarshalBody(&p)
+	assert.Nil(t, err)
+	assert.Equal(t, "707e46ff7fdf7c3815210a91cc9dce35f077acab", p.IgracId)
+	assert.Regexp(t, "^APA91bGrkydnlbNUNm15S5pGcfFNmvIa5OfuVeJW", p.Uredjaj.GcmId)
+	assert.True(t, p.Pretplate.Novosti)
+}
+
+func TestLogWebAppApi(t *testing.T) {
+	buf := []byte(`{"session_id":"3C95C664-6163-4B74-7586-A3162A79CF7D-2bf2","igrac_id":"","source":"kladomat_plazma","level":"plazma","message":"{\"tag\": \"kladomat_plazma\", \"version\": \"2.0.3\", \"plazmaId\": \"a8ee1ad4\", \"sinceStart\": 59, \"sinceLast\": 59, \"lastData\": 0, \"ua\": \"Mozilla/5.0 (Windows NT 5.1) AppleWebKit/536.8 (KHTML, like Gecko) Chrome/20.0.1109.0 Safari/536.8\", \"href\": \"https://kladomat-www.supersport.hr/ponuda/uzivo_kladomat?v=1450716027935\"}","value":0,"created":"2015-12-21T16:41:46.136Z"}`)
+	m := NewBackendFromTopic(buf, "log.web_app_api")
+	assert.NotNil(t, m)
+	assert.Equal(t, "", m.IgracId)
+	assert.Equal(t, buf, m.Body)
+	assert.Equal(t, buf, m.RawBody)
+	//t.Logf("%s", m.Pack())
+
+	var l common.LogMessage
+	m.UnmarshalBody(&l)
+	assert.Equal(t, "kladomat_plazma", l.Source)
+
 }

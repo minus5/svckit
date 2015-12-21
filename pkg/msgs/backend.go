@@ -405,3 +405,12 @@ func toInt(m map[string]interface{}, key string) {
 		}
 	}
 }
+
+//UnmarshalBody - json unmarshal body-ja
+func (m *Backend) UnmarshalBody(v interface{}) error {
+	if err := json.Unmarshal(m.Body, v); err != nil {
+		log.Printf("[ERROR] %s while parsing %s", err, m.Body)
+		return err
+	}
+	return nil
+}
