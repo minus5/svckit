@@ -184,6 +184,11 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 	if header.MsgNo != 0 && header.No == -1 {
 		header.No = header.MsgNo
 	}
+	if header.To != "" && header.No == -1 { //probaj convertati to u no
+		if no, err := strconv.ParseInt(header.To, 10, 32); err == nil {
+			header.No = int(no)
+		}
+	}
 
 	return &Backend{
 		Type:        header.Type,
