@@ -292,3 +292,21 @@ func TestLogWebAppApi(t *testing.T) {
 	assert.Equal(t, "kladomat_plazma", l.Source)
 
 }
+
+func TestSitePostavke(t *testing.T) {
+	buf := []byte(`{"_id":"1","postoci_uplate":[{"opis_izvora":"u poslovnici","postotak":30,"tip_uplate":0},{"opis_izvora":"putem opće uplatnice","postotak":30,"tip_uplate":2},{"opis_izvora":"putem Skrill računa i kreditnih kartica","postotak":50,"tip_uplate":1},{"opis_izvora":"putem kreditne kartice (Corvus)","postotak":30,"tip_uplate":3},{"opis_izvora":"putem paysafecard-a","postotak":50,"tip_uplate":4},{"opis_izvora":"putem Erste NetPay","postotak":30,"tip_uplate":5}],"postotak_upisa_za_isplatu":30,"ts":6330118153}`)
+	m := NewBackendFromTopic(buf, "site_postavke")
+	assert.NotNil(t, m)
+	assert.Equal(t, "*", m.IgracId)
+	assert.Equal(t, "1", m.Id)
+	assert.Equal(t, buf, m.RawBody)
+}
+
+func TestVideoStreams(t *testing.T) {
+	buf := []byte(`{"_id":"15929","id":15929,"provider":1,"provider_id":1084163,"ts":6330095206}`)
+	m := NewBackendFromTopic(buf, "video_streams")
+	assert.NotNil(t, m)
+	assert.Equal(t, "", m.IgracId)
+	assert.Equal(t, "15929", m.Id)
+	assert.Equal(t, buf, m.RawBody)
+}
