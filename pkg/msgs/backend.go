@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	HeaderSeparator  []byte = []byte{10} //new line
-	IgraciTopic             = "igraci"
-	PorukeTopic             = "poruke"
-	TransakcijeTopic        = "transakcije"
+	HeaderSeparator   []byte = []byte{10} //new line
+	IgraciTopic              = "igraci"
+	PorukeTopic              = "poruke"
+	TransakcijeTopic         = "transakcije"
+	VideoStreamsTopic        = "video_streams"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -54,6 +55,8 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 		case TransakcijeTopic:
 			//transakcije imaju id int
 			return newTransakcijeBackend(buf)
+		case VideoStreamsTopic:
+			return newVideoStreams(buf)
 		}
 	}
 	m := parseAsBackend(buf)
@@ -364,6 +367,24 @@ func newPorukeBackend(buf []byte) *Backend {
 		Id:      strconv.Itoa(msg.Id),
 		Ts:      msg.Ts,
 		IgracId: msg.IgracId,
+		Body:    buf,
+		RawBody: buf,
+	}
+}
+
+func newVideoStreams(buf []byte) *Backend {
+	var msg struct {
+		Id string `json:"_id"`
+		Ts int    `json:"ts"`
+	}
+	if err := json.Unmarshal(buf, &msg); err != nil {
+		log.Printf("[ERROR] unmarshal error %s %s", err, buf)
+		return nil
+	}
+	return &Backend{
+		Type:    VideoStreamsTopic,
+		Id:      msg.Id,
+		Ts:      msg.Ts,
 		Body:    buf,
 		RawBody: buf,
 	}
