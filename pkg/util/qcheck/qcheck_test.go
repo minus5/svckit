@@ -27,7 +27,7 @@ func TestCount(t *testing.T) {
 		assert.True(t, func() bool {
 			c := qc.Count()
 			fmt.Printf("count: %d\n", c)
-			return c > 8 && c < 12
+			return c > 5 && c < 15
 		}())
 		assert.True(t, func() bool {
 			lastDelta := qc.Last().Sub(time.Now())
