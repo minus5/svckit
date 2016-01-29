@@ -3,11 +3,11 @@ package msgs
 import "encoding/json"
 
 const (
-	ListiciIsplatiStatusOk = iota
-	ListiciIsplatiStatusIgracNijePronadjen
-	ListiciIsplatiStatusNijePronadjen
-	ListiciIsplatiStatusNijeDobitan
-	ListiciIsplatiStatusIsplacen
+	ListiciIsplatiStatusOk                 = 0
+	ListiciIsplatiStatusIgracNijePronadjen = 1
+	ListiciIsplatiStatusNijePronadjen      = 2
+	ListiciIsplatiStatusNijeDobitan        = 3
+	ListiciIsplatiStatusIsplacen           = 4
 )
 
 type ListiciIsplatiReq struct {
