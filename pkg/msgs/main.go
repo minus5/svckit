@@ -10,4 +10,5 @@ const (
 	TypeSubscribe        = "subscribe"
 	TypeLiveStream       = "live_stream"
 	TypeLiveStreamMobile = "live_stream_mobile"
+	TypeListiciIsplati   = "listici/isplati"
 )
