@@ -11,9 +11,9 @@ const (
 )
 
 type ListiciIsplatiReq struct {
-	IgracId string `json:"igrac_id"`
-	Broj    string `json:"broj"`
-	Kod     string `json:"kod"`
+	IgracId       string `json:"igrac_id"`
+	Broj          string `json:"broj"`
+	KontrolniBroj string `json:"kontrolni_broj"`
 }
 
 type ListiciIsplatiRsp struct {
