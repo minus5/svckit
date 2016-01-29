@@ -2,6 +2,7 @@ package jsonu
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/bitly/go-simplejson"
 )
@@ -32,4 +33,16 @@ func MarshalPrettyBuf(buf []byte) ([]byte, error) {
 	var data map[string]interface{}
 	json.Unmarshal(buf, &data)
 	return json.MarshalIndent(data, "", "  ")
+}
+
+func Marshal(i interface{}) []byte {
+	if i != nil {
+		j, err := json.Marshal(i)
+		if err != nil {
+			log.Println(err)
+			return []byte{}
+		}
+		return j
+	}
+	return []byte{}
 }

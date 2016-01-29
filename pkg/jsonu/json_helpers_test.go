@@ -41,6 +41,7 @@ const (
     "StructPointer": null
   }
 }`
+	testStr3 = "{\"Integer\":42,\"IntegerPointer\":42,\"String\":\"test\",\"StringPointer\":\"test\",\"StructPointer\":{\"Integer\":0,\"IntegerPointer\":null,\"String\":\"\",\"StringPointer\":null,\"StructPointer\":null}}"
 )
 
 func newTestStruct() *TestStruct {
@@ -53,6 +54,12 @@ func newTestStruct() *TestStruct {
 		StringPointer:  &str,
 		StructPointer:  &TestStruct{},
 	}
+}
+
+func TestMarshal(t *testing.T) {
+	assert.Equal(t, testStr3, string(Marshal(newTestStruct())))
+	assert.Empty(t, Marshal(nil))
+	assert.Empty(t, Marshal(func() {}))
 }
 
 func TestMarshalPrettyBuf(t *testing.T) {
