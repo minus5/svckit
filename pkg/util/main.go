@@ -119,6 +119,18 @@ func WaitForInterupt() {
 	<-c
 }
 
+func TermSignal() chan os.Signal {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	return c
+}
+
+func Usr1Signal() chan os.Signal {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGUSR1)
+	return c
+}
+
 func Hostname() string {
 	name, err := os.Hostname()
 	if err != nil {
