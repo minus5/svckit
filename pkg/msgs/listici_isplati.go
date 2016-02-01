@@ -8,6 +8,9 @@ const (
 	ListiciIsplatiStatusNijePronadjen      = 2
 	ListiciIsplatiStatusNijeDobitan        = 3
 	ListiciIsplatiStatusIsplacen           = 4
+
+	ListiciIsplatiTipListic           = 1
+	ListiciIsplatiTipGotovinskaOstava = 2
 )
 
 type ListiciIsplatiReq struct {
@@ -17,10 +20,11 @@ type ListiciIsplatiReq struct {
 }
 
 type ListiciIsplatiRsp struct {
-	Status      int
-	Raspolozivo float64
-	Dobitak     float64
-	Listic      map[string]interface{}
+	Status      int                    `json:"status"`
+	Raspolozivo float64                `json:"raspolozivo"`
+	Dobitak     float64                `json:"dobitak"`
+	Listic      map[string]interface{} `json:"listic,omitempty"`
+	Tip         int                    `json:"tip"`
 }
 
 func (req *ListiciIsplatiReq) ToJson() []byte {
