@@ -8,6 +8,7 @@ const (
 	ListiciIsplatiStatusNijePronadjen      = 2
 	ListiciIsplatiStatusNijeDobitan        = 3
 	ListiciIsplatiStatusIsplacen           = 4
+	ListiciIsplatiStatusNijeDozvoljeno     = 5
 
 	ListiciIsplatiTipListic           = 1
 	ListiciIsplatiTipGotovinskaOstava = 2
@@ -17,6 +18,7 @@ type ListiciIsplatiReq struct {
 	IgracId       string `json:"igrac_id"`
 	Broj          string `json:"broj"`
 	KontrolniBroj string `json:"kontrolni_broj"`
+	PrijavaId     string `json:"prijava_id"`
 }
 
 type ListiciIsplatiRsp struct {
