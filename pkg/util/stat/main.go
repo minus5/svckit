@@ -75,6 +75,17 @@ func Time(name string, f func()) {
 	}
 }
 
+func TimeNs(name string, f func()) {
+	stopwatch := util.NewStopwatch()
+	f()
+	duration := stopwatch.GetNs()
+	if client == nil {
+		log.Printf("timer %s %15.4f ns", name, duration)
+	} else {
+		Timing(name, int64(duration))
+	}
+}
+
 func Inc(name string) {
 	IncCounter(name)
 }
@@ -82,7 +93,10 @@ func Inc(name string) {
 type inf struct{}
 
 func (*inf) Time(name string, f func()) {
-	Time(name, f)
+	TimeNs(name, f)
+}
+func (*inf) TimeNs(name string, f func()) {
+	TimeNs(name, f)
 }
 func (*inf) Gauge(name string, value int) {
 	Gauge(name, int64(value))
