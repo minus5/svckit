@@ -18,6 +18,7 @@ type ListiciIsplatiReq struct {
 	IgracId       string `json:"igrac_id"`
 	Broj          string `json:"broj"`
 	KontrolniBroj string `json:"kontrolni_broj"`
+	Tip           int    `json:"tip"`
 	PrijavaId     string `json:"prijava_id"`
 }
 
