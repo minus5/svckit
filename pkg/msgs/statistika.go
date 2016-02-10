@@ -3,10 +3,11 @@ package msgs
 import "encoding/json"
 
 type StatistikaIdRequest struct {
-	Id      int `json:"id"`
-	IzvorId int `json:"izvorId"`
-	BaseId  int `json:"baseId"`
-	Status  int `json:"status"`
+	Id      int    `json:"id"`
+	Izvor   int    `json:"izvor"`
+	IzvorId int    `json:"izvorId"`
+	BaseId  int    `json:"baseId"`
+	Status  string `json:"status"`
 }
 
 type StatistikaIdResponse struct {
@@ -43,8 +44,8 @@ func StatistikaReqFromJson(b []byte) (*StatistikaIdRequest, error) {
 }
 
 const (
-	StatistikaStatusNepoznat  = 0
-	StatistikaStatusNovi      = 1
-	StatistikaStatusAktiviran = 2
-	StatistikaStatusBaseId    = 3
+	StatistikaStatusNepoznat  = "nepoznat"
+	StatistikaStatusNovi      = "novi dogadjaj"
+	StatistikaStatusAktiviran = "dogadjaj aktiviran"
+	StatistikaStatusBaseId    = "postavljen base ID"
 )
