@@ -6,6 +6,7 @@ type StatistikaIdRequest struct {
 	Id      int `json:"id"`
 	IzvorId int `json:"izvorId"`
 	BaseId  int `json:"baseId"`
+	Status  int `json:"status"`
 }
 
 type StatistikaIdResponse struct {
@@ -40,3 +41,10 @@ func StatistikaReqFromJson(b []byte) (*StatistikaIdRequest, error) {
 	}
 	return req, nil
 }
+
+const (
+	StatistikaStatusNepoznat  = 0
+	StatistikaStatusNovi      = 1
+	StatistikaStatusAktiviran = 2
+	StatistikaStatusBaseId    = 3
+)
