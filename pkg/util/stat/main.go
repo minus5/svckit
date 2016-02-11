@@ -80,7 +80,7 @@ func TimeNs(name string, f func()) {
 	f()
 	duration := stopwatch.GetNs()
 	if client == nil {
-		log.Printf("timer %s %15.4f ns", name, duration)
+		log.Printf("timer %s %d ns", name, duration)
 	} else {
 		Timing(name, int64(duration))
 	}
