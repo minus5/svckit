@@ -101,7 +101,7 @@ func sameValue(k string, vl *simplejson.Json, vr *simplejson.Json) int {
 	case map[string]interface{}, *simplejson.Json:
 		return isObject
 	default:
-		log.Fatalf("nepoznti tip k: %s type: %T value: %v", k, tl, tl)
+		log.Fatalf("[NOTICE] nepoznti tip k: %s type: %T value: %v", k, tl, tl)
 	}
 	return areDifferent
 }

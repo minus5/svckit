@@ -2,6 +2,7 @@ package jsonu
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,4 +121,21 @@ func TestDeepCopyMap(t *testing.T) {
 	m2 := DeepCopyMap(m)
 	s2, _ := json.Marshal(m2)
 	assert.Equal(t, s, string(s2))
+}
+
+func TestMapEqual(t *testing.T) {
+	inner := &map[string]interface{}{"k": "v"}
+	m1 := map[string]interface{}{"k": inner}
+	m2 := map[string]interface{}{"k": inner}
+	//m2 := m1
+	k1 := m1["k"]
+	k2 := m1["k"]
+	fmt.Println(k1, k2)
+	assert.True(t, k1 == k2)
+	j1 := MapToSimplejson(m1)
+	j2 := MapToSimplejson(m2)
+	j1m := j1.Get("k").Interface()
+	j2m := j2.Get("k").Interface()
+	fmt.Println(j1m, j2m)
+	assert.True(t, j1m == j2m)
 }
