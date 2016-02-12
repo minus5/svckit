@@ -35,10 +35,12 @@ func Init(addr, prefix string, includeHostNameInPrefix bool) error {
 
 func IncCounter(name string) {
 	if client != nil {
-		err := client.Inc(name, 1, 1)
-		if err != nil {
-			log.Printf("statsd error %s", err)
-		}
+		go func() {
+			err := client.Inc(name, 1, 1)
+			if err != nil {
+				log.Printf("statsd error %s", err)
+			}
+		}()
 	}
 }
 
@@ -71,7 +73,7 @@ func Time(name string, f func()) {
 	if client == nil {
 		log.Printf("timer %s %8.4f ms", name, duration)
 	} else {
-		Timing(name, int64(duration))
+		go Timing(name, int64(duration))
 	}
 }
 
@@ -82,7 +84,7 @@ func TimeNs(name string, f func()) {
 	if client == nil {
 		log.Printf("timer %s %d ns", name, duration)
 	} else {
-		Timing(name, int64(duration))
+		go Timing(name, int64(duration))
 	}
 }
 
