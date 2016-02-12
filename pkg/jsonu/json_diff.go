@@ -11,6 +11,13 @@ func Diff(left, right *simplejson.Json) *simplejson.Json {
 	return diffObject(left, right)
 }
 
+func diffmap(l, r map[string]interface{}) map[string]interface{} {
+	left := MapToSimplejson(l)
+	right := MapToSimplejson(r)
+	diff := diffObject(left, right)
+	return diff.MustMap()
+}
+
 func diff(bufL, bufR []byte) []byte {
 	left, _ := simplejson.NewJson(bufL)
 	right, _ := simplejson.NewJson(bufR)
@@ -99,6 +106,12 @@ func sameValue(k string, vl *simplejson.Json, vr *simplejson.Json) int {
 			return areSame
 		}
 	case map[string]interface{}, *simplejson.Json:
+		return isObject
+	case *map[string]interface{}:
+		if vl.Interface() == vr.Interface() {
+			// pointeri na isti map, ne treba ici dalje u dubinu
+			return areSame
+		}
 		return isObject
 	default:
 		log.Fatalf("[NOTICE] nepoznti tip k: %s type: %T value: %v", k, tl, tl)

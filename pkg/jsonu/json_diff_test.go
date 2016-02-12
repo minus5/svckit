@@ -130,7 +130,7 @@ func TestMapEqual(t *testing.T) {
 	//m2 := m1
 	k1 := m1["k"]
 	k2 := m1["k"]
-	fmt.Println(k1, k2)
+	//fmt.Println(k1, k2)
 	assert.True(t, k1 == k2)
 	j1 := MapToSimplejson(m1)
 	j2 := MapToSimplejson(m2)
@@ -138,4 +138,28 @@ func TestMapEqual(t *testing.T) {
 	j2m := j2.Get("k").Interface()
 	fmt.Println(j1m, j2m)
 	assert.True(t, j1m == j2m)
+}
+
+func TestDiffObjectPointerNaIstiMap(t *testing.T) {
+	inner := &map[string]interface{}{"k0": "v"}
+	l := map[string]interface{}{"k1": inner}
+	r := map[string]interface{}{"k1": inner, "k2": 1}
+	d := diffmap(l, r)
+	assert.Equal(t, 1, len(d))
+}
+
+func TestDiffObjectPointerNaRazlicitMap(t *testing.T) {
+	inner := &map[string]interface{}{
+		"k0": "v",
+		"km": &map[string]interface{}{"k4": 4},
+	}
+	inner2 := &map[string]interface{}{
+		"k0": "v",
+		"km": &map[string]interface{}{"k4": 5},
+	}
+	l := map[string]interface{}{"k1": inner}
+	r := map[string]interface{}{"k1": inner2, "k2": 1}
+	d := diffmap(l, r)
+	assert.Equal(t, 2, len(d))
+	//fmt.Printf("%#v\n", d)
 }
