@@ -50,19 +50,23 @@ func Counter(name string) {
 
 func Gauge(name string, value int64) {
 	if client != nil {
-		err := client.Gauge(name, value, 1)
-		if err != nil {
-			log.Printf("statsd error %s", err)
-		}
+		go func() {
+			err := client.Gauge(name, value, 1)
+			if err != nil {
+				log.Printf("statsd error %s", err)
+			}
+		}()
 	}
 }
 
 func Timing(name string, value int64) {
 	if client != nil {
-		err := client.Timing(name, value, 1)
-		if err != nil {
-			log.Printf("statsd error %s", err)
-		}
+		go func() {
+			err := client.Timing(name, value, 1)
+			if err != nil {
+				log.Printf("statsd error %s", err)
+			}
+		}()
 	}
 }
 
@@ -73,7 +77,7 @@ func Time(name string, f func()) {
 	if client == nil {
 		log.Printf("timer %s %8.4f ms", name, duration)
 	} else {
-		go Timing(name, int64(duration))
+		Timing(name, int64(duration))
 	}
 }
 
@@ -84,7 +88,7 @@ func TimeNs(name string, f func()) {
 	if client == nil {
 		log.Printf("timer %s %d ns", name, duration)
 	} else {
-		go Timing(name, int64(duration))
+		Timing(name, int64(duration))
 	}
 }
 
