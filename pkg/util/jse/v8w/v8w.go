@@ -17,7 +17,7 @@ func New(buf []byte) (*V8W, error) {
 		out: out,
 		worker: v8worker.New(func(msg string) {
 			go func() { out <- msg }()
-		}),
+		}, nil),
 	}
 	if err := v.worker.Load("script.js", string(buf)); err != nil {
 		return nil, err
