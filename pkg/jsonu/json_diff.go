@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/bitly/go-simplejson"
+	"github.com/minus5/go-simplejson"
 )
 
 func Diff(left, right *simplejson.Json) *simplejson.Json {

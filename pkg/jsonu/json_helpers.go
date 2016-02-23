@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/bitly/go-simplejson"
+	"github.com/minus5/go-simplejson"
 )
 
 func Empty(o *simplejson.Json) bool {
@@ -12,9 +12,7 @@ func Empty(o *simplejson.Json) bool {
 }
 
 func MapToSimplejson(m map[string]interface{}) *simplejson.Json {
-	j := simplejson.New()
-	j.Set("__key", m)
-	return j.Get("__key")
+	return simplejson.NewFromMap(m)
 }
 
 func Sprint(i interface{}) string {
