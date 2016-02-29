@@ -99,7 +99,7 @@ func sameValue(k string, vl *simplejson.Json, vr *simplejson.Json) int {
 			return areSame
 		}
 	//uspredba serijalizacijom u json
-	case []int, []int64, [2][2]int, [][2]int, []interface{}:
+	case []int, []int64, [2][2]int, [][2]int, []string, []interface{}:
 		bl, _ := vl.Encode()
 		br, _ := vr.Encode()
 		if string(bl) == string(br) {
