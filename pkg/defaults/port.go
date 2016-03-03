@@ -18,4 +18,5 @@ const (
 	PortVsoccer            = "8080"
 	PortWebAppApi          = "8080"
 	PortNsqToWs            = "8210"
+	PortNsqNotifier        = "8220"
 )
