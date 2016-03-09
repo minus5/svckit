@@ -21,7 +21,7 @@ type QueueChecker struct {
 }
 
 func Default() *QueueChecker {
-	return New(1000., func() time.Duration { return time.Minute })
+	return New(10000, func() time.Duration { return time.Minute })
 }
 
 func New(maxSize int, intervalFunc timeFunc) *QueueChecker {
