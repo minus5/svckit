@@ -19,6 +19,7 @@ var (
 	PorukeTopic              = "poruke"
 	TransakcijeTopic         = "transakcije"
 	VideoStreamsTopic        = "video_streams"
+	StatTopic                = "stat"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -57,6 +58,8 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 			return newTransakcijeBackend(buf)
 		case VideoStreamsTopic:
 			return newVideoStreams(buf)
+		case StatTopic:
+			return newNonJson(buf, topic)
 		}
 	}
 	m := parseAsBackend(buf)
@@ -385,6 +388,14 @@ func newVideoStreams(buf []byte) *Backend {
 		Type:    VideoStreamsTopic,
 		Id:      msg.Id,
 		Ts:      msg.Ts,
+		Body:    buf,
+		RawBody: buf,
+	}
+}
+
+func newNonJson(buf []byte, typ string) *Backend {
+	return &Backend{
+		Type:    typ,
 		Body:    buf,
 		RawBody: buf,
 	}
