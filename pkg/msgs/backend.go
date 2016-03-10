@@ -58,9 +58,10 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 			return newTransakcijeBackend(buf)
 		case VideoStreamsTopic:
 			return newVideoStreams(buf)
-		case StatTopic:
-			return newNonJson(buf, topic)
 		}
+	}
+	if topic == StatTopic {
+		return newNonJson(buf, topic)
 	}
 	m := parseAsBackend(buf)
 	if m.Type == "" {
