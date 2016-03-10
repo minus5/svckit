@@ -19,7 +19,7 @@ var (
 	PorukeTopic              = "poruke"
 	TransakcijeTopic         = "transakcije"
 	VideoStreamsTopic        = "video_streams"
-	StatTopic                = "stat"
+	StatsTopic               = "stats"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -60,7 +60,7 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 			return newVideoStreams(buf)
 		}
 	}
-	if topic == StatTopic {
+	if topic == StatsTopic {
 		return newNonJson(buf, topic)
 	}
 	m := parseAsBackend(buf)
