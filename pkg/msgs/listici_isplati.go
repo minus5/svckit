@@ -9,6 +9,8 @@ const (
 	ListiciIsplatiStatusNijeDobitan        = 3
 	ListiciIsplatiStatusIsplacen           = 4
 	ListiciIsplatiStatusNijeDozvoljeno     = 5
+	ListiciIsplatiStatusNijeVrednovan      = 6
+	ListiciIsplatiStatusStorniran          = 7
 
 	ListiciIsplatiTipListic           = 1
 	ListiciIsplatiTipGotovinskaOstava = 2
