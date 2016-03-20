@@ -27,7 +27,7 @@ type IpCheck struct {
 	file       string
 	handle     *libgeo.GeoIP
 	cache      map[string]bool
-	cacheMutex sync.Mutex
+	cacheMutex sync.RWMutex
 }
 
 func Init(file string) {
@@ -73,7 +73,10 @@ func (g *IpCheck) Check(ip string) (ret bool) {
 	if isLocalAddress(ip) {
 		return true
 	}
-	if val, ok := g.cache[ip]; ok {
+	g.cacheMutex.RLock()
+	val, ok := g.cache[ip]
+	g.cacheMutex.RUnlock()
+	if ok {
 		return val
 	}
 	loc := g.handle.GetLocationByIP(ip)
