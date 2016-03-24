@@ -16,6 +16,7 @@ const (
 )
 
 func TestElection(t *testing.T) {
+	t.Skip()
 	candidates := map[int]*LeaderElection{}
 	for i := 0; i < CandidateCount; i++ {
 		c, err := New(TestConsulAddr, TestConsulDc, TestKey)
