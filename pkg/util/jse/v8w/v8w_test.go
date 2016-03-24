@@ -2,6 +2,7 @@ package v8w
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,22 +30,26 @@ func TestEval(t *testing.T) {
 }
 
 func TestEvalConcurrent(t *testing.T) {
-	c := make(chan string)
+	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
-		go func() {
-			fmt.Println("first start")
-			defer fmt.Println("first end")
+		wg.Add(1)
+		go func(i int) {
+			fmt.Println("start", i)
+			defer fmt.Println("done", i)
 			r, err := v.Eval(TestJsSource)
 			assert.Nil(t, err)
 			assert.Equal(t, TestExpect, r)
-		}()
+			wg.Done()
+		}(i)
 	}
+	wg.Add(1)
 	go func() {
 		fmt.Println("first start")
 		defer fmt.Println("first end")
 		r, err := v.Eval(TestJsSource)
 		assert.Nil(t, err)
 		assert.Equal(t, TestExpect, r)
+		wg.Done()
 	}()
 	func() {
 		fmt.Println("second start")
@@ -53,5 +58,5 @@ func TestEvalConcurrent(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, TestExpect, r)
 	}()
-
+	wg.Wait()
 }
