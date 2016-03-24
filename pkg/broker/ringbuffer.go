@@ -1,107 +1,52 @@
 package broker
 
+import "sync"
+
 type ring struct {
+	size int
 	head int
 	tail int
-	buff [][]byte
+	buf  [][]byte
+	sync.RWMutex
 }
 
 func newRingBuffer(size int) *ring {
-	r := &ring{}
-	r.setCapacity(size)
+	r := &ring{
+		size: size,
+		head: 1,
+		tail: size - 1,
+		buf:  make([][]byte, size),
+	}
 	return r
 }
 
-func (r *ring) setCapacity(size int) {
-	r.checkInit()
-	r.extend(size)
+func (r *ring) set(i int, val []byte) {
+	r.Lock()
+	defer r.Unlock()
+	r.buf[i] = val
 }
 
-func (r ring) capacity() int {
-	return len(r.buff)
-}
-
-func (r *ring) dequeue() []byte {
-	r.checkInit()
-	if r.head == -1 {
-		return nil
-	}
-	v := r.getOne(r.tail)
-	if r.tail == r.head {
-		r.head = -1
-		r.tail = 0
-	} else {
-		r.tail = r.mod(r.tail + 1)
-	}
-	return v
-}
-
-func (r *ring) peek() []byte {
-	r.checkInit()
-	if r.head == -1 {
-		return nil
-	}
-	return r.getOne(r.tail)
+func (r *ring) mod(i int) int {
+	return i % r.size
 }
 
 func (r *ring) values() [][]byte {
-	if r.head == -1 {
-		return [][]byte{}
+	out := make([][]byte, r.size)
+	r.RLock()
+	defer r.RUnlock()
+	for i := 0; i < r.size; i++ {
+		ix := r.mod(i + r.head)
+		out[i] = r.buf[ix]
 	}
-	arr := make([][]byte, 0, r.capacity())
-	for i := 0; i < r.capacity(); i++ {
-		idx := r.mod(i + r.tail)
-		arr = append(arr, r.getOne(idx))
-		if idx == r.head {
-			break
-		}
-	}
-	return arr
-}
-
-func (r *ring) set(p int, v []byte) {
-	r.buff[r.mod(p)] = v
-}
-
-func (r *ring) getOne(p int) []byte {
-	return r.buff[r.mod(p)]
-}
-
-func (r *ring) mod(p int) int {
-	return p % len(r.buff)
-}
-
-func (r *ring) checkInit() {
-	if r.buff == nil {
-		r.buff = make([][]byte, defaultSize)
-		for i := range r.buff {
-			r.buff[i] = nil
-		}
-		r.head, r.tail = -1, 0
-	}
-}
-
-func (r *ring) extend(size int) {
-	if size == len(r.buff) {
-		return
-	} else if size < len(r.buff) {
-		r.buff = r.buff[0:size]
-	}
-	newb := make([][]byte, size-len(r.buff))
-	for i := range newb {
-		newb[i] = nil
-	}
-	r.buff = append(r.buff, newb...)
+	return out
 }
 
 func (r *ring) put(msg []byte) {
-	r.checkInit()
-	r.set(r.head+1, msg)
-	old := r.head
+	r.Lock()
+	defer r.Unlock()
+	r.buf[r.head] = msg
 	r.head = r.mod(r.head + 1)
-	if old != -1 && r.head == r.tail {
-		r.tail = r.mod(r.tail + 1)
-	}
+	r.tail = r.mod(r.tail + 1)
 }
 
 func (r *ring) get() []byte {

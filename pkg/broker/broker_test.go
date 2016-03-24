@@ -7,22 +7,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func concatenate(ch chan []byte, out *[]byte) {
-	for msg := range ch {
-		*out = append(*out, msg...)
-	}
+func concatenate(ch chan []byte, out *[]byte) <-chan bool {
+	c := make(chan bool)
+	go func() {
+		for msg := range ch {
+			*out = append(*out, msg...)
+		}
+		c <- true
+	}()
+	return c
 }
 
 func TestFullDiff(t *testing.T) {
 	Full("test", []byte("12345"))
 
 	var buf1, buf2 []byte
+
 	b1 := GetFullDiffBroker("test")
 	ch1 := b1.Subscribe()
+	done1 := concatenate(ch1, &buf1)
 	b2 := GetFullDiffBroker("test")
 	ch2 := b2.Subscribe()
-	go concatenate(ch1, &buf1)
-	go concatenate(ch2, &buf2)
+	done2 := concatenate(ch2, &buf2)
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -34,6 +40,9 @@ func TestFullDiff(t *testing.T) {
 
 	b1.Unsubscribe(ch1)
 	b2.Unsubscribe(ch2)
+
+	<-done1
+	<-done2
 
 	assert.Equal(t, "12345678", string(buf1))
 	assert.Equal(t, "12345678", string(buf2))
@@ -50,10 +59,11 @@ func TestBuffered(t *testing.T) {
 	var buf1, buf2 []byte
 	b1 := GetBufferedBroker("teststream")
 	ch1 := b1.Subscribe()
+	done1 := concatenate(ch1, &buf1)
 	b2 := GetBufferedBroker("teststream")
 	ch2 := b2.Subscribe()
-	go concatenate(ch1, &buf1)
-	go concatenate(ch2, &buf2)
+
+	done2 := concatenate(ch2, &buf2)
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -65,6 +75,9 @@ func TestBuffered(t *testing.T) {
 
 	b1.Unsubscribe(ch1)
 	b2.Unsubscribe(ch2)
+
+	<-done1
+	<-done2
 
 	assert.Equal(t, "12345678", string(buf1))
 	assert.Equal(t, "12345678", string(buf2))
@@ -80,7 +93,9 @@ func TestBuffered(t *testing.T) {
 	var buf3 []byte
 	b3 := GetBufferedBroker("teststream")
 	ch3 := b3.Subscribe()
-	go concatenate(ch3, &buf3)
+	done3 := concatenate(ch3, &buf3)
 	time.Sleep(10 * time.Millisecond)
+	b3.Unsubscribe(ch3)
+	<-done3
 	assert.Equal(t, "45678910111213", string(buf3))
 }
