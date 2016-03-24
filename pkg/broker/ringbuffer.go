@@ -20,12 +20,6 @@ func newRingBuffer(size int) *ring {
 	return r
 }
 
-func (r *ring) set(i int, val []byte) {
-	r.Lock()
-	defer r.Unlock()
-	r.buf[i] = val
-}
-
 func (r *ring) mod(i int) int {
 	return i % r.size
 }
