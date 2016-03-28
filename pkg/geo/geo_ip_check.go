@@ -18,6 +18,8 @@ import (
 
 const (
 	GetFileRetryIntervalSeconds = 30
+	GeoIpUrl                    = "http://updates.maxmind.com/app/update?license_key=MHJmPlgC696x"
+	GeoIpCheckInterval          = 12 * 60 * time.Minute
 )
 
 var geoIpCheck *IpCheck
@@ -165,8 +167,9 @@ func checkGeoIpFile(path string) (*time.Time, error) {
 	return tm, nil
 }
 
-func Maintain(url, savePath string, interval time.Duration) {
-
+func Maintain(savePath string) {
+	url := GeoIpUrl
+	interval := GeoIpCheckInterval
 	mt := func() time.Time {
 		for {
 			mt, err := checkGeoIpFile(savePath)
