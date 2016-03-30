@@ -54,6 +54,8 @@ func (r *ring) get() []byte {
 
 func (r *ring) emit(ch chan []byte) {
 	for _, line := range r.values() {
-		ch <- line
+		if len(line) > 0 {
+			ch <- line
+		}
 	}
 }
