@@ -13,41 +13,29 @@ var (
 	defaultSize int           = 100
 )
 
-type Message struct {
-	Event string
-	Data  []byte
-}
-
-func NewMessage(event string, data []byte) *Message {
-	return &Message{
-		Event: event,
-		Data:  data,
-	}
-}
-
 func init() {
 	log.SetFlags(log.Llongfile)
 	brokers = make(map[string]*Broker)
 }
 
 type state interface {
-	put(*Message)
-	get() *Message
-	emit(chan *Message)
+	put([]byte)
+	get() []byte
+	emit(chan []byte)
 }
 
 type Broker struct {
-	Topic       string
+	topic       string
 	state       state
-	subscribers map[chan *Message]bool
+	subscribers map[chan []byte]bool
 	sync.RWMutex
 	updated time.Time
 }
 
 func newBroker(topic string) *Broker {
 	return &Broker{
-		Topic:       topic,
-		subscribers: make(map[chan *Message]bool),
+		topic:       topic,
+		subscribers: make(map[chan []byte]bool),
 		updated:     time.Now(),
 	}
 }
@@ -64,18 +52,18 @@ func NewFullDiffBroker(topic string) *Broker {
 	return b
 }
 
-func (b *Broker) State() *Message {
+func (b *Broker) State() []byte {
 	return b.state.get()
 }
 
-func (b *Broker) setSubscriber(ch chan *Message) {
+func (b *Broker) setSubscriber(ch chan []byte) {
 	b.Lock()
 	defer b.Unlock()
 	b.subscribers[ch] = true
 }
 
-func (b *Broker) Subscribe() chan *Message {
-	ch := make(chan *Message)
+func (b *Broker) Subscribe() chan []byte {
+	ch := make(chan []byte)
 	b.setSubscriber(ch)
 	if b.state != nil {
 		go b.state.emit(ch)
@@ -83,29 +71,25 @@ func (b *Broker) Subscribe() chan *Message {
 	return ch
 }
 
-func (b *Broker) Unsubscribe(ch chan *Message) {
+func (b *Broker) Unsubscribe(ch chan []byte) {
 	b.Lock()
 	defer b.Unlock()
 	delete(b.subscribers, ch)
 	close(ch)
 }
 
-func (b *Broker) full(msg *Message) {
+func (b *Broker) full(msg []byte) {
 	b.Lock()
 	defer b.Unlock()
 	b.state.put(msg)
 	b.updated = time.Now()
 }
 
-func (b *Broker) diff(msg *Message) {
+func (b *Broker) diff(msg []byte) {
 	b.RLock()
 	defer b.RUnlock()
 	for c, _ := range b.subscribers {
-		select {
-		case c <- msg:
-		case <-time.After(time.Second):
-			go b.Unsubscribe(c)
-		}
+		c <- msg
 	}
 }
 
@@ -115,15 +99,15 @@ func (b *Broker) expired() bool {
 	return b.updated.Before(time.Now().Add(-ttl))
 }
 
-func Full(topic string, msg *Message) {
+func Full(topic string, msg []byte) {
 	GetFullDiffBroker(topic).full(msg)
 }
 
-func Diff(topic string, msg *Message) {
+func Diff(topic string, msg []byte) {
 	GetFullDiffBroker(topic).diff(msg)
 }
 
-func Stream(topic string, msg *Message) {
+func Stream(topic string, msg []byte) {
 	GetBufferedBroker(topic).full(msg)
 	GetBufferedBroker(topic).diff(msg)
 }
