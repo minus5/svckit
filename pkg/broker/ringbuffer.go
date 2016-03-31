@@ -48,7 +48,7 @@ func (r *ring) get() *Message {
 		Event: "state",
 	}
 	for _, line := range r.values() {
-		if len(line.Data) > 0 {
+		if line == nil || len(line.Data) > 0 {
 			out.Data = append(out.Data, line.Data...)
 			out.Data = append(out.Data, '\n')
 		}
@@ -58,7 +58,7 @@ func (r *ring) get() *Message {
 
 func (r *ring) emit(ch chan *Message) {
 	for _, line := range r.values() {
-		if len(line.Data) > 0 {
+		if line == nil || len(line.Data) > 0 {
 			ch <- line
 		}
 	}
