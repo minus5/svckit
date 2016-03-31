@@ -1,17 +1,17 @@
 package broker
 
 type singleBuffer struct {
-	buffer []byte
+	buffer *Message
 }
 
-func (sb *singleBuffer) put(msg []byte) {
+func (sb *singleBuffer) put(msg *Message) {
 	sb.buffer = msg
 }
 
-func (sb *singleBuffer) get() []byte {
+func (sb *singleBuffer) get() *Message {
 	return sb.buffer
 }
 
-func (sb *singleBuffer) emit(ch chan []byte) {
+func (sb *singleBuffer) emit(ch chan *Message) {
 	ch <- sb.buffer
 }

@@ -6,7 +6,7 @@ type ring struct {
 	size int
 	head int
 	tail int
-	buf  [][]byte
+	buf  []*Message
 	sync.RWMutex
 }
 
@@ -15,7 +15,7 @@ func newRingBuffer(size int) *ring {
 		size: size,
 		head: 1,
 		tail: size - 1,
-		buf:  make([][]byte, size),
+		buf:  make([]*Message, size),
 	}
 	return r
 }
@@ -24,8 +24,8 @@ func (r *ring) mod(i int) int {
 	return i % r.size
 }
 
-func (r *ring) values() [][]byte {
-	out := make([][]byte, r.size)
+func (r *ring) values() []*Message {
+	out := make([]*Message, r.size)
 	r.RLock()
 	defer r.RUnlock()
 	for i := 0; i < r.size; i++ {
@@ -35,7 +35,7 @@ func (r *ring) values() [][]byte {
 	return out
 }
 
-func (r *ring) put(msg []byte) {
+func (r *ring) put(msg *Message) {
 	r.Lock()
 	defer r.Unlock()
 	r.buf[r.head] = msg
@@ -43,18 +43,22 @@ func (r *ring) put(msg []byte) {
 	r.tail = r.mod(r.tail + 1)
 }
 
-func (r *ring) get() []byte {
-	var out []byte
+func (r *ring) get() *Message {
+	out := &Message{
+		Event: "state",
+	}
 	for _, line := range r.values() {
-		out = append(out, line...)
-		out = append(out, '\n')
+		if len(line.Data) > 0 {
+			out.Data = append(out.Data, line.Data...)
+			out.Data = append(out.Data, '\n')
+		}
 	}
 	return out
 }
 
-func (r *ring) emit(ch chan []byte) {
+func (r *ring) emit(ch chan *Message) {
 	for _, line := range r.values() {
-		if len(line) > 0 {
+		if len(line.Data) > 0 {
 			ch <- line
 		}
 	}
