@@ -20,4 +20,5 @@ const (
 	PortBackendApi         = "8220"
 	PortNsqNotifier        = "8230"
 	PortNsqToCloudwatch    = "8240"
+	PortWebFrontend        = "3010"
 )
