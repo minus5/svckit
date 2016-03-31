@@ -101,7 +101,11 @@ func (b *Broker) diff(msg *Message) {
 	b.RLock()
 	defer b.RUnlock()
 	for c, _ := range b.subscribers {
-		c <- msg
+		select {
+		case c <- msg:
+		case <-time.After(time.Second):
+			go b.Unsubscribe(c)
+		}
 	}
 }
 
