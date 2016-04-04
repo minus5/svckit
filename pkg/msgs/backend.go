@@ -61,7 +61,9 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 		}
 	}
 	if topic == StatsTopic {
-		return newNonJson(buf, topic)
+		if buf[0] != '{' {
+			return newNonJson(buf, topic)
+		}
 	}
 	m := parseAsBackend(buf)
 	if m.Type == "" {
