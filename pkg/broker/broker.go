@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -14,7 +13,6 @@ var (
 )
 
 func init() {
-	log.SetFlags(log.Llongfile)
 	brokers = make(map[string]*Broker)
 }
 
@@ -137,7 +135,6 @@ func FindBroker(topic string) (*Broker, bool) {
 func createFullDiffBroker(topic string, size int) *Broker {
 	brokersLock.Lock()
 	defer brokersLock.Unlock()
-	log.Printf("creating full-diff broker %s", topic)
 	b := NewFullDiffBroker(topic)
 	brokers[topic] = b
 	return b
@@ -146,7 +143,6 @@ func createFullDiffBroker(topic string, size int) *Broker {
 func createBufferedBroker(topic string, size int) *Broker {
 	brokersLock.Lock()
 	defer brokersLock.Unlock()
-	log.Printf("creating buffered broker %s", topic)
 	b := NewBufferedBroker(topic, size)
 	brokers[topic] = b
 	return b
@@ -173,7 +169,6 @@ func CleanUpBrokers() {
 	defer brokersLock.Unlock()
 	for k, b := range brokers {
 		if b.expired() {
-			log.Printf("deleting broker %s", k)
 			delete(brokers, k)
 		}
 	}
