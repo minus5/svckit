@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func concatenate(ch chan []byte, out *[]byte) <-chan bool {
+func concatenate(ch chan *Message, out *[]byte) <-chan bool {
 	c := make(chan bool)
 	go func() {
 		for msg := range ch {
-			*out = append(*out, msg...)
+			*out = append(*out, msg.Data...)
 		}
 		c <- true
 	}()
@@ -19,7 +19,7 @@ func concatenate(ch chan []byte, out *[]byte) <-chan bool {
 }
 
 func TestFullDiff(t *testing.T) {
-	Full("test", []byte("12345"))
+	Full("test", "testevent", []byte("12345"))
 
 	var buf1, buf2 []byte
 
@@ -32,9 +32,9 @@ func TestFullDiff(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	Diff("test", []byte("6"))
-	Diff("test", []byte("7"))
-	Diff("test", []byte("8"))
+	Diff("test", "testevent", []byte("6"))
+	Diff("test", "testevent", []byte("7"))
+	Diff("test", "testevent", []byte("8"))
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -50,11 +50,11 @@ func TestFullDiff(t *testing.T) {
 
 func TestBuffered(t *testing.T) {
 	createBufferedBroker("teststream", 10)
-	Stream("teststream", []byte("1"))
-	Stream("teststream", []byte("2"))
-	Stream("teststream", []byte("3"))
-	Stream("teststream", []byte("4"))
-	Stream("teststream", []byte("5"))
+	Stream("teststream", "testevent", []byte("1"))
+	Stream("teststream", "testevent", []byte("2"))
+	Stream("teststream", "testevent", []byte("3"))
+	Stream("teststream", "testevent", []byte("4"))
+	Stream("teststream", "testevent", []byte("5"))
 
 	var buf1, buf2 []byte
 	b1 := GetBufferedBroker("teststream")
@@ -67,9 +67,9 @@ func TestBuffered(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	Stream("teststream", []byte("6"))
-	Stream("teststream", []byte("7"))
-	Stream("teststream", []byte("8"))
+	Stream("teststream", "testevent", []byte("6"))
+	Stream("teststream", "testevent", []byte("7"))
+	Stream("teststream", "testevent", []byte("8"))
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -82,11 +82,11 @@ func TestBuffered(t *testing.T) {
 	assert.Equal(t, "12345678", string(buf1))
 	assert.Equal(t, "12345678", string(buf2))
 
-	Stream("teststream", []byte("9"))
-	Stream("teststream", []byte("10"))
-	Stream("teststream", []byte("11"))
-	Stream("teststream", []byte("12"))
-	Stream("teststream", []byte("13"))
+	Stream("teststream", "testevent", []byte("9"))
+	Stream("teststream", "testevent", []byte("10"))
+	Stream("teststream", "testevent", []byte("11"))
+	Stream("teststream", "testevent", []byte("12"))
+	Stream("teststream", "testevent", []byte("13"))
 
 	time.Sleep(10 * time.Millisecond)
 
