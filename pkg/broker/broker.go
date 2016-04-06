@@ -37,7 +37,7 @@ type state interface {
 type Broker struct {
 	topic       string
 	state       state
-	subscribers map[chan *Message]bool
+	subscribers map[chan *Message]struct{}
 	sync.RWMutex
 	updated time.Time
 }
@@ -45,7 +45,7 @@ type Broker struct {
 func newBroker(topic string) *Broker {
 	return &Broker{
 		topic:       topic,
-		subscribers: make(map[chan *Message]bool),
+		subscribers: make(map[chan *Message]struct{}),
 		updated:     time.Now(),
 	}
 }
@@ -69,7 +69,7 @@ func (b *Broker) State() *Message {
 func (b *Broker) setSubscriber(ch chan *Message) {
 	b.Lock()
 	defer b.Unlock()
-	b.subscribers[ch] = true
+	b.subscribers[ch] = struct{}{}
 }
 
 func (b *Broker) Subscribe() chan *Message {
@@ -84,8 +84,10 @@ func (b *Broker) Subscribe() chan *Message {
 func (b *Broker) Unsubscribe(ch chan *Message) {
 	b.Lock()
 	defer b.Unlock()
-	delete(b.subscribers, ch)
-	close(ch)
+	if _, ok := b.subscribers[ch]; ok {
+		delete(b.subscribers, ch)
+		close(ch)
+	}
 }
 
 func (b *Broker) full(msg *Message) {
