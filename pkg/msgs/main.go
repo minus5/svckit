@@ -17,4 +17,5 @@ const (
 	TypeValidacijaEmail        = "registracija/validacija/email"
 	TypeValidacijaOib          = "registracija/validacija/oib"
 	TypeValidacijaPunoljetnost = "registracija/validacija/punoljetnost"
+	TypeValidacijaKod          = "registracija/validacija/kod"
 )
