@@ -18,4 +18,5 @@ const (
 	TypeValidacijaOib          = "registracija/validacija/oib"
 	TypeValidacijaPunoljetnost = "registracija/validacija/punoljetnost"
 	TypeValidacijaKod          = "registracija/validacija/kod"
+	TypeValidacijaProvjeriKod  = "registracija/validacija/provjeriKod"
 )
