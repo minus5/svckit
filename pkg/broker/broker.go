@@ -43,6 +43,7 @@ type Broker struct {
 }
 
 func newBroker(topic string) *Broker {
+	// log.S("topic", topic).Debug("new broker")
 	return &Broker{
 		topic:       topic,
 		subscribers: make(map[chan *Message]struct{}),
@@ -66,6 +67,18 @@ func (b *Broker) State() *Message {
 	return b.state.get()
 }
 
+func (b *Broker) Remove() {
+	b.Lock()
+	for ch, _ := range b.subscribers {
+		delete(b.subscribers, ch)
+		close(ch)
+	}
+	b.Unlock()
+	brokersLock.Lock()
+	delete(brokers, b.topic)
+	brokersLock.Unlock()
+}
+
 func (b *Broker) setSubscriber(ch chan *Message) {
 	b.Lock()
 	defer b.Unlock()
@@ -73,6 +86,7 @@ func (b *Broker) setSubscriber(ch chan *Message) {
 }
 
 func (b *Broker) Subscribe() chan *Message {
+	// log.S("topic", b.topic).Debug("subscribe")
 	ch := make(chan *Message)
 	b.setSubscriber(ch)
 	if b.state != nil {
