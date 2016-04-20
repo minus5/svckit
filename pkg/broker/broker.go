@@ -43,7 +43,7 @@ type Broker struct {
 }
 
 func newBroker(topic string) *Broker {
-	// log.S("topic", topic).Debug("new broker")
+	// log.S("topic", topic).Debug("new broker ")
 	return &Broker{
 		topic:       topic,
 		subscribers: make(map[chan *Message]struct{}),
