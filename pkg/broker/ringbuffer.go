@@ -1,6 +1,9 @@
 package broker
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 type ring struct {
 	size int
@@ -8,14 +11,18 @@ type ring struct {
 	tail int
 	buf  []*Message
 	sync.RWMutex
+	touched     bool
+	touchSignal chan struct{}
+	touchOnce   sync.Once
 }
 
 func newRingBuffer(size int) *ring {
 	r := &ring{
-		size: size,
-		head: 1 % size,
-		tail: size - 1,
-		buf:  make([]*Message, size),
+		size:        size,
+		head:        1 % size,
+		tail:        size - 1,
+		buf:         make([]*Message, size),
+		touchSignal: make(chan struct{}),
 	}
 	return r
 }
@@ -41,6 +48,11 @@ func (r *ring) put(msg *Message) {
 	r.buf[r.head] = msg
 	r.head = r.mod(r.head + 1)
 	r.tail = r.mod(r.tail + 1)
+	r.touchOnce.Do(func() {
+		log.Println("touched")
+		r.touched = true
+		close(r.touchSignal)
+	})
 }
 
 func (r *ring) get() *Message {
@@ -56,4 +68,14 @@ func (r *ring) emit(ch chan *Message) {
 			ch <- line
 		}
 	}
+}
+
+func (r *ring) waitTouch() {
+	r.RLock()
+	touched := r.touched
+	r.RUnlock()
+	if touched {
+		return
+	}
+	<-r.touchSignal
 }

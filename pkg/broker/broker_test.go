@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"log"
 	"testing"
 	"time"
 
@@ -98,4 +99,47 @@ func TestBuffered(t *testing.T) {
 	b3.Unsubscribe(ch3)
 	<-done3
 	assert.Equal(t, "45678910111213", string(buf3))
+}
+
+func TestTouch(t *testing.T) {
+	log.Println("touch test")
+	var buf1 []byte
+	b1 := GetFullDiffBroker("touch")
+	ch1 := b1.Subscribe()
+	done1 := concatenate(ch1, &buf1)
+
+	Diff("touch", "test", []byte("diff1"))
+	Diff("touch", "test", []byte("diff2"))
+
+	var buf2 []byte
+	b2 := GetFullDiffBroker("touch")
+	ch2 := b2.Subscribe()
+	done2 := concatenate(ch2, &buf2)
+
+	Diff("touch", "test", []byte("diff3"))
+	Diff("touch", "test", []byte("diff4"))
+
+	Full("touch", "test", []byte("full1"))
+	time.Sleep(10 * time.Millisecond)
+
+	var buf3 []byte
+	b3 := GetFullDiffBroker("touch")
+	ch3 := b3.Subscribe()
+	done3 := concatenate(ch3, &buf3)
+
+	time.Sleep(10 * time.Millisecond)
+	Diff("touch", "test", []byte("diff5"))
+	Diff("touch", "test", []byte("diff6"))
+
+	b1.Unsubscribe(ch1)
+	b2.Unsubscribe(ch2)
+	b3.Unsubscribe(ch3)
+
+	<-done1
+	<-done2
+	<-done3
+
+	assert.Equal(t, "full1diff5diff6", string(buf1))
+	assert.Equal(t, "full1diff5diff6", string(buf2))
+	assert.Equal(t, "full1diff5diff6", string(buf3))
 }

@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -32,12 +33,13 @@ type state interface {
 	put(*Message)
 	get() *Message
 	emit(chan *Message)
+	waitTouch()
 }
 
 type Broker struct {
 	topic       string
 	state       state
-	subscribers map[chan *Message]struct{}
+	subscribers map[chan *Message]bool
 	sync.RWMutex
 	updated time.Time
 }
@@ -46,7 +48,7 @@ func newBroker(topic string) *Broker {
 	// log.S("topic", topic).Debug("new broker")
 	return &Broker{
 		topic:       topic,
-		subscribers: make(map[chan *Message]struct{}),
+		subscribers: make(map[chan *Message]bool),
 		updated:     time.Now(),
 	}
 }
@@ -79,18 +81,21 @@ func (b *Broker) Remove() {
 	brokersLock.Unlock()
 }
 
-func (b *Broker) setSubscriber(ch chan *Message) {
+func (b *Broker) setSubscriber(ch chan *Message, sentFull bool) {
 	b.Lock()
 	defer b.Unlock()
-	b.subscribers[ch] = struct{}{}
+	b.subscribers[ch] = sentFull
 }
 
 func (b *Broker) Subscribe() chan *Message {
 	// log.S("topic", b.topic).Debug("subscribe")
 	ch := make(chan *Message)
-	b.setSubscriber(ch)
 	if b.state != nil {
-		go b.state.emit(ch)
+		go func() {
+			b.state.waitTouch()
+			b.state.emit(ch)
+			b.setSubscriber(ch, true)
+		}()
 	}
 	return ch
 }
@@ -114,8 +119,13 @@ func (b *Broker) full(msg *Message) {
 func (b *Broker) diff(msg *Message) {
 	b.RLock()
 	defer b.RUnlock()
-	for c, _ := range b.subscribers {
-		c <- msg
+	for c, sentFull := range b.subscribers {
+		if sentFull {
+			log.Println("sent full, sending diff")
+			c <- msg
+		} else {
+			log.Println("full not sent, not sending diff")
+		}
 	}
 }
 
@@ -148,7 +158,7 @@ func FindBroker(topic string) (*Broker, bool) {
 	return b, ok
 }
 
-func createFullDiffBroker(topic string, size int) *Broker {
+func createFullDiffBroker(topic string) *Broker {
 	brokersLock.Lock()
 	defer brokersLock.Unlock()
 	b := NewFullDiffBroker(topic)
@@ -167,7 +177,7 @@ func createBufferedBroker(topic string, size int) *Broker {
 func GetFullDiffBroker(topic string) *Broker {
 	b, ok := FindBroker(topic)
 	if !ok {
-		return createFullDiffBroker(topic, defaultSize)
+		return createFullDiffBroker(topic)
 	}
 	return b
 }
