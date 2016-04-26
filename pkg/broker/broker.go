@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -90,6 +89,7 @@ func (b *Broker) setSubscriber(ch chan *Message, sentFull bool) {
 func (b *Broker) Subscribe() chan *Message {
 	// log.S("topic", b.topic).Debug("subscribe")
 	ch := make(chan *Message)
+	b.setSubscriber(ch, false)
 	if b.state != nil {
 		go func() {
 			b.state.waitTouch()
@@ -121,10 +121,7 @@ func (b *Broker) diff(msg *Message) {
 	defer b.RUnlock()
 	for c, sentFull := range b.subscribers {
 		if sentFull {
-			log.Println("sent full, sending diff")
 			c <- msg
-		} else {
-			log.Println("full not sent, not sending diff")
 		}
 	}
 }

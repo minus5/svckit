@@ -1,9 +1,6 @@
 package broker
 
-import (
-	"log"
-	"sync"
-)
+import "sync"
 
 type ring struct {
 	size int
@@ -49,7 +46,6 @@ func (r *ring) put(msg *Message) {
 	r.head = r.mod(r.head + 1)
 	r.tail = r.mod(r.tail + 1)
 	r.touchOnce.Do(func() {
-		log.Println("touched")
 		r.touched = true
 		close(r.touchSignal)
 	})
