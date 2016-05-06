@@ -10,7 +10,8 @@ import (
 type AppVersion struct {
 	App       string
 	Version   string
-	ExpiresAt int `json:"expires_at"`
+	Debug     bool `json:"debug"`
+	ExpiresAt int  `json:"expires_at"`
 	Valid     []struct {
 		Version   string
 		ExpiresAt int `bson:"expires_at" json:"expires_at"`
@@ -58,11 +59,15 @@ func (av *AppVersion) ToClient() []byte {
 		App       string `json:"app"`
 		Version   string `json:"version"`
 		ExpiresAt int    `json:"expires_at,omitempty"`
+		Debug     bool   `json:"debug"`
 	}{
 		App:       av.App,
 		Version:   av.Version,
 		ExpiresAt: av.ExpiresAt,
+		Debug:     av.Debug,
 	}
 	buf, _ := json.Marshal(d)
+	fmt.Println("ovdje")
+	fmt.Println(string(buf))
 	return buf
 }
