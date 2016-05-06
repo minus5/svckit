@@ -67,7 +67,5 @@ func (av *AppVersion) ToClient() []byte {
 		Debug:     av.Debug,
 	}
 	buf, _ := json.Marshal(d)
-	fmt.Println("ovdje")
-	fmt.Println(string(buf))
 	return buf
 }
