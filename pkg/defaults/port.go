@@ -21,5 +21,7 @@ const (
 	PortNsqNotifier        = "8230"
 	PortNsqToCloudwatch    = "8240"
 	PortNsqToGraphite      = "8250"
+	PortTecajnaLoto        = "8260"
 	PortWebFrontend        = "3010"
+	PortWebLotator         = "3014"
 )
