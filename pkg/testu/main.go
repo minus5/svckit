@@ -61,3 +61,38 @@ func ShowDiff(file1, file2 string) {
 		log.Printf("diff status %s", err)
 	}
 }
+
+func RunShellBatch(t *testing.T, batch string) {
+	r := 0
+again:
+	cmd := exec.Command("bash", "-c", batch)
+	err := cmd.Start()
+	assert.Nil(t, err)
+	err = cmd.Wait()
+
+	if err != nil {
+		if r < 3 {
+			r++
+			goto again
+		}
+		assert.Nil(t, err)
+		panic(err)
+	}
+}
+
+func StartMongo(t *testing.T) {
+	batch := `#!/bin/bash
+mongo --port 27018  --eval "db.getSiblingDB('admin').shutdownServer()" --quiet
+rm -rf tmp/mongo_test
+mkdir -p ./tmp/mongo_test
+mkdir -p ./log
+mongod --port 27018 --nojournal --dbpath ./tmp/mongo_test --logpath ./log/mongod_test.log --fork --quiet
+`
+	RunShellBatch(t, batch)
+}
+
+func StopMongo(t *testing.T) {
+	batch := `#!/bin/bash
+mongo --port 27018  --eval "db.getSiblingDB('admin').shutdownServer()" --quiet`
+	RunShellBatch(t, batch)
+}
