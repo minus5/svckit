@@ -56,7 +56,6 @@ func (av *AppVersion) SameVersion(other *AppVersion) bool {
 }
 
 func (av *AppVersion) ToClient(uvijekDebug bool) []byte {
-	fmt.Println("toclient", av.DebugPostotak)
 	d := struct {
 		App       string `json:"app"`
 		Version   string `json:"version"`
