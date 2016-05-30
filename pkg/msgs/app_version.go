@@ -3,16 +3,17 @@ package msgs
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strings"
 )
 
 //AppVersion verzija za neki tip aplikacije.
 type AppVersion struct {
-	App       string
-	Version   string
-	Debug     bool `json:"debug"`
-	ExpiresAt int  `json:"expires_at"`
-	Valid     []struct {
+	App           string
+	Version       string
+	DebugPostotak int `json:"debug_postotak"`
+	ExpiresAt     int `json:"expires_at"`
+	Valid         []struct {
 		Version   string
 		ExpiresAt int `bson:"expires_at" json:"expires_at"`
 	}
@@ -54,7 +55,7 @@ func (av *AppVersion) SameVersion(other *AppVersion) bool {
 	return av.Version == other.Version
 }
 
-func (av *AppVersion) ToClient() []byte {
+func (av *AppVersion) ToClient(uvijekDebug bool) []byte {
 	d := struct {
 		App       string `json:"app"`
 		Version   string `json:"version"`
@@ -64,7 +65,7 @@ func (av *AppVersion) ToClient() []byte {
 		App:       av.App,
 		Version:   av.Version,
 		ExpiresAt: av.ExpiresAt,
-		Debug:     av.Debug,
+		Debug:     rand.Intn(100) <= av.DebugPostotak || uvijekDebug,
 	}
 	buf, _ := json.Marshal(d)
 	return buf
