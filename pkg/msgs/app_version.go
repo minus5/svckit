@@ -11,7 +11,7 @@ import (
 type AppVersion struct {
 	App           string
 	Version       string
-	DebugPostotak int `json:"debug_postotak"`
+	DebugPostotak int `bson:"debug_postotak" json:"debug_postotak"`
 	ExpiresAt     int `json:"expires_at"`
 	Valid         []struct {
 		Version   string
@@ -56,6 +56,7 @@ func (av *AppVersion) SameVersion(other *AppVersion) bool {
 }
 
 func (av *AppVersion) ToClient(uvijekDebug bool) []byte {
+	fmt.Println("toclient", av.DebugPostotak)
 	d := struct {
 		App       string `json:"app"`
 		Version   string `json:"version"`
