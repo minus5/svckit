@@ -24,4 +24,5 @@ const (
 	PortTecajnaLoto        = "8260"
 	PortWebFrontend        = "3010"
 	PortWebLotator         = "3014"
+	PortBonovi             = "8270"
 )
