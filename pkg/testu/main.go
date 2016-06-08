@@ -62,6 +62,7 @@ func ShowDiff(file1, file2 string) {
 	}
 }
 
+// RunShellBatch izvrsi niz shell komandi
 func RunShellBatch(t *testing.T, batch string) {
 	r := 0
 again:
@@ -80,19 +81,24 @@ again:
 	}
 }
 
+// StartMongo pokrece cisti mongo za testiranje na portu 27018
 func StartMongo(t *testing.T) {
 	batch := `#!/bin/bash
 mongo --port 27018  --eval "db.getSiblingDB('admin').shutdownServer()" --quiet
-rm -rf tmp/mongo_test
-mkdir -p ./tmp/mongo_test
-mkdir -p ./log
-mongod --port 27018 --nojournal --dbpath ./tmp/mongo_test --logpath ./log/mongod_test.log --fork --quiet
+rm -rf /tmp/test_mongo
+mkdir -p /tmp/test_mongo
+mongod --port 27018 --nojournal --dbpath /tmp/test_mongo --logpath /tmp/test_mongo.log --fork --quiet
 `
 	RunShellBatch(t, batch)
 }
 
+// StopMongo zaustavlja testni mongo
 func StopMongo(t *testing.T) {
 	batch := `#!/bin/bash
-mongo --port 27018  --eval "db.getSiblingDB('admin').shutdownServer()" --quiet`
+mongo --port 27018  --eval "db.getSiblingDB('admin').shutdownServer()" --quiet
+rm -rf /tmp/test_mongo
+rm -f /tmp/test_mongo.log
+`
+
 	RunShellBatch(t, batch)
 }
