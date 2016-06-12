@@ -81,6 +81,8 @@ again:
 	}
 }
 
+var mongoCounter int
+
 // StartMongo pokrece cisti mongo za testiranje na portu 27018
 func StartMongo(t *testing.T) {
 	batch := `#!/bin/bash
@@ -89,6 +91,8 @@ rm -rf /tmp/test_mongo
 mkdir -p /tmp/test_mongo
 mongod --port 27018 --nojournal --dbpath /tmp/test_mongo --logpath /tmp/test_mongo.log --fork --quiet
 `
+	mongoCounter++
+	fmt.Printf("starting mongo %d", mongoCounter)
 	RunShellBatch(t, batch)
 }
 
