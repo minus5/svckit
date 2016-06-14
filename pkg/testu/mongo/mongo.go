@@ -128,16 +128,8 @@ func (dbs *Mongo) Session() *mgo.Session {
 // is running. Otherwise Wipe will panic after a timeout informing that
 // there is a session leak.
 func (dbs *Mongo) Wipe() {
-	if dbs.server == nil || dbs.session == nil {
-		return
-	}
-	sessionUnset := dbs.session == nil
 	session := dbs.Session()
 	defer session.Close()
-	if sessionUnset {
-		dbs.session.Close()
-		dbs.session = nil
-	}
 	names, err := session.DatabaseNames()
 	if err != nil {
 		panic(err)
