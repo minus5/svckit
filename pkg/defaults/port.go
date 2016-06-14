@@ -26,4 +26,5 @@ const (
 	PortWebLotator         = "3014"
 	PortBonoviPartnerApi   = "8270"
 	PortBonoviApi          = "8271"
+	PortBonoviS2Api        = "8272"
 )
