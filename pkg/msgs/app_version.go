@@ -9,13 +9,22 @@ import (
 
 //AppVersion verzija za neki tip aplikacije.
 type AppVersion struct {
-	App           string
-	Version       string
-	DebugPostotak int `bson:"debug_postotak" json:"debug_postotak"`
-	ExpiresAt     int `json:"expires_at"`
-	Valid         []struct {
-		Version   string
-		ExpiresAt int `bson:"expires_at" json:"expires_at"`
+	// Naziv aplikacije
+	App				string
+	// Verzija aplikacije
+	Version			string
+	// Stranica na kojoj se aplikacija nalazi prilikom slanja poruke, primamo samo radi raspisa statistike
+	Page			string	`json:"page,omitempty"`
+	// postotak klijenata za koje spremamo logove i saljemo statistike
+	DebugPostotak	int		`bson:"debug_postotak" json:"debug_postotak"`
+	// unix timestamp do kad je verziju aplikacije moguce koristiti 
+	ExpiresAt		int		`json:"expires_at"`
+	// array verzija aplikacije s njihovim datumom do kad ih je moguce korisiti
+	Valid			[]struct {
+		// Verzija aplikacije
+		Version		string
+		// unix timestamp do kad je verziju aplikacije moguce koristiti 
+		ExpiresAt	int		`bson:"expires_at" json:"expires_at"`
 	}
 }
 
@@ -55,6 +64,7 @@ func (av *AppVersion) SameVersion(other *AppVersion) bool {
 	return av.Version == other.Version
 }
 
+// Podaci vezije aplikacija koji se salju klijentima
 func (av *AppVersion) ToClient(uvijekDebug bool) []byte {
 	d := struct {
 		App       string `json:"app"`
@@ -65,6 +75,7 @@ func (av *AppVersion) ToClient(uvijekDebug bool) []byte {
 		App:       av.App,
 		Version:   av.Version,
 		ExpiresAt: av.ExpiresAt,
+		// flag da li klijent aplikacija smije slati logove i metrike
 		Debug:     rand.Intn(100) <= av.DebugPostotak || uvijekDebug,
 	}
 	buf, _ := json.Marshal(d)
