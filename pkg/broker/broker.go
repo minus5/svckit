@@ -40,7 +40,8 @@ type Broker struct {
 	state       state
 	subscribers map[chan *Message]bool
 	sync.RWMutex
-	updated time.Time
+	removeLock sync.RWMutex
+	updated    time.Time
 }
 
 func newBroker(topic string) *Broker {
@@ -70,6 +71,8 @@ func (b *Broker) State() *Message {
 
 func (b *Broker) Remove() {
 	b.Lock()
+	b.removeLock.Lock()
+	defer b.removeLock.Unlock()
 	for ch, _ := range b.subscribers {
 		delete(b.subscribers, ch)
 		close(ch)
@@ -91,6 +94,8 @@ func (b *Broker) Subscribe() chan *Message {
 	ch := make(chan *Message)
 	if b.state != nil {
 		go func() {
+			b.removeLock.RLock()
+			defer b.removeLock.RUnlock()
 			b.state.waitTouch()
 			b.state.emit(ch)
 			b.setSubscriber(ch, true)
