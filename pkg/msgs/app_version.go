@@ -49,17 +49,26 @@ func (av *AppVersion) SetExpiresFor(cv string) {
 	av.ExpiresAt = -1
 }
 
+// Vraca string za statistike u formatu app.version, unknown se koristi za vrijednosti koje su prazne
+// verzija umjesto tocke sadrzi underscore npr 1.1.1 -> 1_1_1
 func (av *AppVersion) StatKey() string {
-	if av.App == "" && av.Version == "" {
-		return "unknown"
+	app := "unknown"
+	ver := "unknown"
+	if av.App != "" {
+		app = av.App
 	}
-	return fmt.Sprintf("%s.%s", av.App, strings.Replace(av.Version, ".", "_", -1))
+	if av.Version != "" {
+		ver = strings.Replace(av.Version, ".", "_", -1)
+	}
+	return fmt.Sprintf("%s.%s", app, ver)
 }
 
+// Da li je jednaka aplikacija?
 func (av *AppVersion) SameApp(other *AppVersion) bool {
 	return av.App == other.App
 }
 
+// Da li je jednaka verzija aplikacije?
 func (av *AppVersion) SameVersion(other *AppVersion) bool {
 	return av.Version == other.Version
 }
