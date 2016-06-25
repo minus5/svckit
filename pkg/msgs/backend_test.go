@@ -319,7 +319,7 @@ func TestVideoStreams(t *testing.T) {
 
 func TestVideoIdDogadjaji(t *testing.T) {
 	buf := []byte(`{"video_id":1,"dogadjaj_id":2,"_deleted_id":3}`)
-	m := NewBackendFromTopic(buf, VideoIdDogadjaj)
+	m := NewBackendOrSimple(buf, "")
 	assert.NotNil(t, m)
 	var vs tDto.VideoStream
 	m.UnmarshalBody(&vs)
@@ -329,7 +329,7 @@ func TestVideoIdDogadjaji(t *testing.T) {
 
 	buf = []byte(`{"type":"video_id_dogadjaj"}
 {"video_id":4,"dogadjaj_id":5,"_deleted_id":6}`)
-	m = NewBackendFromTopic(buf, VideoIdDogadjaj)
+	m = NewBackendOrSimple(buf, "")
 	assert.NotNil(t, m)
 	m.UnmarshalBody(&vs)
 	assert.Equal(t, 4, vs.VideoId)
@@ -426,4 +426,11 @@ func (a BackendPoredak) Less(i, j int) bool {
 
 func Sort(a []*Backend) {
 	sort.Sort(BackendPoredak(a))
+}
+
+func TestFixParseTecajnaListic(t *testing.T) {
+	buf := `{"id":924712403,"tecajevi":[{"ponuda_id":-1006192973,"tecaj_id":540380048}],"ulog":2}`
+	b := NewBackendOrSimple([]byte(buf), "listici")
+	assert.NotNil(t, b)
+	assert.Equal(t, buf, string(b.Body))
 }

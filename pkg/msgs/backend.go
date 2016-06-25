@@ -26,7 +26,6 @@ const (
 	PorukeTopic       = "poruke"
 	TransakcijeTopic  = "transakcije"
 	VideoStreamsTopic = "video_streams"
-	VideoIdDogadjaj   = "video_id_dogadjaj"
 	StatsTopic        = "stats"
 )
 
@@ -51,6 +50,17 @@ type Backend struct {
 	jsonBody    *simplejson.Json
 }
 
+func NewBackendOrSimple(buf []byte, topic string) *Backend {
+	if bytes.Contains(buf, HeaderSeparator) {
+		return parseAsBackend(buf)
+	}
+	return &Backend{
+		Type:    topic,
+		Body:    buf,
+		RawBody: buf,
+	}
+}
+
 func NewBackendFromTopic(buf []byte, topic string) *Backend {
 	if !hasHeader(buf) {
 		switch topic {
@@ -66,8 +76,6 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 			return newTransakcijeBackend(buf)
 		case VideoStreamsTopic:
 			return newVideoStreams(buf)
-		case VideoIdDogadjaj:
-			return newVideoIdDogadjaja(buf)
 		}
 	}
 	if topic == StatsTopic {
@@ -418,17 +426,6 @@ func newVideoStreams(buf []byte) *Backend {
 		Type:    VideoStreamsTopic,
 		Id:      msg.Id,
 		Ts:      msg.Ts,
-		Body:    buf,
-		RawBody: buf,
-	}
-}
-
-func newVideoIdDogadjaja(buf []byte) *Backend {
-	if bytes.Contains(buf, HeaderSeparator) {
-		return parseAsBackend(buf)
-	}
-	return &Backend{
-		Type:    VideoIdDogadjaj,
 		Body:    buf,
 		RawBody: buf,
 	}
