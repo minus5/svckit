@@ -1,8 +1,15 @@
 package msgs
 
 import (
+	"bufio"
+	"bytes"
+	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
 	"pkg/common"
+	tDto "pkg/tecajna/dto"
+	"sort"
 	"strings"
 	"testing"
 
@@ -68,7 +75,6 @@ func TestMsgLiveDogadjaj(t *testing.T) {
 	assert.Equal(t, "live/dogadjaj_web2_6430239/full", msg.Type)
 	assert.Equal(t, 311, msg.No)
 	assert.Equal(t, false, msg.IsDel)
-	assert.Equal(t, true, msg.Gzip)
 }
 
 func TestIsFullIsDiff(t *testing.T) {
@@ -216,7 +222,7 @@ func TestParsePackHeaders(t *testing.T) {
 		m, err := parseHeader([]byte(header))
 		assert.Nil(t, err)
 		assert.True(t, m.SetDc("ec2"))
-		assert.Equal(t, string(m.Pack()), after[i]+"\n")
+		assert.Equal(t, string(m.pack()), after[i]+"\n")
 		//t.Logf("%s", m.Pack())
 	}
 }
@@ -309,4 +315,115 @@ func TestVideoStreams(t *testing.T) {
 	assert.Equal(t, "", m.IgracId)
 	assert.Equal(t, "15929", m.Id)
 	assert.Equal(t, buf, m.RawBody)
+}
+
+func TestVideoIdDogadjaji(t *testing.T) {
+	buf := []byte(`{"video_id":1,"dogadjaj_id":2,"_deleted_id":3}`)
+	m := NewBackendFromTopic(buf, VideoIdDogadjaj)
+	assert.NotNil(t, m)
+	var vs tDto.VideoStream
+	m.UnmarshalBody(&vs)
+	assert.Equal(t, 1, vs.VideoId)
+	assert.Equal(t, 2, vs.DogadjajId)
+	assert.Equal(t, 3, vs.DeletedId)
+
+	buf = []byte(`{"type":"video_id_dogadjaj"}
+{"video_id":4,"dogadjaj_id":5,"_deleted_id":6}`)
+	m = NewBackendFromTopic(buf, VideoIdDogadjaj)
+	assert.NotNil(t, m)
+	m.UnmarshalBody(&vs)
+	assert.Equal(t, 4, vs.VideoId)
+	assert.Equal(t, 5, vs.DogadjajId)
+	assert.Equal(t, 6, vs.DeletedId)
+}
+
+func TestMerge(t *testing.T) {
+
+	// procitaj sve poruke za jedan dogadjaj
+	// unutra su i full-ovi i diff-ovi za svaku promjenu
+	file, err := os.Open("./fixtures/d_92957531")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	var mgs []*Backend
+	var header []byte
+	header = nil
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if bytes.HasPrefix(line, []byte("-")) {
+			continue
+		}
+		if header == nil {
+			header = append(header, line...)
+			//fmt.Printf("line: %s\n", line)
+		} else {
+			//fmt.Printf("header: %s\nbody: %s\n", header, line)
+			var buf []byte
+			buf = append(buf, header...)
+			buf = append(buf, HeaderSeparator...)
+			buf = append(buf, line...)
+			//fmt.Printf("\n%s\n\n", buf)
+			b, err := NewBackend(buf)
+			assert.Nil(t, err)
+			mgs = append(mgs, b)
+			header = nil
+			//fmt.Printf("%s\n", b.Body)
+		}
+	}
+
+	// nakon sort poruke su idu 2 full, 2 diff, 3 full, 3 diff...
+	Sort(mgs)
+	assert.Nil(t, err)
+	assert.Equal(t, len(mgs), 586)
+
+	// for i, b := range mgs {
+	// 	fmt.Println(i, b.No, b.IsFull())
+	// }
+
+	// uzmi prvi full i na njega radi merge svakog slijedeceg diff-a
+	// pa provjeri da je rezultat isti kao sto je stvarni full
+	full := mgs[0]
+	var expected *Backend
+	assert.True(t, full.IsFull())
+	for _, b := range mgs {
+		if b.IsFull() {
+			expected = b
+		}
+		if b.IsDiff() {
+			//fmt.Printf("ulaz: %s\n\n", b.Body)
+			assert.Equal(t, b.No, full.No+1)
+			full.Merge(b)
+			assert.Equal(t, full.No, expected.No)
+			assert.Equal(t, string(full.Body), string(expected.Body))
+			//fmt.Printf("%s\n", expected.Body)
+			if string(full.Body) != string(expected.Body) {
+				fmt.Printf("full: %s\n\n expected %s\n\nb: %s\n",
+					full.Body, expected.Body, b.Body)
+				fmt.Println(full.No, expected.No, b.No)
+				return
+			}
+			//fmt.Println("ok", i, full.No, b.No, expected.No)
+		}
+	}
+}
+
+// BackendPoredak soritra poruke po no
+type BackendPoredak []*Backend
+
+func (a BackendPoredak) Len() int      { return len(a) }
+func (a BackendPoredak) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a BackendPoredak) Less(i, j int) bool {
+	if a[i].No < 0 {
+		return false
+	}
+	if a[i].No == a[j].No {
+		return a[i].IsFull()
+	}
+	return a[i].No < a[j].No
+}
+
+func Sort(a []*Backend) {
+	sort.Sort(BackendPoredak(a))
 }

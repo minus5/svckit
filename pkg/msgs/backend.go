@@ -5,42 +5,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"pkg/jsonu"
+	"pkg/svckit/log"
 	"pkg/util"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/minus5/go-simplejson"
 )
 
 var (
-	HeaderSeparator   []byte = []byte{10} //new line
-	IgraciTopic              = "igraci"
-	PorukeTopic              = "poruke"
-	TransakcijeTopic         = "transakcije"
-	VideoStreamsTopic        = "video_streams"
-	StatsTopic               = "stats"
+	HeaderSeparator = []byte{10} //new line
+)
+
+const (
+	// GzipMsgSizeLimit poruke manje od ove ne gzipamo
+	GzipMsgSizeLimit  = 32768
+	IgraciTopic       = "igraci"
+	PorukeTopic       = "poruke"
+	TransakcijeTopic  = "transakcije"
+	VideoStreamsTopic = "video_streams"
+	VideoIdDogadjaj   = "video_id_dogadjaj"
+	StatsTopic        = "stats"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
-	Type        string                 `json:"type,omitempty"`
-	Id          string                 `json:"id,omitempty"`
-	IgracId     string                 `json:"igrac_id,omitempty"`
-	No          int                    `json:"no,omitempty"`
-	From        string                 `json:"from,omitempty"`
-	To          string                 `json:"to,omitempty"`
-	IsDel       bool                   `json:"is_del,omitempty"`
-	Gzip        bool                   `json:"-"` //da li je body inicijalno bio gzip-an
-	Ts          int                    `json:"ts,omitempty"`
-	Dc          string                 `json:"dc,omitempty"`
-	Version     string                 `json:"version,omitempty"`
-	Encoding    string                 `json:"encoding,omitempty"`
-	MessageType string                 `json:"message_type,omitempty"`
-	Body        []byte                 `json:"-"` //raspakovan body
-	RawBody     []byte                 `json:"-"`
-	Header      map[string]interface{} `json:"-"`
-	RawHeader   []byte                 `json:"-"`
+	Type        string `json:"type,omitempty"`
+	Id          string `json:"id,omitempty"`
+	IgracId     string `json:"igrac_id,omitempty"`
+	No          int    `json:"no,omitempty"`
+	From        string `json:"from,omitempty"`
+	To          string `json:"to,omitempty"`
+	IsDel       bool   `json:"is_del,omitempty"`
+	Ts          int    `json:"ts,omitempty"`
+	Dc          string `json:"dc,omitempty"`
+	Version     string `json:"version,omitempty"`
+	Encoding    string `json:"encoding,omitempty"`
+	MessageType string `json:"message_type,omitempty"`
+	Body        []byte `json:"-"` //raspakovan body
+	RawBody     []byte `json:"-"`
+	RawHeader   []byte `json:"-"`
+	rawMsg      []byte
+	jsonBody    *simplejson.Json
 }
 
 func NewBackendFromTopic(buf []byte, topic string) *Backend {
@@ -58,6 +66,8 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 			return newTransakcijeBackend(buf)
 		case VideoStreamsTopic:
 			return newVideoStreams(buf)
+		case VideoIdDogadjaj:
+			return newVideoIdDogadjaja(buf)
 		}
 	}
 	if topic == StatsTopic {
@@ -116,7 +126,7 @@ func createBackend(typ string, no int, ts int, body []byte, compress bool) []byt
 	} else {
 		header["ts"] = time.Now().UnixNano()
 	}
-	if compress && len(body) > 1024 {
+	if compress && len(body) > GzipMsgSizeLimit {
 		body = util.Gzip(body)
 		header["encoding"] = "gzip"
 	}
@@ -143,6 +153,7 @@ func parseAsBackend(buf []byte) *Backend {
 	body := parts[1]
 	msg.RawBody = body
 	msg.Body, _ = util.GunzipIf(body)
+	msg.rawMsg = buf
 	return msg
 }
 
@@ -176,6 +187,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 	if err != nil {
 		log.Printf("[ERROR]: %s, rawHeader: %s", err, rawHeader)
 		return &Backend{}, fmt.Errorf("error parsing json header: %s, %v", rawHeader, err)
+
 	}
 	if header.Id == "" && header.Id2 != "" {
 		header.Id = header.Id2
@@ -207,7 +219,6 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		IsDel:       header.DocAction == "del" || header.Action == "del" || header.IsDel,
 		From:        header.From,
 		To:          header.To,
-		Gzip:        header.Encoding == "gzip",
 		Ts:          header.Ts,
 		RawHeader:   rawHeader,
 		Dc:          header.Dc,
@@ -222,10 +233,12 @@ func (b *Backend) bodyStr() string {
 	return string(b.Body)
 }
 
+// IsDiff da li je rijec o diff poruci
 func (b *Backend) IsDiff() bool {
 	return !strings.HasSuffix(b.Type, "/full")
 }
 
+// IsFull da li je rijec o full poruci.
 func (b *Backend) IsFull() bool {
 	return !strings.HasSuffix(b.Type, "/diff")
 }
@@ -235,74 +248,88 @@ func (b *Backend) RootType() string {
 }
 
 //todo - test za ovo
-func (m *Backend) FileName() string {
-	fn := strings.Replace(m.Type, "/", "_", -1)
-	if m.No != -1 {
-		fn = fmt.Sprintf("%s_%d", fn, m.No)
+func (b *Backend) FileName() string {
+	fn := strings.Replace(b.Type, "/", "_", -1)
+	if b.No != -1 {
+		fn = fmt.Sprintf("%s_%d", fn, b.No)
 	} else {
-		if m.From != "" || m.To != "" {
-			fn = fmt.Sprintf("%s_%s-%s", fn, m.From, m.To)
+		if b.From != "" || b.To != "" {
+			fn = fmt.Sprintf("%s_%s-%s", fn, b.From, b.To)
 		}
 	}
 	return fmt.Sprintf("%s.json", fn)
 }
 
-func (m *Backend) format(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
-	var b bytes.Buffer
+func (b *Backend) format(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
+	var buf bytes.Buffer
 
-	body := m.Body
+	body := b.Body
 	if bufferMarshalFunc != nil {
 		body, _ = bufferMarshalFunc([]byte(body))
 	}
 
 	if !noHeader {
-		b.Write(m.RawHeader)
-		b.Write(HeaderSeparator)
+		buf.Write(b.RawHeader)
+		buf.Write(HeaderSeparator)
 	}
 	if len(body) > 0 {
-		b.Write(body)
+		buf.Write(body)
 		if body[len(body)-1] != 10 {
-			b.Write(HeaderSeparator)
+			buf.Write(HeaderSeparator)
 		}
 	}
-	b.Write(HeaderSeparator)
+	buf.Write(HeaderSeparator)
 
-	return &b
+	return &buf
 }
 
-func (m *Backend) Pack() []byte {
+func (b *Backend) pack() []byte {
+	if b.rawMsg != nil {
+		// u medjuvremenu nista nije promjenjeno
+		return b.rawMsg
+	}
+	if b.jsonBody != nil {
+		b.Body, _ = b.jsonBody.Encode()
+		b.RawBody = b.Body
+		b.Encoding = ""
+	}
 	//igracid i no imaju defaulte koji se ne serijaliziraju lijepo uz ommitempty, pa malo kemijam oko toga
 	//volio bi neko inteligentnije rjesenje
-	igracId := m.IgracId
-	no := m.No
-	if m.IgracId == "*" {
-		m.IgracId = ""
+	igracId := b.IgracId
+	no := b.No
+	if b.IgracId == "*" {
+		b.IgracId = ""
 	}
-	if m.No == -1 {
-		m.No = 0
+	if b.No == -1 {
+		b.No = 0
 	}
 	var err error
-	m.RawHeader, err = json.Marshal(m)
+	b.RawHeader, err = json.Marshal(b)
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
 	}
-	m.IgracId = igracId
-	m.No = no
-	buf := append([]byte{}, m.RawHeader...)
+	b.IgracId = igracId
+	b.No = no
+	buf := append([]byte{}, b.RawHeader...)
 	buf = append(buf, HeaderSeparator...)
-	return append(buf, m.RawBody...)
+	b.rawMsg = append(buf, b.RawBody...)
+	return b.rawMsg
 }
 
-func (m *Backend) Format(prettyJson, noHeader bool) io.Reader {
+func (b *Backend) RawMessage() []byte {
+	return b.pack()
+}
+
+func (b *Backend) Format(prettyJson, noHeader bool) io.Reader {
 	if prettyJson {
-		return m.format(jsonu.MarshalPrettyBuf, noHeader)
+		return b.format(jsonu.MarshalPrettyBuf, noHeader)
 	} else {
-		return m.format(nil, noHeader)
+		return b.format(nil, noHeader)
 	}
 }
 
-func (m *Backend) FormatWith(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
-	return m.format(bufferMarshalFunc, noHeader)
+func (b *Backend) FormatWith(bufferMarshalFunc func(buf []byte) ([]byte, error), noHeader bool) io.Reader {
+	return b.format(bufferMarshalFunc, noHeader)
 }
 
 func hasHeader(buf []byte) bool {
@@ -396,6 +423,17 @@ func newVideoStreams(buf []byte) *Backend {
 	}
 }
 
+func newVideoIdDogadjaja(buf []byte) *Backend {
+	if bytes.Contains(buf, HeaderSeparator) {
+		return parseAsBackend(buf)
+	}
+	return &Backend{
+		Type:    VideoIdDogadjaj,
+		Body:    buf,
+		RawBody: buf,
+	}
+}
+
 func newNonJson(buf []byte, typ string) *Backend {
 	return &Backend{
 		Type:    typ,
@@ -404,53 +442,72 @@ func newNonJson(buf []byte, typ string) *Backend {
 	}
 }
 
-func (m *Backend) SetDc(dc string) bool {
-	if m.Dc == "" {
-		m.Dc = dc
+// SetDc postavi dc ako vec nije postavljen, true ako je uspio
+func (b *Backend) SetDc(dc string) bool {
+	if b.Dc == "" {
+		b.Dc = dc
+		b.rawMsg = nil
 		return true
 	}
 	return false
 }
 
-func (m *Backend) SameDc(dc string) bool {
-	return m.Dc == dc
-}
-
-func (m *Backend) AddToHeader(key string, value interface{}) bool {
-	if m.Header == nil {
-		m.Header = make(map[string]interface{})
-		err := json.Unmarshal(m.RawHeader, &m.Header)
-		if err != nil {
-			log.Printf("[ERROR] %s", err)
-			return false
-		}
-		//kad raspakiram u map svi brojevi odu u float64
-		//pa onda kada zapakujem u exp notaciji poslije pukne na slijedecem raspakiravanju u int
-		toInt(m.Header, "ts")
-		toInt(m.Header, "no")
-	}
-	if _, ok := m.Header[key]; !ok {
-		m.Header[key] = value
-		m.RawHeader, _ = json.Marshal(m.Header)
-		return true
-	}
-	return false
-}
-
-func toInt(m map[string]interface{}, key string) {
-	if v, ok := m[key]; ok {
-		f, ok := v.(float64)
-		if ok {
-			m[key] = int(f)
-		}
-	}
+// SameDc jesmo li u istom dc
+func (b *Backend) SameDc(dc string) bool {
+	return b.Dc == dc
 }
 
 //UnmarshalBody - json unmarshal body-ja
-func (m *Backend) UnmarshalBody(v interface{}) error {
-	if err := json.Unmarshal(m.Body, v); err != nil {
-		log.Printf("[ERROR] %s while parsing %s", err, m.Body)
+func (b *Backend) UnmarshalBody(v interface{}) error {
+	if err := json.Unmarshal(b.Body, v); err != nil {
+		log.Printf("[ERROR] %s while parsing %s", err, b.Body)
 		return err
 	}
 	return nil
+}
+
+// Json vrati body u simplejson formatu
+func (b *Backend) Json() *simplejson.Json {
+	if b.jsonBody == nil {
+		j, err := simplejson.NewJson(b.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		b.jsonBody = j
+	}
+	return b.jsonBody
+}
+
+// Merge spaja diff proruke na postojeci full.
+// I tako nadogradjuje u novi full.
+func (b *Backend) Merge(diff *Backend) {
+	if !b.IsFullDiff() || !diff.IsFullDiff() {
+		// ovo se ne bi smijelo dogoditi, greska je u logici
+		log.Notice("poruka nije full/diff tipa")
+		return
+	}
+	jsonu.Merge(b.Json(), diff.Json())
+	b.Ts = diff.Ts
+	b.No = diff.No
+	// ovi podaci vise nemaju smisla pa ih brisem da ih ne bi greskom koristio
+	b.RawBody = nil
+	b.Encoding = ""
+	b.RawHeader = nil
+	b.Body = nil
+	// rawMsg ce se ponov izgraditi u pack
+	b.rawMsg = nil
+	b.pack()
+}
+
+// IsFullDiff radi li se o full/diff tipu poruke
+func (b *Backend) IsFullDiff() bool {
+	return isFullDiff(b.Type)
+}
+
+func isFullDiff(typ string) bool {
+	if typ == "tecajna/diff" {
+		return false
+	}
+	return strings.Contains(typ, "/diff") ||
+		strings.Contains(typ, "/full")
 }

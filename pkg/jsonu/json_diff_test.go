@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/minus5/go-simplejson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,7 +85,59 @@ func TestJsonDiff(t *testing.T) {
 		//log.Printf("%v", d)
 		diff := diff([]byte(d.before), []byte(d.after))
 		assert.Equal(t, string(diff), d.diff)
+
+		full := merge([]byte(d.before), []byte(d.diff))
+		assert.Equal(t, string(full), d.after)
 	}
+}
+
+func TestMerge0(t *testing.T) {
+	//d := testCases()[0]
+	full := merge(
+		[]byte(`{"o1":{"k1":"v1","k2":"v2"},"o3":{}}`),
+		[]byte(`{"o1":{"k2":"v3"},"o2":{"k3":4},"o3":{"k4":5}}`))
+	assert.Equal(t, `{"o1":{"k1":"v1","k2":"v3"},"o2":{"k3":4},"o3":{"k4":5}}`, string(full))
+}
+
+func TestMerge1(t *testing.T) {
+	f, err := simplejson.NewJson([]byte(`{}`))
+	assert.Nil(t, err)
+	d, err := simplejson.NewJson([]byte(`{"o":1}`))
+	assert.Nil(t, err)
+	Merge(f, d)
+	buf, _ := f.Encode()
+	assert.Equal(t, `{"o":1}`, string(buf))
+
+	d, err = simplejson.NewJson([]byte(`{"o2":2}`))
+	assert.Nil(t, err)
+	Merge(f, d)
+	buf, _ = f.Encode()
+	assert.Equal(t, `{"o":1,"o2":2}`, string(buf))
+
+	d, err = simplejson.NewJson([]byte(`{"o3":{"k1":5}}`))
+	assert.Nil(t, err)
+	Merge(f, d)
+	buf, _ = f.Encode()
+	assert.Equal(t, `{"o":1,"o2":2,"o3":{"k1":5}}`, string(buf))
+
+	d, err = simplejson.NewJson([]byte(`{"o3":{"k1":1}}`))
+	assert.Nil(t, err)
+	f = Merge(f, d)
+	buf, _ = f.Encode()
+	assert.Equal(t, `{"o":1,"o2":2,"o3":{"k1":1}}`, string(buf))
+
+	d, err = simplejson.NewJson([]byte(`{"o3":{"k1":2,"o4":{"k2":1}}}`))
+	assert.Nil(t, err)
+	f = Merge(f, d)
+	buf, _ = f.Encode()
+	assert.Equal(t, `{"o":1,"o2":2,"o3":{"k1":2,"o4":{"k2":1}}}`, string(buf))
+
+	d, err = simplejson.NewJson([]byte(`{"o3":{"o4":{"k2":2}}}`))
+	assert.Nil(t, err)
+	f = Merge(f, d)
+	buf, _ = f.Encode()
+	assert.Equal(t, `{"o":1,"o2":2,"o3":{"k1":2,"o4":{"k2":2}}}`, string(buf))
+
 }
 
 func TestSameKeyIntArray(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"github.com/minus5/go-simplejson"
 )
 
+//Diff radi diff izmedju left i right json-a
 func Diff(left, right *simplejson.Json) *simplejson.Json {
 	return diffObject(left, right)
 }
@@ -24,6 +25,43 @@ func diff(bufL, bufR []byte) []byte {
 	diff := diffObject(left, right)
 	ret, _ := diff.Encode()
 	return ret
+}
+
+func merge(full, diff []byte) []byte {
+	f, _ := simplejson.NewJson(full)
+	d, _ := simplejson.NewJson(diff)
+	Merge(f, d)
+	ret, _ := f.Encode()
+	return ret
+}
+
+// Merge spaja diff u full
+func Merge(full, diff *simplejson.Json) *simplejson.Json {
+	set := func(k string) {
+		v := diff.Get(k)
+		if v.Interface() == nil {
+			//fmt.Printf("del %s \n", k)
+			full.Del(k)
+		} else {
+			//fmt.Printf("set %s %#v %#v \n", k, v, full.MustMap())
+			full.Set(k, v)
+		}
+	}
+	for k, _ := range diff.MustMap() {
+		if _, ok := full.CheckGet(k); !ok {
+			set(k)
+			continue
+		}
+		dv := diff.Get(k)
+		switch dv.Interface().(type) {
+		case *map[string]interface{}, map[string]interface{}, *simplejson.Json:
+			//fmt.Printf("ulazim u key %s\n", k)
+			Merge(full.Get(k), dv)
+		default:
+			set(k)
+		}
+	}
+	return full
 }
 
 //diffObject - vraca diff dvaju hash-eva
