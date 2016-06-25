@@ -121,8 +121,8 @@ func (o *fullDiffOrderer) processMsg(m *msg) {
 	case checkRequestFull:
 		o.queue = append(o.queue, m)
 		if o.dopunaAtNo == undefinedNo ||
-			o.dopunaAtNo < o.no {
-			o.dopunaAtNo = o.no
+			o.dopunaAtNo < m.no {
+			o.dopunaAtNo = m.no
 			o.dopunaHandler()
 			log.S("typ", m.typ).I("no", m.no).Debug("requestFull")
 			metric.Counter("merger.requestFull")
