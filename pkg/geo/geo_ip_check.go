@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"pkg/httpu"
 	"strings"
 	"sync"
@@ -118,6 +119,10 @@ func isLocalAddress(ip string) bool {
 }
 
 func getGeoIpFile(url, savePath string) error {
+	dir := filepath.Dir(savePath)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
 	res, err := httpu.Get(url)
 	if err != nil {
 		return err
