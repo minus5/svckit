@@ -71,7 +71,7 @@ func TestCheck(t *testing.T) {
 		{false, 7, checkLater},
 		{false, 10, checkLater},
 		{false, 104, checkLater},
-		{false, 105, checkReset}, //diff je narastao za vise od 99
+		//{false, 105, checkReset}, //diff je narastao za vise od 99
 		{true, 7, checkLater},
 		{true, 8, checkReset}, //full je narastao za vise od 2
 	}
@@ -248,4 +248,22 @@ func TestFullDiffOrderer(t *testing.T) {
 
 	m = out()
 	assert.Nil(t, m)
+}
+
+// imali smo bug kada se ova varijanta zavrtila u beskonacnoj petlji
+func TestBugFix(t *testing.T) {
+	fullRequests := 0
+	o := newFullDiffOrderer(func() {
+		fullRequests++
+	})
+	for i := 1; i <= maxQueueSize; i++ {
+		m := diff(i)
+		o.queue = append(o.queue, m)
+	}
+	assert.Equal(t, 0, fullRequests)
+	assert.Equal(t, maxQueueSize, len(o.queue))
+	//t.Logf("queueSize: %d", len(o.queue))
+	o.processQueue()
+	assert.Equal(t, 1, fullRequests)
+	assert.Equal(t, 1, len(o.queue))
 }

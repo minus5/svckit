@@ -32,6 +32,7 @@ func newMsg(m *msgs.Backend) *msg {
 }
 
 const undefinedNo = math.MinInt64
+const maxQueueSize = 256
 
 const (
 	checkLater = iota
@@ -76,6 +77,7 @@ func newFullDiffOrderer(dopunaHandler func()) *fullDiffOrderer {
 func (o *fullDiffOrderer) init() {
 	o.no = undefinedNo
 	o.dopunaAtNo = undefinedNo
+	o.queue = make([]*msg, 0)
 }
 
 func (o *fullDiffOrderer) close() {
@@ -99,7 +101,12 @@ func (o *fullDiffOrderer) loop() {
 }
 
 func (o *fullDiffOrderer) processMsg(m *msg) {
-	switch o.check(m) {
+	r := o.check(m)
+	o.processMsgWithResult(m, r)
+}
+
+func (o *fullDiffOrderer) processMsgWithResult(m *msg, r int) {
+	switch r {
 	case checkSkip:
 		metric.Counter("merger.skip")
 	case checkMerge:
@@ -134,7 +141,6 @@ func (o *fullDiffOrderer) processMsg(m *msg) {
 	case checkReset:
 		o.init()
 		o.processMsg(m)
-		o.processQueue()
 		metric.Counter("merger.reset")
 		log.S("type", m.typ).I("no", m.no).Notice("reset")
 	}
@@ -154,7 +160,7 @@ again:
 		}
 		// izvadi iz queue-a
 		o.queue = append(o.queue[0:i], o.queue[i+1:]...)
-		o.processMsg(m)
+		o.processMsgWithResult(m, r)
 		return true
 	}
 
@@ -173,7 +179,7 @@ again:
 }
 
 func (o *fullDiffOrderer) check(m *msg) int {
-	if len(o.queue) > 99 {
+	if len(o.queue) >= maxQueueSize {
 		return checkReset
 	}
 	if m.isFull {
@@ -197,9 +203,7 @@ func (o *fullDiffOrderer) check(m *msg) int {
 		if o.no+1 == m.no {
 			return checkMerge
 		}
-		if o.no+99 < m.no {
-			return checkReset
-		}
+
 		if m.no == o.no {
 			return checkCurrent
 		}
