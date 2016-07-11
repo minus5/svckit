@@ -23,17 +23,22 @@ func (m *PushNot) Serialize() map[string]interface{} {
 	d := make(map[string]interface{})
 	d["tip"] = m.Tip
 	if m.Listic != nil {
-		l := make(map[string]interface{})
-		l["id"] = m.Listic.Id
-		l["status"] = m.Listic.Status
-		l["dobitak"] = m.Listic.Dobitak
-		l["broj"] = m.Listic.Broj
+		l := m.Listic.Serialize()
 		d["listic"] = l
 	}
 	if m.Tekst != "" {
 		d["tekst"] = m.Tekst
 	}
 	return d
+}
+
+func (l *PushNotListic) Serialize() map[string]interface{} {
+	m := make(map[string]interface{})
+	m["id"] = l.Id
+	m["status"] = l.Status
+	m["dobitak"] = l.Dobitak
+	m["broj"] = l.Broj
+	return m
 }
 
 func NewPushNotText(id int, tip int, gcmId, appleId string, tekst string) *PushNot {
