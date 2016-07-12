@@ -3,12 +3,14 @@ package msgs
 const tipListic = 3
 
 type PushNot struct {
-	Id      int
-	GcmId   string
-	AppleId string
-	Tip     int
-	Tekst   string
-	Listic  *PushNotListic
+	Id       int
+	GcmId    string
+	AppleId  string
+	FcmId    string
+	FcmTopic string
+	Tip      int
+	Tekst    string
+	Listic   *PushNotListic
 }
 
 type PushNotListic struct {
