@@ -3,7 +3,7 @@ package msgs
 const tipListic = 3
 
 type PushNot struct {
-	Id       int
+	Id       int `json:"listic_id"`
 	GcmId    string
 	AppleId  string
 	FcmId    string
