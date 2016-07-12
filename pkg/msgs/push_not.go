@@ -3,7 +3,7 @@ package msgs
 const tipListic = 3
 
 type PushNot struct {
-	Id       int `json:"listic_id"`
+	Id       int `json:"push_not_id"`
 	GcmId    string
 	AppleId  string
 	FcmId    string
@@ -43,12 +43,12 @@ func (l *PushNotListic) Serialize() map[string]interface{} {
 	return m
 }
 
-func NewPushNotText(id int, tip int, gcmId, appleId string, tekst string) *PushNot {
-	return &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, Tekst: tekst}
+func NewPushNotText(id int, tip int, gcmId, appleId, fcmId string, tekst string) *PushNot {
+	return &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId, Tekst: tekst}
 }
 
-func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId string, listicId string, status int, dobitak float64, broj string) *PushNot {
-	pn := &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId}
+func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId, fcmId string, listicId string, status int, dobitak float64, broj string) *PushNot {
+	pn := &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId}
 	if tip == tipListic {
 		pn.Listic = &PushNotListic{Id: listicId, Tip: lTip, Status: status, Dobitak: dobitak, Broj: broj}
 	}
