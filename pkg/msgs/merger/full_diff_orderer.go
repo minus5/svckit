@@ -203,12 +203,14 @@ func (o *fullDiffOrderer) check(m *msg) int {
 		if o.no+1 == m.no {
 			return checkMerge
 		}
-
 		if m.no == o.no {
 			return checkCurrent
 		}
 		if m.no < o.no {
 			return checkSkip
+		}
+		if m.no > o.no+16 {
+			return checkReset
 		}
 	}
 	return checkLater

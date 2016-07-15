@@ -70,8 +70,8 @@ func TestCheck(t *testing.T) {
 	data = []testData{
 		{false, 7, checkLater},
 		{false, 10, checkLater},
-		{false, 104, checkLater},
-		//{false, 105, checkReset}, //diff je narastao za vise od 99
+		{false, 21, checkLater},
+		{false, 22, checkReset}, //diff je narastao za vise od 16
 		{true, 7, checkLater},
 		{true, 8, checkReset}, //full je narastao za vise od 2
 	}
