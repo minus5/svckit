@@ -8,10 +8,14 @@ import (
 )
 
 func TestPushNotSerializeListic(t *testing.T) {
-	m := NewPushNotListic(1, tipListic, 0, "apn", "gcm", "guid", 2, 123.45, "broj")
+	m := NewPushNotListic(1, PushNotMsgTipListic, 0, "apn", "gcm", "fcm", PushNotDeviceTypeAndroid, "guid", 2, 123.45, "broj")
+	assert.True(t, m.IsApn())
+	assert.True(t, m.IsGcm())
+	assert.True(t, m.IsFcm())
+	assert.Equal(t, PushNotDeviceTypeAndroid, m.DeviceType)
 
 	d := m.Serialize()
-	assert.Equal(t, d["tip"], tipListic)
+	assert.Equal(t, d["tip"], PushNotMsgTipListic)
 	assert.NotNil(t, d["listic"])
 	assert.Nil(t, d["tekst"])
 	assert.Equal(t, len(d), 2)
@@ -23,15 +27,17 @@ func TestPushNotSerializeListic(t *testing.T) {
 
 	buf, _ := json.Marshal(d)
 	assert.Equal(t, string(buf), `{"listic":{"broj":"broj","dobitak":123.45,"id":"guid","status":2},"tip":3}`)
-
-	assert.True(t, m.IsApn())
-	assert.True(t, m.IsGcm())
 }
 
 func TestPushNotSerializeTekst(t *testing.T) {
-	m := NewPushNotText(1, 1, "", "", "iso medo u ducan")
+	m := NewPushNotText(1, PushNotMsgTipPrivatna, "", "", "fcm", PushNotDeviceTypeiOS, "iso medo u ducan")
+	assert.False(t, m.IsApn())
+	assert.False(t, m.IsGcm())
+	assert.True(t, m.IsFcm())
+	assert.Equal(t, PushNotDeviceTypeiOS, m.DeviceType)
+
 	d := m.Serialize()
-	assert.Equal(t, d["tip"], 1)
+	assert.Equal(t, d["tip"], PushNotMsgTipPrivatna)
 	assert.Nil(t, d["listic"])
 	assert.NotNil(t, d["tekst"])
 	assert.Equal(t, d["tekst"], "iso medo u ducan")

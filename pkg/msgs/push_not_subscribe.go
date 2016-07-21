@@ -1,5 +1,12 @@
 package msgs
 
+// Tipovi uredjaja koje podrzavamo
+const (
+	PushNotDeviceTypeAndroid = iota
+	PushNotDeviceTypeiOS
+	PushNotDeviceTypeWeb
+)
+
 // Poruka za prijavu na push notifikacije
 type PushNotSubscribe struct {
 	// remember_token igraca koji se prijavljuje za notifikacije
@@ -7,13 +14,15 @@ type PushNotSubscribe struct {
 	// Uredjaj s kojim se prijavljuje za notifikacije
 	Uredjaj struct {
 		// Google Cloud Messaging device id 
-		GcmId   string `json:"gcm_id"`
+		GcmId		string	`json:"gcm_id"`
 		// Firebase Cloud Messaging device id 
-		FcmId   string `json:"fcm_id"`
+		FcmId		string	`json:"fcm_id"`
 		// Apple Cloud Messaging device id 
-		AppleId string `json:"apple_id"`
+		AppleId		string	`json:"apple_id"`
 		// Da li je uredjaj aktivan, ako je false koristi se za deaktivaciju uredjaja
-		Aktivan bool   `json:"aktivan"`
+		Aktivan		bool	`json:"aktivan"`
+		// Tip uredjaja za primanje push notifikacija, 0 - Android, 1 - iOS, 2 - web
+		DeviceType	int		`json:"device_type"`
 	} `json:"uredjaj"`
 	// Notifikacije na koje se igrac pretplacuje
 	Pretplate struct {

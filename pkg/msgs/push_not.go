@@ -1,18 +1,26 @@
 package msgs
 
-const tipListic = 3
+// Tipovi push not poruka
+const (
+	PushNotMsgTipPrivatna	= 1
+	PushNotMsgTipBroadcast	= 2
+	PushNotMsgTipListic		= 3
+)
 
+// Poruka za slanje na push notifikacije
 type PushNot struct {
-	Id       int `json:"push_not_id"`
-	GcmId    string
-	AppleId  string
-	FcmId    string
-	FcmTopic string
-	Tip      int
-	Tekst    string
-	Listic   *PushNotListic
+	Id			int `json:"push_not_id"`
+	GcmId		string
+	AppleId		string
+	FcmId		string
+	FcmTopic	string
+	DeviceType	int
+	Tip			int
+	Tekst		string
+	Listic		*PushNotListic
 }
 
+// Podaci listica za slanje na push notifikacije
 type PushNotListic struct {
 	Id      string
 	Tip     int
@@ -21,6 +29,7 @@ type PushNotListic struct {
 	Broj    string
 }
 
+// Serializira poruku i pretvara ju u poruku koja se salje na push notifikacije
 func (m *PushNot) Serialize() map[string]interface{} {
 	d := make(map[string]interface{})
 	d["tip"] = m.Tip
@@ -34,6 +43,7 @@ func (m *PushNot) Serialize() map[string]interface{} {
 	return d
 }
 
+// Serializira listic koji se salje kao poruka na push notifikacije
 func (l *PushNotListic) Serialize() map[string]interface{} {
 	m := make(map[string]interface{})
 	m["id"] = l.Id
@@ -43,22 +53,31 @@ func (l *PushNotListic) Serialize() map[string]interface{} {
 	return m
 }
 
-func NewPushNotText(id int, tip int, gcmId, appleId, fcmId string, tekst string) *PushNot {
-	return &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId, Tekst: tekst}
+// Kreira novu tekstualnu push notification poruku
+func NewPushNotText(id int, tip int, gcmId, appleId, fcmId string, deviceType int, tekst string) *PushNot {
+	return &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId, DeviceType: deviceType, Tekst: tekst}
 }
 
-func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId, fcmId string, listicId string, status int, dobitak float64, broj string) *PushNot {
-	pn := &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId}
-	if tip == tipListic {
+// Kreira novu push notification poruku za status listica
+func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId, fcmId string, deviceType int, listicId string, status int, dobitak float64, broj string) *PushNot {
+	pn := &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId, DeviceType: deviceType}
+	if tip == PushNotMsgTipListic {
 		pn.Listic = &PushNotListic{Id: listicId, Tip: lTip, Status: status, Dobitak: dobitak, Broj: broj}
 	}
 	return pn
 }
 
+// Da li je poruka za FCM klijent ili FCM topic poruka
+func (m *PushNot) IsFcm() bool {
+	return m.FcmId != "" || m.FcmTopic != ""
+}
+
+// Da li je poruka za GCM klijent
 func (m *PushNot) IsGcm() bool {
 	return m.GcmId != ""
 }
 
+// Da li je poruka za iOS klijent
 func (m *PushNot) IsApn() bool {
 	return m.AppleId != ""
 }
