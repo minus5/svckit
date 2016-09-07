@@ -1,6 +1,7 @@
 package testu
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,6 +10,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func PP(i interface{}) {
+	buf, _ := json.MarshalIndent(i, "  ", "  ")
+	fmt.Printf("%s", buf)
+}
 
 //ako zelim snimiti fixture dodam true kraj
 func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) {
