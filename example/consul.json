@@ -1,0 +1,79 @@
+{
+    "domain": "sd",
+    "bind_addr": "127.0.0.1",
+    "bootstrap": true,
+    "server": true,
+    "node_name": "node01",
+    "datacenter": "dev",
+    "data_dir": "./tmp/consul_data/",
+    "ui": true,
+    "services": [
+        {
+            "id": "nsqlookupd-http",
+            "name": "nsqlookupd-http",
+            "address": "127.0.0.1",
+            "port": 4161
+        },
+        {
+            "id": "nsqlookupd-tcp",
+            "name": "nsqlookupd-tcp",
+            "address": "127.0.0.1",
+            "port": 4160
+        },
+        {
+            "id": "nsqd-tcp",
+            "name": "nsqd-tcp",
+            "address": "127.0.0.1",
+            "port": 4150
+        },
+        {
+            "id": "statsd",
+            "name": "statsd",
+            "address": "127.0.0.1",
+            "port": 8125
+        },
+        {
+            "id": "syslog",
+            "name": "syslog",
+            "address": "127.0.0.1",
+            "port": 9514
+        },
+        {
+            "id": "test1",
+            "name": "test1",
+            "address": "127.0.0.1",
+            "port": 12345
+        },
+        {
+            "id": "test2",
+            "name": "test1",
+            "address": "127.0.0.1",
+            "port": 12348
+        },
+        {
+            "id": "test32",
+            "name": "test3",
+            "address": "192.168.0.1",
+            "port": 12345
+        },
+        {
+            "id": "test33",
+            "name": "test3",
+            "address": "10.0.13.10",
+            "port": 12347
+        },
+        {
+            "id": "smtp1",
+            "name": "smtp",
+            "address": "192.168.10.238",
+            "port": 25
+        },
+        {
+            "id": "smtp2",
+            "name": "smtp",
+            "address": "192.168.10.237",
+            "port": 25
+        }
+
+    ]
+}

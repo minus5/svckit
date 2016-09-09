@@ -1,0 +1,5 @@
+consul:     consul agent -config-file=consul.json
+nsqd:       mkdir -p ./tmp/nsqd; nsqd -lookupd-tcp-address=127.0.0.1:4160 -broadcast-address=127.0.0.1 -data-path=./tmp/nsqd -max-msg-size=10485760
+nsqlookupd: nsqlookupd 
+nsqadmin:   nsqadmin -lookupd-http-address=127.0.0.1:4161
+#statsd:     sleep 3 && go install ../../../cmd/tools/statsd_to_nsq/ && ../../../../bin/statsd_to_nsq
