@@ -10,9 +10,9 @@ package merger
 import (
 	"encoding/json"
 	"pkg/msgs"
-	"pkg/svckit/log"
-	"pkg/svckit/metric"
-	"pkg/svckit/nsq"
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/metric"
+	"github.com/minus5/svckit/nsq"
 	"time"
 )
 

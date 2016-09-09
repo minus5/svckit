@@ -3,7 +3,7 @@ package merger
 import (
 	"fmt"
 	"pkg/msgs"
-	"pkg/svckit/log"
+	"github.com/minus5/svckit/log"
 	"testing"
 	"time"
 

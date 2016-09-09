@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"pkg/jsonu"
-	"pkg/svckit/log"
+	"github.com/minus5/svckit/log"
 	"pkg/util"
 	"strconv"
 	"strings"

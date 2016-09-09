@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 	"pkg/msgs"
-	"pkg/svckit/log"
-	"pkg/svckit/metric"
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/metric"
 	"strings"
 	"sync"
 )
