@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 	"pkg/jsonu"
-	"github.com/minus5/svckit/log"
 	"pkg/util"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/minus5/go-simplejson"
+	"github.com/minus5/svckit/log"
 )
 
 var (
