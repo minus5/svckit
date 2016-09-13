@@ -28,5 +28,5 @@ const (
 	PortBonoviApi          = "8271"
 	PortBonoviS2Api        = "8272"
 	PortFirebaseNotifier   = "8280"
-	PortTecajnaVfl         = "8290"
+	PortVsport             = "8290"
 )

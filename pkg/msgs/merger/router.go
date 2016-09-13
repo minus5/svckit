@@ -10,10 +10,12 @@ package merger
 import (
 	"encoding/json"
 	"pkg/msgs"
+	"strings"
+	"time"
+
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
 	"github.com/minus5/svckit/nsq"
-	"time"
 )
 
 // Router prima poruke za razlicite kanale i prosljedjuje ih
@@ -24,24 +26,26 @@ type Router struct {
 	in      chan *msg
 }
 
-var pub *nsq.Producer
+var pub = nsq.MustNewProducer("")
 
-// TecajnaDopuna salje poruku tecajnoj za dopunu tecajna.web kanala.
-func TecajnaDopuna(channel string) {
-	if pub == nil {
-		var err error
-		pub, err = nsq.NewProducer("tecajna.req")
-		if err != nil {
-			log.Error(err)
-			return
-		}
+func dopunaTopicFromTyp(typ string) string {
+	if strings.HasPrefix(typ, "vfl/") {
+		return "vsport.req"
+	} else {
+		return "tecajna.req"
 	}
+}
+
+// Dopuna salje poruku za dopunu live kanala.
+func Dopuna(typ, channel string) {
+	topic := dopunaTopicFromTyp(typ)
+	log.S("typ", typ).S("topic", topic).S("channel", channel).Debug("merger/dopuna")
 	msg := struct {
 		Channel string `json:"channel"`
 	}{Channel: channel}
 	buf, _ := json.Marshal(msg)
 	bBuf := msgs.CreateBackend("dopuna", 0, buf)
-	if err := pub.Publish(bBuf); err != nil {
+	if err := pub.PublishTo(topic, bBuf); err != nil {
 		log.Error(err)
 	}
 	metric.Counter("merger.dopuna")
@@ -78,7 +82,7 @@ func (r *Router) loop() {
 		}
 		if !ok {
 			d := func() {
-				TecajnaDopuna(channel)
+				Dopuna(m.typ, channel)
 			}
 			fdo = newFullDiffOrderer(d)
 			r.fdos[channel] = fdo
