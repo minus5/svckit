@@ -4,7 +4,7 @@
 // Uvijek izlazi diff pa full istog no-a.
 // Iz izvora ocekujemo samo stream diff-ova.
 // Full-ovi se proizvode merganjem (odatle i naziv paketa) diff-ova.
-// Inicijalni full se dobija na zahtjev (TecajnaDopuna metoda).
+// Inicijalni full se dobija na zahtjev (Dopuna metoda).
 package merger
 
 import (
