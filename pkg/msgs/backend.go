@@ -508,3 +508,8 @@ func isFullDiff(typ string) bool {
 	return strings.Contains(typ, "/diff") ||
 		strings.Contains(typ, "/full")
 }
+
+// IsHeartbeat radi li se o heartbeat tipu poruke
+func (b *Backend) IsHeartbeat() bool {
+	return b.Type == "heartbeat"
+}
