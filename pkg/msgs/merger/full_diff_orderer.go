@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"math"
 	"pkg/msgs"
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/metric"
 	"strings"
 	"sync"
+
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/metric"
 )
 
 type msg struct {
@@ -142,7 +143,7 @@ func (o *fullDiffOrderer) processMsgWithResult(m *msg, r int) {
 		o.init()
 		o.processMsg(m)
 		metric.Counter("merger.reset")
-		log.S("type", m.typ).I("no", m.no).Notice("reset")
+		log.S("type", m.typ).I("no", m.no).ErrorS("reset")
 	}
 }
 
