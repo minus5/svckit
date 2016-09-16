@@ -3,10 +3,11 @@ package health
 import (
 	"expvar"
 	"net/http"
+	"time"
+
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
-	"time"
 )
 
 const (
@@ -79,8 +80,13 @@ func notImplemented() (Status, []byte) {
 	return Fail, []byte("health check handler not implemented")
 }
 
+// Set the health check handler
 func Set(h func() (Status, []byte)) {
 	handler = h
+}
+
+// Run starts health check.
+func Run() {
 	checkCh <- true
 }
 
