@@ -1,7 +1,7 @@
 package defaults
 
 const (
-	PortBetgeniusConnector = "80"
+	PortBetgeniusConnector = "8300"
 	PortVsoccer            = "8080"
 	PortWebAppApi          = "8080"
 	PortDevCentrala        = "8081"
