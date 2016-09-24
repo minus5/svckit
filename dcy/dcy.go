@@ -19,11 +19,18 @@ import (
 )
 
 const (
+	// EnvConsul is location of the consul to use. If not defined local consul is used.
+	EnvConsul = "SVCKIT_DCY_CONSUL"
+
+	// EnvWait if defined dcy will not start until those services are not found in consul.
+	// Usefull in development environment to controll start order.
+	EnvWait = "SVCKIT_DCY_CHECK_SVCS"
+)
+
+const (
 	queryTimeoutSeconds = 30
 	queryRetries        = 10
 	waitTimeMinutes     = 10
-	EnvConsul           = "SVCKIT_DCY_CONSUL"
-	EnvWait             = "SVCKIT_DCY_CHECK_SVCS"
 	localConsulAdr      = "127.0.0.1:8500"
 )
 
@@ -32,30 +39,29 @@ var (
 	l      sync.RWMutex
 	cache  = map[string][]Address{}
 
-	domain            string
-	dc                string
-	nodeName          string
-	advertiseAddr     string
-	bindAddr          string
-	consulAddr        = localConsulAdr
-	ErrConsulNotFound = fmt.Errorf("consul not found")
+	domain        string
+	dc            string
+	nodeName      string
+	advertiseAddr string
+	bindAddr      string
+	consulAddr    = localConsulAdr
 )
 
-// Service address returned from Consul.
+// Address is service address returned from Consul.
 type Address struct {
 	Address string
 	Port    int
 }
 
-// Return address in host:port string.
+// String return address in host:port string.
 func (a Address) String() string {
 	return fmt.Sprintf("%s:%d", a.Address, a.Port)
 }
 
-// Array of service addresses.
+// Addresses is array of service addresses.
 type Addresses []Address
 
-// Return string array in host:port format.
+// String returns string array in host:port format.
 func (a Addresses) String() []string {
 	addrs := []string{}
 	for _, addr := range a {
@@ -280,13 +286,13 @@ func srv(name string, dc string) (Addresses, error) {
 	return srvs, nil
 }
 
-// Retrun all services register in Consul.
+// Services retruns all services register in Consul.
 func Services(name string) (Addresses, error) {
 	sn, dc := serviceName(name, domain)
 	return srv(sn, dc)
 }
 
-// Find one service in Consul cluster.
+// Service will find one service in Consul cluster.
 // Will randomly choose one if there are multiple register in Consul.
 func Service(name string) (Address, error) {
 	srvs, err := Services(name)
@@ -297,7 +303,7 @@ func Service(name string) (Address, error) {
 	return srv, nil
 }
 
-// Find service on this (local) agent.
+// AgentService finds service on this (local) agent.
 func AgentService(name string) (Address, error) {
 	svcs, err := consul.Agent().Services()
 	if err != nil {
@@ -336,16 +342,17 @@ func LockKey(key string) (*api.Lock, error) {
 	return consul.LockKey(key)
 }
 
-// Returns Node name as defined in Consul.
+// NodeName returns Node name as defined in Consul.
 func NodeName() string {
 	return nodeName
 }
 
+// Dc returns datacenter name.
 func Dc() string {
 	return dc
 }
 
-// Read key from Consul key value storage.
+// KV reads key from Consul key value storage.
 func KV(key string) ([]byte, error) {
 	kv := consul.KV()
 	pair, _, err := kv.Get(key, nil)
@@ -358,7 +365,7 @@ func KV(key string) ([]byte, error) {
 	return pair.Value, nil
 }
 
-// Discover host from url.
+// URL discovers host from url.
 // If there are multiple services will randomly choose one.
 func URL(url string) string {
 	scheme, host, _, path, query := unpackURL(url)
@@ -434,6 +441,7 @@ func packURL(scheme, host, port, path string, query url.Values) (url string) {
 	return url
 }
 
+// MongoConnStr finds service mongo in consul and returns it in mongo connection string format.
 func MongoConnStr() (string, error) {
 	addrs, err := Services("mongo")
 	if err != nil {
