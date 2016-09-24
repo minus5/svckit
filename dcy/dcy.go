@@ -88,11 +88,11 @@ func init() {
 	}
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	if err := signal.WithExponentialBackoff(connect); err != nil {
-		log.Printf("Giving up connecting %s", consulAddr)
-		log.Fatal(err)
-	}
-	// update env
+	mustConnect()
+	updateEnv()
+}
+
+func updateEnv() {
 	if dc != "" {
 		env.SetDc(dc)
 	}
@@ -131,6 +131,13 @@ func noConsulTestMode() {
 	}
 }
 
+func mustConnect() {
+	if err := signal.WithExponentialBackoff(connect); err != nil {
+		log.Printf("Giving up connecting %s", consulAddr)
+		log.Fatal(err)
+	}
+}
+
 func connect() error {
 	config := api.DefaultConfig()
 	config.Address = consulAddr
@@ -139,6 +146,7 @@ func connect() error {
 		log.S("addr", consulAddr).Error(err)
 		return err
 	}
+	fmt.Printf("connected to %s\n", consulAddr)
 	consul = c
 	if err := self(); err != nil {
 		log.S("addr", consulAddr).Error(err)
