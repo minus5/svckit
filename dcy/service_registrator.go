@@ -3,10 +3,10 @@ package dcy
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/minus5/svckit/env"
 )
 
 const (
@@ -31,15 +31,16 @@ type ServiceRegistrator struct {
 
 type HealthCheckHandler func() (int, string)
 
+func Register(port int) (*ServiceRegistrator, error) {
+	return NewServiceRegistrator(env.AppName(), port, nil)
+}
+
 //NewServiceRegistrator prijavi servis tog imena i na tom portu lokalnom consulu
 //Registrator ce svakih interval sekundi pozvati handler i status koji on vrati poslati consulu.
 func NewServiceRegistrator(name string, port int, handler HealthCheckHandler) (*ServiceRegistrator, error) {
-	hostname, err := os.Hostname()
-	if err != nil {
-		return nil, err
-	}
+	id := fmt.Sprintf("%s:%d", name, port)
 	s := &ServiceRegistrator{
-		id:        fmt.Sprintf("%s:%s:%d", name, hostname, port),
+		id:        id,
 		name:      name,
 		port:      port,
 		ttl:       10,
@@ -47,11 +48,10 @@ func NewServiceRegistrator(name string, port int, handler HealthCheckHandler) (*
 		close:     make(chan bool),
 		closed:    make(chan struct{}),
 		setStatus: make(chan int),
-		checkId:   fmt.Sprintf("%s_ttl_check", name),
+		checkId:   fmt.Sprintf("%s_ttl_check", id),
 		handler:   handler,
 	}
-	err = s.register()
-	if err != nil {
+	if err := s.register(); err != nil {
 		return nil, err
 	}
 	go s.loop()
