@@ -24,17 +24,17 @@ func TestServiceRegistrator(t *testing.T) {
 	assert.Equal(t, "passing", checks[0].Status)
 	//time.Sleep(10 * time.Second)
 
-	sr.SetStatus(Warn)
+	sr.Warn()
 	svc, checks = consulService(t, name)
 	assert.Equal(t, "warning", checks[0].Status)
 	//time.Sleep(10 * time.Second)
 
-	sr.SetStatus(Fail)
+	sr.Fail()
 	svc, checks = consulService(t, name)
 	assert.Equal(t, "critical", checks[0].Status)
 	//time.Sleep(10 * time.Second)
 
-	sr.SetStatus(Passing)
+	sr.Passing()
 	svc, checks = consulService(t, name)
 	assert.Equal(t, "passing", checks[0].Status)
 	//time.Sleep(10 * time.Second)

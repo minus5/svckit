@@ -10,15 +10,22 @@ import (
 	"github.com/minus5/svckit/metric"
 )
 
+// Allowed values for status
 const (
 	Passing = Status(0)
 	Warn    = Status(1)
 	Fail    = Status(2)
 )
 
+const (
+	// when not passing status is longer then this interval send notification
+	notificationAfter = 30 * time.Second
+)
+
 func init() {
 	checkCh = make(chan bool)
 	handler = notImplemented
+	lastPassingCheck = time.Now()
 	go loop()
 	expvar.Publish("svckit.health", expvar.Func(func() interface{} {
 		stats := struct {
@@ -34,8 +41,10 @@ func init() {
 	}))
 }
 
+// Status represents service status
 type Status int
 
+// Add connects twu statsu values
 func (s *Status) Add(s2 Status) {
 	if s2 > *s {
 		*s = s2
@@ -43,13 +52,20 @@ func (s *Status) Add(s2 Status) {
 }
 
 var (
-	handler   func() (Status, []byte)
-	status    Status
-	note      []byte
-	checkCh   chan bool
-	checkTime time.Time
+	handler          func() (Status, []byte)
+	status           Status
+	note             []byte
+	checkCh          chan bool
+	checkTime        time.Time
+	lastPassingCheck time.Time
+	notificationSent bool
 )
 
+// ToHtmlStatus converts status to Consul frendly http status.
+// Reference: https://www.consul.io/docs/agent/checks.html
+//   any 2xx code is considered passing,
+//   a 429 Too Many Requests is a warning,
+//   and anything else is a failure
 func (s Status) ToHtmlStatus() int {
 	switch s {
 	case Passing:
@@ -70,6 +86,7 @@ func (s Status) String() string {
 	return "fail"
 }
 
+// HttpHandler exposes status to http
 func HttpHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Application", env.AppName())
 	w.WriteHeader(status.ToHtmlStatus())
@@ -83,6 +100,12 @@ func notImplemented() (Status, []byte) {
 // Set the health check handler
 func Set(h func() (Status, []byte)) {
 	handler = h
+	check()
+}
+
+// Get the current health status
+func Get() (Status, []byte) {
+	return status, note
 }
 
 // Run starts health check.
@@ -104,9 +127,28 @@ func loop() {
 func check() {
 	status, note = handler()
 	checkTime = time.Now()
+	sendNotification()
+	sendMetric()
+}
+
+func sendNotification() {
 	if status != Passing {
-		logger().S("status", status.String()).Jc("note", note).Notice("health check failed")
+		if lastPassingCheck.Before(time.Now().Add(-notificationAfter)) && !notificationSent {
+			logger().S("status", status.String()).Jc("note", note).Notice("health check failed")
+			notificationSent = true
+		} else {
+			logger().S("status", status.String()).Jc("note", note).Info("health check failed")
+		}
+		return
 	}
+	if notificationSent {
+		logger().S("status", status.String()).Jc("note", note).Notice("health check OK")
+		notificationSent = false
+	}
+	lastPassingCheck = time.Now()
+}
+
+func sendMetric() {
 	switch status {
 	case Passing:
 		metric.Gauge("health.passing", 1)

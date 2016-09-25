@@ -2,18 +2,13 @@ package sr
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
-)
-
-const (
-	Passing = iota
-	Warn
-	Fail
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/log"
 )
 
 // Name sets the service name.
@@ -25,7 +20,7 @@ func Name(name string) func(*serviceRegistrator) {
 }
 
 // HealthCheck sets the health check handler.
-func HealthCheck(handler HealthCheckHandler) func(*serviceRegistrator) {
+func HealthCheck(handler healthCheckHandler) func(*serviceRegistrator) {
 	return func(s *serviceRegistrator) {
 		s.handler = handler
 	}
@@ -41,13 +36,13 @@ type serviceRegistrator struct {
 	checkId   string
 	close     chan bool
 	closed    chan struct{}
-	setStatus chan int
-	handler   HealthCheckHandler
+	setStatus chan health.Status
+	handler   healthCheckHandler
 }
 
-type HealthCheckHandler func() (int, string)
+type healthCheckHandler func() (health.Status, []byte)
 
-// Register ...
+// New ...
 func New(port int, opts ...func(*serviceRegistrator)) (*serviceRegistrator, error) {
 	s := &serviceRegistrator{
 		name:      env.AppName(),
@@ -56,7 +51,7 @@ func New(port int, opts ...func(*serviceRegistrator)) (*serviceRegistrator, erro
 		interval:  9,
 		close:     make(chan bool),
 		closed:    make(chan struct{}),
-		setStatus: make(chan int),
+		setStatus: make(chan health.Status),
 	}
 	// apply options
 	for _, opt := range opts {
@@ -73,40 +68,41 @@ func New(port int, opts ...func(*serviceRegistrator)) (*serviceRegistrator, erro
 	return s, nil
 }
 
-// SetStatus postavi novi status u consulu, moguci statusi su const-ovi ServiceStatus*
-func (s *serviceRegistrator) SetStatus(status int) {
-	if status < Passing || status > Fail {
-		status = Fail
-	}
-	s.setStatus <- status
-}
-
+// Passing sets status to passing.
 func (s *serviceRegistrator) Passing() {
-	s.SetStatus(Passing)
+	s.setStatus <- health.Passing
 }
 
+// Warn sets status to warn.
 func (s *serviceRegistrator) Warn() {
-	s.SetStatus(Warn)
+	s.setStatus <- health.Warn
 }
 
+// Fail sets status to fail.
 func (s *serviceRegistrator) Fail() {
-	s.SetStatus(Fail)
+	s.setStatus <- health.Fail
 }
 
-// Deregister zaustavi registrator, odjavi servis
+// Deregister service in consul.
 func (s *serviceRegistrator) Deregister() {
 	s.close <- true
 	<-s.closed
 }
 
-// Stop zaustavi registrator
+// Close alias for Deregister.
+func (s *serviceRegistrator) Close() {
+	s.Deregister()
+}
+
+// Stop sending ttl to consul without deregister.
 func (s *serviceRegistrator) Stop() {
 	s.close <- false
+	<-s.closed
 }
 
 func (s *serviceRegistrator) loop() {
-	status := Passing
-	note := ""
+	status := health.Passing
+	var note []byte
 
 	readAndUpdateStatus := func() {
 		if s.handler != nil {
@@ -167,16 +163,16 @@ func (s *serviceRegistrator) register() error {
 	return nil
 }
 
-func (s *serviceRegistrator) updateStatus(status int, note string) {
+func (s *serviceRegistrator) updateStatus(status health.Status, note []byte) {
 	fn := s.agent.FailTTL
 	switch status {
-	case Passing:
+	case health.Passing:
 		fn = s.agent.PassTTL
-	case Warn:
+	case health.Warn:
 		fn = s.agent.WarnTTL
 	}
-	err := fn(s.checkId, note)
+	err := fn(s.checkId, string(note))
 	if err != nil {
-		log.Printf("error: %s", err)
+		log.Error(err)
 	}
 }
