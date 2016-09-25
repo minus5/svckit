@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/minus5/svckit/dcy"
+	"github.com/minus5/svckit/dcy/sr"
 	"github.com/minus5/svckit/leader"
 	"github.com/minus5/svckit/log"
 )
@@ -17,7 +17,7 @@ func main() {
 
 func worker(stop <-chan struct{}) {
 	i := 0
-	reg, err := dcy.Register(rand.Intn(100))
+	reg, err := sr.New(rand.Intn(100))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -456,3 +456,15 @@ func MongoConnStr() (string, error) {
 	}
 	return strings.Join(addrs.String(), ","), nil
 }
+
+// Agent returns ref to consul agent.
+// Only for use in sr package below.
+func Agent() *api.Agent {
+	return consul.Agent()
+}
+
+// MustConnect connects to real consul.
+// Useful in tests, when dcy is started in test mode to force to connect to real consul.
+func MustConnect() {
+	mustConnect()
+}

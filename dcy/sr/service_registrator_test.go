@@ -1,20 +1,21 @@
-package dcy
+package sr
 
 import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/minus5/svckit/dcy"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestServiceRegistrator(t *testing.T) {
-	//t.Skip("test zatjeva consul, pa ga za sada preskacem")
-	mustConnect()
+	//t.Skip("test depends on running consul instance")
+	dcy.MustConnect()
 	name := "service_registrator_test"
 	port := 12345
 
 	//ovo napravi registrira service napravi check i postavi stanje na passing
-	sr, err := NewServiceRegistrator("service_registrator_test", port, nil)
+	sr, err := New(port, Name("service_registrator_test"))
 	assert.Nil(t, err)
 	svc, checks := consulService(t, name)
 	assert.NotNil(t, svc)
@@ -45,13 +46,13 @@ func TestServiceRegistrator(t *testing.T) {
 
 //consulService nadji u consulu servis imena name, vrati za njega podatke i podatke za sve njegove check-ove
 func consulService(t *testing.T, name string) (*api.AgentService, []*api.AgentCheck) {
-	svcs, err := consul.Agent().Services()
+	svcs, err := dcy.Agent().Services()
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, s := range svcs {
 		if s.Service == name {
-			checks, err := consul.Agent().Checks()
+			checks, err := dcy.Agent().Checks()
 			if err != nil {
 				t.Fatal(err)
 			}

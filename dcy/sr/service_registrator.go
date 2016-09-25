@@ -1,4 +1,4 @@
-package dcy
+package sr
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 )
 
@@ -15,7 +16,22 @@ const (
 	Fail
 )
 
-type ServiceRegistrator struct {
+// Name sets the service name.
+// Default is application name.
+func Name(name string) func(*serviceRegistrator) {
+	return func(s *serviceRegistrator) {
+		s.name = name
+	}
+}
+
+// HealthCheck sets the health check handler.
+func HealthCheck(handler HealthCheckHandler) func(*serviceRegistrator) {
+	return func(s *serviceRegistrator) {
+		s.handler = handler
+	}
+}
+
+type serviceRegistrator struct {
 	id        string
 	name      string
 	port      int
@@ -31,26 +47,25 @@ type ServiceRegistrator struct {
 
 type HealthCheckHandler func() (int, string)
 
-func Register(port int) (*ServiceRegistrator, error) {
-	return NewServiceRegistrator(env.AppName(), port, nil)
-}
-
-//NewServiceRegistrator prijavi servis tog imena i na tom portu lokalnom consulu
-//Registrator ce svakih interval sekundi pozvati handler i status koji on vrati poslati consulu.
-func NewServiceRegistrator(name string, port int, handler HealthCheckHandler) (*ServiceRegistrator, error) {
-	id := fmt.Sprintf("%s:%d", name, port)
-	s := &ServiceRegistrator{
-		id:        id,
-		name:      name,
+// Register ...
+func New(port int, opts ...func(*serviceRegistrator)) (*serviceRegistrator, error) {
+	s := &serviceRegistrator{
+		name:      env.AppName(),
 		port:      port,
 		ttl:       10,
 		interval:  9,
 		close:     make(chan bool),
 		closed:    make(chan struct{}),
 		setStatus: make(chan int),
-		checkId:   fmt.Sprintf("%s_ttl_check", id),
-		handler:   handler,
 	}
+	// apply options
+	for _, opt := range opts {
+		opt(s)
+	}
+	// ids
+	s.id = fmt.Sprintf("%s:%d", s.name, s.port)
+	s.checkId = fmt.Sprintf("%s_ttl_check", s.id)
+	// register
 	if err := s.register(); err != nil {
 		return nil, err
 	}
@@ -59,37 +74,37 @@ func NewServiceRegistrator(name string, port int, handler HealthCheckHandler) (*
 }
 
 // SetStatus postavi novi status u consulu, moguci statusi su const-ovi ServiceStatus*
-func (s *ServiceRegistrator) SetStatus(status int) {
+func (s *serviceRegistrator) SetStatus(status int) {
 	if status < Passing || status > Fail {
 		status = Fail
 	}
 	s.setStatus <- status
 }
 
-func (s *ServiceRegistrator) Passing() {
+func (s *serviceRegistrator) Passing() {
 	s.SetStatus(Passing)
 }
 
-func (s *ServiceRegistrator) Warn() {
+func (s *serviceRegistrator) Warn() {
 	s.SetStatus(Warn)
 }
 
-func (s *ServiceRegistrator) Fail() {
+func (s *serviceRegistrator) Fail() {
 	s.SetStatus(Fail)
 }
 
 // Deregister zaustavi registrator, odjavi servis
-func (s *ServiceRegistrator) Deregister() {
+func (s *serviceRegistrator) Deregister() {
 	s.close <- true
 	<-s.closed
 }
 
 // Stop zaustavi registrator
-func (s *ServiceRegistrator) Stop() {
+func (s *serviceRegistrator) Stop() {
 	s.close <- false
 }
 
-func (s *ServiceRegistrator) loop() {
+func (s *serviceRegistrator) loop() {
 	status := Passing
 	note := ""
 
@@ -120,12 +135,12 @@ func (s *ServiceRegistrator) loop() {
 	}
 }
 
-func (s *ServiceRegistrator) deregister() {
-	s.agent.ServiceDeregister(s.id)
+func (s *serviceRegistrator) deregister() {
+	_ = s.agent.ServiceDeregister(s.id)
 }
 
-func (s *ServiceRegistrator) register() error {
-	s.agent = consul.Agent()
+func (s *serviceRegistrator) register() error {
+	s.agent = dcy.Agent()
 
 	service := &api.AgentServiceRegistration{
 		ID:   s.id,
@@ -152,7 +167,7 @@ func (s *ServiceRegistrator) register() error {
 	return nil
 }
 
-func (s *ServiceRegistrator) updateStatus(status int, note string) {
+func (s *serviceRegistrator) updateStatus(status int, note string) {
 	fn := s.agent.FailTTL
 	switch status {
 	case Passing:
