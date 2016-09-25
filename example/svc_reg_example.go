@@ -18,7 +18,8 @@ func main() {
 }
 
 func worker(stop <-chan struct{}) {
-	reg, err := sr.New(rand.Intn(100), sr.HealthCheck(health.Get))
+	port := rand.Intn(100) // using random port to enable multiple services on same host
+	reg, err := sr.New(port, sr.HealthCheck(health.Get))
 	if err != nil {
 		log.Fatal(err)
 	}
