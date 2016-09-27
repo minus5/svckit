@@ -4,6 +4,7 @@ package main
 
 import (
 	"net/http"
+
 	"github.com/minus5/svckit/health"
 	"github.com/minus5/svckit/httpi"
 )
@@ -21,5 +22,5 @@ func main() {
 	httpi.Route("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("test"))
 	})
-	httpi.Start(":8123", httpi.LogRequests())
+	httpi.Start(":8123")
 }
