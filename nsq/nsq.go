@@ -6,11 +6,12 @@ package nsq
 import (
 	"fmt"
 	"os"
+	"sync"
+
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/signal"
-	"sync"
 
 	gonsq "github.com/nsqio/go-nsq"
 )
@@ -70,4 +71,10 @@ func initDefaults() {
 
 func logger() *log.Agregator {
 	return log.S("lib", "svckit.nsq")
+}
+
+// ChannelAppName sets default channel name to app name.
+// Default is app name suffixed with node name.
+func ChannelAppName() {
+	Set(Channel(env.AppName()))
 }
