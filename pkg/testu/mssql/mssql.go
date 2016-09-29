@@ -175,6 +175,18 @@ func (util *TestMSSQLUtility) RunStoredProcedure(t *testing.T, name string) erro
 	})
 }
 
+// RunStoredProcedureWithResult pokrece storanu proceduru s parametarima na testnoj bazi i vraca rezultat
+func (util *TestMSSQLUtility) RunStoredProcedureWithResult(t *testing.T, name string, params ...interface{}) (*freetds.SpResult, error) {
+	util.DBOpen(t)
+	var rez *freetds.SpResult
+	err := util.pool.Do(func(conn *freetds.Conn) error {
+		var err error
+		rez, err = conn.ExecSp(name, params)
+		return err
+	})
+	return rez, err
+}
+
 // TestDbExecWithResult izvrsava query sa povratom rezultata
 func (util *TestMSSQLUtility) TestDbExecWithResult(t *testing.T, sql string) []*freetds.Result {
 	var err error
