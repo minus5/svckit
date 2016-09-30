@@ -143,6 +143,7 @@ var (
 	LevelError  = `"error"`
 	LevelFatal  = `"fatal"`
 	LevelNotice = `"notice"`
+	LevelEvent  = `"event"`
 )
 
 var (
@@ -152,6 +153,7 @@ var (
 	LevelErrorUnquoted  = strings.Trim(LevelError, `"`)
 	LevelFatalUnquoted  = strings.Trim(LevelFatal, `"`)
 	LevelNoticeUnquoted = strings.Trim(LevelNotice, `"`)
+	LevelEventUnquoted  = strings.Trim(LevelEvent, `"`)
 )
 
 var (
