@@ -26,7 +26,6 @@ Environment varijable koje utjecu na ponsanje:
    * $dc      - naziv datacentra u kome radi aplikacija
    * $node    - ime hosta na kome se nalazi docker
    * $node_ip - vanjska ip adresa node-a
-   * $sd_dns  - adresa na kojoj se nalazi service discovery (consul) dns
 
 Node i node_ip varijable imaju smisla kada se aplikacija vrti unutar docker containera. Tako saznajem na kojem node-u se aplikacija vrti. Node je ovdje naziv za stroj na kome se nalazi docker. Cesto mi je potrebna vanjska ip adresa. Unutar containera mogu saznati samo lokalnu, pa ju na ovaj nacin prosljedjujem.
 
