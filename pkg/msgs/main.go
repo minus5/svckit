@@ -12,6 +12,7 @@ const (
 	TypeLiveStreamMobile = "live_stream_mobile"
 	TypeListiciIsplati   = "listici/isplati"
 	TypeListiciDodaj     = "listici/dodaj"
+	TypeIsplataStorno    = "isplata/storno"
 
 	TypeValidacijaNadimak      = "registracija/validacija/nadimak"
 	TypeValidacijaEmail        = "registracija/validacija/email"

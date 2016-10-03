@@ -10,20 +10,33 @@ const (
 	ListiciDodajStatusIgracNijePronadjen    = 2
 )
 
-// Request podaci za dodavanje listica igracu
+// ListiciDodajReq request podaci za dodavanje listica igracu
 type ListiciDodajReq struct {
 	Broj          string `json:"broj"`
 	KontrolniBroj string `json:"kontrolni_broj"`
 	IgracId       string `json:"igrac_id"`
 }
 
-// Response podaci nakon dodavanja listica igracu
+// ListiciDodajRsp response podaci nakon dodavanja listica igracu
 type ListiciDodajRsp struct {
 	Status int                    `json:"status"`
 	Listic map[string]interface{} `json:"listic,omitempty"`
 }
 
+// ToJson ...
 func (req *ListiciDodajReq) ToJson() []byte {
+	buf, _ := json.Marshal(req)
+	return buf
+}
+
+// IsplataStornoReq request za storniranje transakcije
+type IsplataStornoReq struct {
+	Id      string `json:"id"`
+	IgracId string `json:"igrac_id"`
+}
+
+// ToJson ...
+func (req *IsplataStornoReq) ToJson() []byte {
 	buf, _ := json.Marshal(req)
 	return buf
 }
