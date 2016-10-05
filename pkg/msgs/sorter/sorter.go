@@ -52,7 +52,7 @@ func New(ttw time.Duration) *Sorter {
 		current: 0,
 		ttw:     ttw,
 		queue:   make(map[int]*Msg),
-		input:   make(chan *Msg),
+		input:   make(chan *Msg, 1024),
 		Output:  make(chan *Msg, 1024),
 	}
 	go s.loop()
@@ -73,7 +73,9 @@ func (s *Sorter) loop() {
 				return
 			}
 			s.add(m)
-			s.processQueue()
+			if !s.empty() {
+				s.processQueue()
+			}
 			if s.empty() {
 				timer = nil
 			} else {
