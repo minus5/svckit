@@ -28,7 +28,8 @@ import (
 	"time"
 )
 
-type sorter struct {
+// Sorter base structure
+type Sorter struct {
 	current int
 	ttw     time.Duration
 	queue   map[int]*Msg
@@ -46,19 +47,19 @@ type Msg struct {
 
 // New creates new sorter
 // Ttw - time to wait for missing messages
-func New(ttw time.Duration) *sorter {
-	s := &sorter{
+func New(ttw time.Duration) *Sorter {
+	s := &Sorter{
 		current: 0,
 		ttw:     ttw,
 		queue:   make(map[int]*Msg),
 		input:   make(chan *Msg),
-		Output:  make(chan *Msg),
+		Output:  make(chan *Msg, 1024),
 	}
 	go s.loop()
 	return s
 }
 
-func (s *sorter) loop() {
+func (s *Sorter) loop() {
 	var timer <-chan time.Time
 	scheduleTimer := func() {
 		timer = time.After(s.ttw)
@@ -85,24 +86,24 @@ func (s *sorter) loop() {
 }
 
 // Push adds new message to sorter.
-func (s *sorter) Push(m *Msg) {
+func (s *Sorter) Push(m *Msg) {
 	s.input <- m
 }
 
 // Close closes sorter.
 // Will pruge any messages in queue.
-func (s *sorter) Close() {
+func (s *Sorter) Close() {
 	close(s.input)
 }
 
 // Reset sorter.
 // Will purge any messages in queue.
-func (s *sorter) Reset() {
+func (s *Sorter) Reset() {
 	s.purge()
 	s.current = 0
 }
 
-func (s *sorter) add(m *Msg) {
+func (s *Sorter) add(m *Msg) {
 	if m.No <= s.current+1 {
 		s.out(m)
 		return
@@ -110,15 +111,15 @@ func (s *sorter) add(m *Msg) {
 	s.addToQueue(m)
 }
 
-func (s *sorter) empty() bool {
+func (s *Sorter) empty() bool {
 	return len(s.queue) == 0
 }
 
-func (s *sorter) addToQueue(m *Msg) {
+func (s *Sorter) addToQueue(m *Msg) {
 	s.queue[m.No] = m
 }
 
-func (s *sorter) processQueue() {
+func (s *Sorter) processQueue() {
 again:
 	for k, v := range s.queue {
 		if k <= s.current+1 {
@@ -129,14 +130,14 @@ again:
 	}
 }
 
-func (s *sorter) out(m *Msg) {
+func (s *Sorter) out(m *Msg) {
 	if m.No > s.current {
 		s.current = m.No
 	}
 	s.Output <- m
 }
 
-func (s *sorter) purge() {
+func (s *Sorter) purge() {
 	var nos []int
 	for k := range s.queue {
 		nos = append(nos, k)
