@@ -79,7 +79,9 @@ func (s *Sorter) loop() {
 			if s.empty() {
 				timer = nil
 			} else {
-				scheduleTimer()
+				if timer == nil {
+					scheduleTimer()
+				}
 			}
 		case <-timer:
 			s.purge()
