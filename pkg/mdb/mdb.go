@@ -190,7 +190,9 @@ func Name(n string) func(db *Mdb) {
 // CacheRoot sets disk cache root directory
 func CacheRoot(d string) func(db *Mdb) {
 	return func(db *Mdb) {
-		db.cacheDir = fmt.Sprintf("%s/%s", d, db.name)
+		if d != "" {
+			db.cacheDir = fmt.Sprintf("%s/%s", d, db.name)
+		}
 	}
 }
 
