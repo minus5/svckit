@@ -19,33 +19,29 @@ type Dummy struct {
 	UpdatedAt time.Time
 }
 
-var db *mdb.Mdb
+var db *Db
 
 func main() {
-	db = mdb.MustNew("localhost:27017",
+	err := db.Init("localhost:27017",
 		mdb.Name("cacheTest"),
 		mdb.CacheCheckpoint(10*time.Second),
 		mdb.CacheRoot("./tmp/disk_cache"),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	loop()
 	db.Close()
 }
 
 func loop() {
-	col := "dummys"
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
 	n := 10
 	ds := make([]*Dummy, n)
 	for i := 0; i < n; i++ {
-		d := &Dummy{}
-		if err := db.ReadId(col, i, d); err != nil {
-			if err != mdb.ErrNotFound {
-				log.Fatal(err)
-			}
-			d = &Dummy{Id: i}
-		}
+		d := db.ReadDummy(i)
 		ds[i] = d
 	}
 
@@ -56,7 +52,7 @@ func loop() {
 			d := ds[i]
 			d.Value++
 			d.UpdatedAt = time.Now()
-			if err := db.SaveId(col, i, d); err != nil {
+			if err := db.SaveDummy(d); err != nil {
 				log.Fatal(err)
 			}
 			if i == 0 {
@@ -66,4 +62,25 @@ func loop() {
 			return
 		}
 	}
+}
+
+var dummysCol = "dummys"
+
+type Db struct {
+	mdb.Mdb
+}
+
+func (db *Db) SaveDummy(d *Dummy) error {
+	return db.SaveId(dummysCol, d.Id, d)
+}
+
+func (db *Db) ReadDummy(id int) *Dummy {
+	d := &Dummy{}
+	if err := db.ReadId(dummysCol, id, d); err != nil {
+		if err != mdb.ErrNotFound {
+			log.Fatal(err)
+		}
+		d = &Dummy{Id: id}
+	}
+	return d
 }

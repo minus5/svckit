@@ -205,17 +205,27 @@ func CacheCheckpoint(d time.Duration) func(db *Mdb) {
 // NewDb creates new Db
 // Connects to mongo, initializes cache, starts checkpoint loop.
 func NewDb(connStr string, opts ...func(db *Mdb)) (*Mdb, error) {
+	db := &Mdb{}
+	if err := db.Init(connStr, opts...); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+// Init initializes new Mdb
+// Connects to mongo, initializes cache, starts checkpoint loop.
+func (db *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
+	db.checkpoint()
 	s, err := mgo.Dial(connStr)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	s.SetMode(mgo.Eventual, false)
 	s.SetSafe(nil)
-	db := &Mdb{
-		name:         env.AppName(),
-		session:      s,
-		checkPointIn: 30 * time.Second,
-	}
+	db.session = s
+	// defaults
+	db.name = env.AppName()
+	db.checkPointIn = 30 * time.Second
 	// apply options
 	for _, opt := range opts {
 		opt(db)
@@ -223,11 +233,11 @@ func NewDb(connStr string, opts ...func(db *Mdb)) (*Mdb, error) {
 	if db.cacheDir != "" {
 		db.cache, err = newCache(db)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		go db.loop()
 	}
-	return db, nil
+	return nil
 }
 
 // Ping returns true if mongo is available
