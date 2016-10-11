@@ -269,7 +269,12 @@ func (db *Mdb) Close() {
 	db.checkpoint()
 }
 
-func (db *Mdb) use(col string, metricKey string, handler func(*mgo.Collection) error) error {
+// Checkpoint flush caches
+func (db *Mdb) Checkpoint() {
+	db.checkpoint()
+}
+
+func (db *Mdb) Use(col string, metricKey string, handler func(*mgo.Collection) error) error {
 	s := db.session.Copy()
 	defer s.Close()
 	c := s.DB(db.name).C(col)
@@ -290,7 +295,7 @@ func (db *Mdb) SaveId(col string, id interface{}, o interface{}) error {
 }
 
 func (db *Mdb) saveId(col string, id interface{}, o interface{}) error {
-	return db.use(col, "saveId", func(c *mgo.Collection) error {
+	return db.Use(col, "saveId", func(c *mgo.Collection) error {
 		_, err := c.UpsertId(id, o)
 		return err
 	})
@@ -306,7 +311,7 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 		}
 	}
 	// go to mongo
-	err := db.use(col, "readId", func(c *mgo.Collection) error {
+	err := db.Use(col, "readId", func(c *mgo.Collection) error {
 		err := c.FindId(id).One(o)
 		if err == mgo.ErrNotFound {
 			return ErrNotFound
