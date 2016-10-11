@@ -226,8 +226,8 @@ func (db *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 	s.SetSafe(nil)
 	db.session = s
 	// defaults
-	db.name = env.AppName()
-	db.checkPointIn = 30 * time.Second
+	db.name = strings.Replace(env.AppName(), ".", "_", -1)
+	db.checkPointIn = time.Minute
 	// apply options
 	for _, opt := range opts {
 		opt(db)
