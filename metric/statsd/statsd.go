@@ -2,12 +2,14 @@ package statsd
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
 	"github.com/minus5/svckit/signal"
-	"sync"
 
 	api "github.com/alexcesaro/statsd"
 )
@@ -36,8 +38,15 @@ type Statsd struct {
 
 // Same as Dial but raises Fatal on error.
 func MustDial(opts ...string) {
+	r := 0
+again:
 	if err := Dial(opts...); err != nil {
-		log.Fatal(err)
+		if r > 10 {
+			log.Fatal(err)
+		}
+		r++
+		time.Sleep(time.Second)
+		goto again
 	}
 }
 
