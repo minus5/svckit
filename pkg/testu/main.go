@@ -11,11 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func PP(i interface{}) {
-	buf, _ := json.MarshalIndent(i, "  ", "  ")
-	fmt.Printf("%s", buf)
-}
-
 //ako zelim snimiti fixture dodam true kraj
 func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) {
 	if len(params) > 0 && params[0] {
@@ -108,4 +103,13 @@ rm -f /tmp/test_mongo.log
 `
 
 	RunShellBatch(t, batch)
+}
+
+// PP prety print object
+func PP(o interface{}) {
+	buf, err := json.MarshalIndent(o, "  ", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("pp:\n%s\n", buf)
 }
