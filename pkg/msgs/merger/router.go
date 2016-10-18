@@ -29,11 +29,10 @@ type Router struct {
 var pub = nsq.MustNewProducer("")
 
 func dopunaTopicFromTyp(typ string) string {
-	if strings.HasPrefix(typ, "vfl/") {
+	if strings.HasPrefix(typ, "vfl/") || strings.HasPrefix(typ, "vbl/") {
 		return "vsport.req"
-	} else {
-		return "tecajna.req"
 	}
+	return "tecajna.req"
 }
 
 // Dopuna salje poruku za dopunu live kanala.
