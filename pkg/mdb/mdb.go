@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -73,6 +74,18 @@ func (c *cache) init() {
 
 // add item to cache
 func (c *cache) add(col string, id interface{}, o interface{}) error {
+	defer func() {
+		if r := recover(); r != nil {
+			stackTrace := make([]byte, 20480)
+			stackSize := runtime.Stack(stackTrace, true)
+			log.S("id", fmt.Sprintf("%v", id)).
+				S("col", col).
+				S("panic", fmt.Sprintf("%v", r)).
+				I("stack_size", stackSize).
+				S("stack_trace", string(stackTrace)).
+				ErrorS("Recover from panic")
+		}
+	}()
 	raw, err := bson.Marshal(o)
 	if err != nil {
 		return err
