@@ -17,7 +17,7 @@ func TestNew(t *testing.T) {
 	assert.Len(t, heartbeats, 3)
 }
 
-func TestHearbeat(t *testing.T) {
+func TestOK(t *testing.T) {
 	New(1, time.Millisecond*100)
 	assert.True(t, OK(1))
 	time.Sleep(time.Millisecond * 200)
@@ -26,4 +26,12 @@ func TestHearbeat(t *testing.T) {
 	assert.True(t, OK(1))
 	time.Sleep(time.Millisecond * 200)
 	assert.False(t, OK(1))
+}
+
+func TestLastIn(t *testing.T) {
+	New(1, time.Millisecond*100)
+	assert.True(t, OK(1))
+	time.Sleep(time.Millisecond * 200)
+	assert.False(t, LastIn(1, 100*time.Millisecond))
+	assert.True(t, LastIn(1, 300*time.Millisecond))
 }
