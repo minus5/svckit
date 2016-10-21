@@ -43,6 +43,11 @@ func LastIn(id int, d time.Duration) bool {
 	return time.Since(h.last) < d
 }
 
+// Missing true ako ga nema u zadnjih d
+func Missing(id int, d time.Duration) bool {
+	return !LastIn(id, d)
+}
+
 // New stvara novi heartbeat s danim id-em i limitom.
 func New(id int, limit time.Duration) {
 	h := new(limit)
@@ -66,5 +71,7 @@ func Heartbeat(id int, tm time.Time) {
 	if !ok {
 		return
 	}
-	h.last = tm
+	if tm.After(h.last) {
+		h.last = tm
+	}
 }
