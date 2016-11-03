@@ -1,10 +1,12 @@
 package defaults
 
 const (
-	PortBetgeniusConnector = "8300"
-	PortVsoccer            = "8080"
-	PortWebAppApi          = "8080"
-	PortDevCentrala        = "8081"
+	PortWebFrontend = "3010"
+	PortWebLotator  = "3014"
+	PortVsoccer     = "8080"
+	PortWebAppApi   = "8080"
+	PortDevCentrala = "8081"
+
 	PortTecajna            = "8090"
 	PortDbi                = "8091"
 	PortTecajnaPprof       = "8092"
@@ -22,11 +24,11 @@ const (
 	PortNsqToCloudwatch    = "8240"
 	PortNsqToGraphite      = "8250"
 	PortTecajnaLoto        = "8260"
-	PortWebFrontend        = "3010"
-	PortWebLotator         = "3014"
 	PortBonoviPartnerApi   = "8270"
 	PortBonoviApi          = "8271"
 	PortBonoviS2Api        = "8272"
 	PortFirebaseNotifier   = "8280"
 	PortVsport             = "8290"
+	PortBetgeniusConnector = "8300"
+	PortNsqToLog           = "8310"
 )
