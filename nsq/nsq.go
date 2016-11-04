@@ -78,3 +78,9 @@ func logger() *log.Agregator {
 func ChannelAppName() {
 	Set(Channel(env.AppName()))
 }
+
+// ChannelEphemeral sets default channel name to app name suffixed with node name and #ephemeral.
+// Default is app name suffixed with node name.
+func ChannelEphemeral() {
+	Set(Channel(fmt.Sprintf("%s-%s#ephemeral", env.AppName(), env.NodeName())))
+}
