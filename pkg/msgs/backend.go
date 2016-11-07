@@ -513,3 +513,23 @@ func isFullDiff(typ string) bool {
 func (b *Backend) IsHeartbeat() bool {
 	return b.Type == "heartbeat"
 }
+
+// MessageId is kod snimanja u message store (mongo)
+func (b *Backend) MessageId() string {
+	if b.Type == "tecajna/diff" {
+		return fmt.Sprintf("%s-%s-%s", b.Type, b.From, b.To)
+	}
+	if b.Type == "tecajna/full" {
+		return fmt.Sprintf("%s-%s", b.Type, b.From)
+	}
+	return b.Type
+}
+
+// MessageExpiresAt vrijeme kada message vise ne vazi, moze se brisati iz message store (mongo)
+func (b *Backend) MessageExpiresAt() *time.Time {
+	if b.Type == "tecajna/diff" || b.Type == "tecajna/full" {
+		aDay := time.Now().Add(24 * time.Hour)
+		return &aDay
+	}
+	return nil
+}

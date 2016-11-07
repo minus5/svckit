@@ -434,3 +434,17 @@ func TestFixParseTecajnaListic(t *testing.T) {
 	assert.NotNil(t, b)
 	assert.Equal(t, buf, string(b.Body))
 }
+
+func TestMessageIdMessageExpiresAt(t *testing.T) {
+	b := &Backend{Type: "pero"}
+	assert.Equal(t, "pero", b.MessageId())
+	assert.Nil(t, b.MessageExpiresAt())
+
+	b = &Backend{Type: "tecajna/diff", From: "1", To: "2"}
+	assert.Equal(t, "tecajna/diff-1-2", b.MessageId())
+	assert.NotNil(t, b.MessageExpiresAt())
+
+	b = &Backend{Type: "tecajna/full", From: "1", To: "2"}
+	assert.Equal(t, "tecajna/full-1", b.MessageId())
+	assert.NotNil(t, b.MessageExpiresAt())
+}
