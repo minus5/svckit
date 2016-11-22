@@ -19,6 +19,7 @@ import (
 
 // ErrNotFound raised when record is not found in db
 var ErrNotFound = errors.New("not found")
+var ErrDuplicate = errors.New("duplicate document")
 
 type cache struct {
 	db *Mdb
@@ -146,7 +147,7 @@ func (c *cache) purge() {
 			// remove from disk
 			err2 := os.Remove(i.fn)
 			if err2 != nil {
-				log.Error(err)
+				log.Error(err2)
 			}
 		} else {
 			// in case of error return to cache
@@ -214,6 +215,13 @@ func CacheRoot(d string) func(db *Mdb) {
 func CacheCheckpoint(d time.Duration) func(db *Mdb) {
 	return func(db *Mdb) {
 		db.checkPointIn = d
+	}
+}
+
+// EnsureSafe sets session into Safe mode
+func EnsureSafe() func(db *Mdb) {
+	return func(db *Mdb) {
+		db.session.EnsureSafe(&mgo.Safe{})
 	}
 }
 
@@ -298,6 +306,19 @@ func (db *Mdb) Use(col string, metricKey string, handler func(*mgo.Collection) e
 	return err
 }
 
+func (db *Mdb) UseFs(col string, metricKey string,
+	handler func(*mgo.GridFS) error) error {
+	s := db.session.Copy()
+	defer s.Close()
+	d := s.DB(db.name)
+	g := d.GridFS(col)
+	var err error
+	metric.Timing("db."+metricKey, func() {
+		err = handler(g)
+	})
+	return err
+}
+
 // SaveId stores document to cache
 // or directly to mongo if cache is not enabled
 func (db *Mdb) SaveId(col string, id interface{}, o interface{}) error {
@@ -332,4 +353,11 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 		return err
 	})
 	return err
+}
+
+// NewFs new grid file system interface
+func (db *Mdb) NewFs(name string) *Fs {
+	fs := &Fs{db: db, name: name}
+	_ = fs.createIndexes()
+	return fs
 }

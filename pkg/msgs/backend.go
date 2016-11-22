@@ -144,6 +144,42 @@ func createBackend(typ string, no int, ts int, body []byte, compress bool) []byt
 	return buf
 }
 
+func Header(key string, value interface{}) func(map[string]interface{}) {
+	return func(h map[string]interface{}) {
+		h[key] = value
+	}
+}
+
+var gzipKey = "__gzipKey__"
+
+func NoGzip() func(map[string]interface{}) {
+	return func(h map[string]interface{}) {
+		h[gzipKey] = false
+	}
+}
+
+func BackendFactory(typ string, body []byte, opts ...func(map[string]interface{})) []byte {
+	header := map[string]interface{}{
+		"type": typ,
+	}
+	for _, o := range opts {
+		o(header)
+	}
+	compress := true
+	if v, ok := header[gzipKey]; ok {
+		compress = v.(bool)
+		delete(header, gzipKey)
+	}
+	if compress && len(body) > GzipMsgSizeLimit {
+		body = util.Gzip(body)
+		header["encoding"] = "gzip"
+	}
+	buf, _ := json.Marshal(header)
+	buf = append(buf, HeaderSeparator...)
+	buf = append(buf, body...)
+	return buf
+}
+
 func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
 	return createBackend(typ, no, ts, body, true)
 }
