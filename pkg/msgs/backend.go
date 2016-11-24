@@ -29,6 +29,13 @@ const (
 	StatsTopic        = "stats"
 )
 
+const (
+	KeyId      = "id"
+	KeyIgracId = "igrac_id"
+	KeyFrom    = "from"
+	KeyTo      = "to"
+)
+
 //Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
 	Type        string `json:"type,omitempty"`
