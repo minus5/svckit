@@ -80,8 +80,9 @@ func (r *Router) loop() {
 			continue
 		}
 		if !ok {
+			typ := m.typ
 			d := func() {
-				Dopuna(m.typ, channel)
+				Dopuna(typ, channel)
 			}
 			fdo = newFullDiffOrderer(d)
 			r.fdos[channel] = fdo
