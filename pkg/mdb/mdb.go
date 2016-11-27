@@ -361,3 +361,14 @@ func (db *Mdb) NewFs(name string) *Fs {
 	_ = fs.createIndexes()
 	return fs
 }
+
+// EnsureIndex kreira index ako ne postoji
+func (db *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) error {
+	s := db.session.Copy()
+	defer s.Close()
+	c := s.DB(db.name).C(col)
+	return c.EnsureIndex(mgo.Index{
+		Key:         key,
+		ExpireAfter: expireAfter,
+	})
+}
