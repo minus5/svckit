@@ -190,7 +190,7 @@ func (o *fullDiffOrderer) check(m *msg) int {
 		if o.no == m.no {
 			return checkReplace
 		}
-		if m.no > o.no+2 {
+		if m.no > o.no+2 || m.no <= 1 {
 			return checkReset
 		}
 		if m.no < o.no {

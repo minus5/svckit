@@ -26,8 +26,6 @@ type Router struct {
 	in      chan *msg
 }
 
-var pub = nsq.MustNewProducer("")
-
 func dopunaTopicFromTyp(typ string) string {
 	if strings.HasPrefix(typ, "vfl/") || strings.HasPrefix(typ, "vbl/") || strings.HasPrefix(typ, "vto/") {
 		return "vsport.req"
@@ -35,8 +33,13 @@ func dopunaTopicFromTyp(typ string) string {
 	return "tecajna.req"
 }
 
+var pub *nsq.Producer
+
 // Dopuna salje poruku za dopunu live kanala.
 func Dopuna(typ, channel string) {
+	if pub == nil {
+		pub = nsq.MustNewProducer("")
+	}
 	topic := dopunaTopicFromTyp(typ)
 	log.S("typ", typ).S("topic", topic).S("channel", channel).Debug("merger/dopuna")
 	msg := struct {
