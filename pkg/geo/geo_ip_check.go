@@ -6,10 +6,10 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
-	"pkg/httpu"
 	"strings"
 	"sync"
 	"time"
@@ -123,7 +123,7 @@ func getGeoIpFile(url, savePath string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
-	res, err := httpu.Get(url)
+	res, err := http.Get(url)
 	if err != nil {
 		return err
 	}
