@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 
 //ako zelim snimiti fixture dodam true kraj
 func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) {
-	if len(params) > 0 && params[0] {
+	if (len(params) > 0 && params[0]) || !Exists(expectedFile) {
 		t.Logf("saving fixture %s", expectedFile)
 		SaveFixture(expectedFile, a)
 		return
@@ -34,6 +35,16 @@ func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) 
 		fmt.Printf("%s", out)
 	}
 	assert.True(t, same, expectedFile)
+}
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 func ReadFixture(t *testing.T, name string) []byte {
