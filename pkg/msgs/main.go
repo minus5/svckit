@@ -13,6 +13,7 @@ const (
 	TypeListiciIsplati   = "listici/isplati"
 	TypeListiciDodaj     = "listici/dodaj"
 	TypeIsplataStorno    = "isplata/storno"
+	TypeTransakcije      = "transakcije"
 
 	TypeValidacijaNadimak      = "registracija/validacija/nadimak"
 	TypeValidacijaEmail        = "registracija/validacija/email"
