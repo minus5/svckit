@@ -34,4 +34,5 @@ const (
 	PortBetradarPrematchConnector = "8320"
 	PortBetradarPrematchMerger    = "8330"
 	PortBetradarMtsConnector      = "8340"
+	PortListici                   = "8350"
 )
