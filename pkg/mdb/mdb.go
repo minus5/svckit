@@ -225,6 +225,13 @@ func EnsureSafe() func(db *Mdb) {
 	}
 }
 
+// MajoritySafe sets session into majority safe mode
+func MajoritySafe() func(db *Mdb) {
+	return func(db *Mdb) {
+		db.session.SetSafe(&mgo.Safe{WMode: "majority"})
+	}
+}
+
 // NewDb creates new Db
 // Connects to mongo, initializes cache, starts checkpoint loop.
 func NewDb(connStr string, opts ...func(db *Mdb)) (*Mdb, error) {
@@ -371,4 +378,34 @@ func (db *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) 
 		Key:         key,
 		ExpireAfter: expireAfter,
 	})
+}
+
+// NextSerialNumber vraca slijedeci serijski broj za neki prefix.
+// Koristi odvojenu kolekciju u kojoj ima jedan dokument po prefixu.
+// Zavrsi na findAndModify mongo command: http://stackoverflow.com/a/11418896
+func (db *Mdb) NextSerialNumber(colName, key string) (int, error) {
+	var no int
+	err := db.Use(colName, "next_number", func(col *mgo.Collection) error {
+	again:
+		sn := &struct {
+			Key string `bson:"_id"`
+			No  int    `bson:"no"`
+		}{Key: key, No: 1}
+
+		change := mgo.Change{
+			Update:    bson.M{"$inc": bson.M{"no": 1}},
+			ReturnNew: true,
+		}
+		_, err := col.Find(bson.M{"_id": sn.Key}).Apply(change, sn)
+		if err == mgo.ErrNotFound {
+			err = col.Insert(sn)
+			if mgo.IsDup(err) {
+				goto again
+			}
+		}
+		no = sn.No
+		return err
+	})
+
+	return no, err
 }
