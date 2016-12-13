@@ -7,6 +7,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"reflect"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -123,4 +126,13 @@ func PP(o interface{}) {
 		panic(err)
 	}
 	fmt.Printf("pp:\n%s\n", buf)
+}
+
+func FnName(i interface{}) string {
+	n := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+	p := strings.Split(n, ".")
+	if len(p) > 1 {
+		return p[1]
+	}
+	return n
 }
