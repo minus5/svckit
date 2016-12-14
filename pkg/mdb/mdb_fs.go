@@ -143,7 +143,7 @@ func (fs *Fs) Compact(typ string) error {
 
 // Remove deletes all files of a type
 func (fs *Fs) Remove(typ string) error {
-	return fs.db.UseFs(fs.name, fs.name+"_compact", func(g *mgo.GridFS) error {
+	return fs.db.UseFs(fs.name, fs.name+"_remove", func(g *mgo.GridFS) error {
 		return g.Remove(typ)
 	})
 }
