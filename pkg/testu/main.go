@@ -128,6 +128,15 @@ func PP(o interface{}) {
 	fmt.Printf("pp:\n%s\n", buf)
 }
 
+// PP prety print object
+func Pp(o interface{}) []byte {
+	buf, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return buf
+}
+
 func FnName(i interface{}) string {
 	n := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 	p := strings.Split(n, ".")
