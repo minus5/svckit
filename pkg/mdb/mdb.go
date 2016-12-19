@@ -313,6 +313,19 @@ func (db *Mdb) Use(col string, metricKey string, handler func(*mgo.Collection) e
 	return err
 }
 
+// Use2 same as Use but withiout metriceKey
+// metricKey is set to collection name (col)
+func (db *Mdb) Use2(col string, handler func(*mgo.Collection) error) error {
+	s := db.session.Copy()
+	defer s.Close()
+	c := s.DB(db.name).C(col)
+	var err error
+	metric.Timing("db."+col, func() {
+		err = handler(c)
+	})
+	return err
+}
+
 func (db *Mdb) UseFs(col string, metricKey string,
 	handler func(*mgo.GridFS) error) error {
 	s := db.session.Copy()
@@ -360,6 +373,22 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 		return err
 	})
 	return err
+}
+
+func (db *Mdb) RemoveId(col string, id interface{}) error {
+	return db.Use(col, co{}l+"remove", func(c *mgo.Collection) error {
+		return c.RemoveId(id)
+	})
+}
+
+func (db *Mdb) Insert(col string, o interface{}) error {
+	return db.Use(col, col+"insert", func(c *mgo.Collection) error {
+		err := c.Insert(o)
+		if mgo.IsDup(err) {
+			return ErrDuplicate
+		}
+		return err
+	})
 }
 
 // NewFs new grid file system interface
