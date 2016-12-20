@@ -376,7 +376,7 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 }
 
 func (db *Mdb) RemoveId(col string, id interface{}) error {
-	return db.Use(col, co{}l+"remove", func(c *mgo.Collection) error {
+	return db.Use(col, col+"remove", func(c *mgo.Collection) error {
 		return c.RemoveId(id)
 	})
 }
