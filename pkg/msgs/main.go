@@ -15,6 +15,7 @@ const (
 	TypeIsplataStorno      = "isplata/storno"
 	TypeSamoogranicenjeSet = "samoogranicenje/set"
 	TypeSamoogranicenjeDel = "samoogranicenje/del"
+	TypeTransakcije        = "transakcije"
 
 	TypeValidacijaNadimak      = "registracija/validacija/nadimak"
 	TypeValidacijaEmail        = "registracija/validacija/email"
