@@ -409,6 +409,17 @@ func (db *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) 
 	})
 }
 
+// EnsureIndex kreira index ako ne postoji
+func (db *Mdb) EnsureUniqueIndex(col string, key []string) error {
+	s := db.session.Copy()
+	defer s.Close()
+	c := s.DB(db.name).C(col)
+	return c.EnsureIndex(mgo.Index{
+		Key:    key,
+		Unique: true,
+	})
+}
+
 // NextSerialNumber vraca slijedeci serijski broj za neki prefix.
 // Koristi odvojenu kolekciju u kojoj ima jedan dokument po prefixu.
 // Zavrsi na findAndModify mongo command: http://stackoverflow.com/a/11418896
