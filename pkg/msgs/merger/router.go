@@ -27,7 +27,10 @@ type Router struct {
 }
 
 func dopunaTopicFromTyp(typ string) string {
-	if strings.HasPrefix(typ, "vfl/") || strings.HasPrefix(typ, "vbl/") || strings.HasPrefix(typ, "vto/") {
+	if strings.HasPrefix(typ, "vfl/") ||
+		strings.HasPrefix(typ, "vbl/") ||
+		strings.HasPrefix(typ, "vto/") ||
+		strings.HasPrefix(typ, "vflm/") {
 		return "vsport.req"
 	}
 	return "tecajna.req"
