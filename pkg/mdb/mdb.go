@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
@@ -183,6 +184,15 @@ type Mdb struct {
 	cacheDir     string
 	checkPointIn time.Duration
 	cache        *cache
+}
+
+// DefaultConnStr creates connection string from consul
+func DefaultConnStr() string {
+	connStr := "mongo.service.sd"
+	if addrs, err := dcy.Services(connStr); err == nil {
+		connStr = strings.Join(addrs.String(), ",")
+	}
+	return connStr
 }
 
 // MustNew raises fatal is unable to connect to mongo
