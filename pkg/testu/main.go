@@ -137,6 +137,14 @@ func Pp(o interface{}) []byte {
 	return buf
 }
 
+func Json(o interface{}) []byte {
+	buf, err := json.Marshal(o)
+	if err != nil {
+		panic(err)
+	}
+	return buf
+}
+
 func FnName(i interface{}) string {
 	n := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 	p := strings.Split(n, ".")
