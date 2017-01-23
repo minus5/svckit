@@ -131,3 +131,20 @@ func TestMongo(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "127.0.0.1:27017,192.168.10.123:27017", c)
 }
+
+func TestSubscribe(t *testing.T) {
+	assert.Len(t, subscribers, 0)
+	h1 := func(Addresses) {}
+	h2 := func(Addresses) {}
+	Subscribe("svc", h1)
+	assert.Len(t, subscribers, 1)
+	assert.Len(t, subscribers["svc"], 1)
+	Subscribe("svc", h2)
+	assert.Len(t, subscribers, 1)
+	assert.Len(t, subscribers["svc"], 2)
+
+	Unsubscribe("svc", h1)
+	assert.Len(t, subscribers, 1)
+	assert.Len(t, subscribers["svc"], 1)
+
+}

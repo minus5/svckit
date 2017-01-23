@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -35,9 +36,10 @@ const (
 )
 
 var (
-	consul *api.Client
-	l      sync.RWMutex
-	cache  = map[string][]Address{}
+	consul      *api.Client
+	l           sync.RWMutex
+	cache       = map[string]Addresses{}
+	subscribers = map[string][]func(Addresses){}
 
 	domain        string
 	dc            string
@@ -58,6 +60,10 @@ func (a Address) String() string {
 	return fmt.Sprintf("%s:%d", a.Address, a.Port)
 }
 
+func (a Address) Equal(a2 Address) bool {
+	return a.Address == a2.Address && a.Port == a2.Port
+}
+
 // Addresses is array of service addresses.
 type Addresses []Address
 
@@ -68,6 +74,25 @@ func (a Addresses) String() []string {
 		addrs = append(addrs, addr.String())
 	}
 	return addrs
+}
+
+func (a Addresses) Equal(a2 Addresses) bool {
+	if len(a) != len(a2) {
+		return false
+	}
+	for _, d := range a {
+		found := false
+		for _, d2 := range a2 {
+			if d.Equal(d2) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // On including package it will try to find consul.
@@ -191,17 +216,25 @@ func parseConsulServiceEntries(ses []*api.ServiceEntry) Addresses {
 	return srvs
 }
 
-func updateCache(name string, dc string, srvs []Address) {
+func updateCache(name string, dc string, srvs Addresses) {
 	l.Lock()
-	// log.Printf("updating cache for %s: %d records", name, len(srvs))
-	cache[cacheKey(name, dc)] = srvs
-	l.Unlock()
+	defer l.Unlock()
+	//log.Printf("updating cache for %s: %d records\n", name, len(srvs))
+	key := cacheKey(name, dc)
+	if srvs2, ok := cache[key]; ok {
+		if srvs2.Equal(srvs) {
+			return
+		}
+	}
+	cache[key] = srvs
+	notify(name, srvs)
+
 }
 
 func invalidateCache(name string, dc string) {
 	l.Lock()
+	defer l.Unlock()
 	delete(cache, cacheKey(name, dc))
-	l.Unlock()
 }
 
 func cacheKey(name string, dc string) string {
@@ -467,4 +500,44 @@ func Agent() *api.Agent {
 // Useful in tests, when dcy is started in test mode to force to connect to real consul.
 func MustConnect() {
 	mustConnect()
+}
+
+// Subscribe on service changes.
+// Changes in Consul for service `name` will be passed to handler.
+func Subscribe(name string, handler func(Addresses)) {
+	l.Lock()
+	defer l.Unlock()
+	a := subscribers[name]
+	if a == nil {
+		a = make([]func(Addresses), 0)
+	}
+	a = append(a, handler)
+	subscribers[name] = a
+}
+
+func notify(name string, srvs Addresses) {
+	if s, ok := subscribers[name]; ok {
+		for _, h := range s {
+			h(srvs)
+		}
+	}
+}
+
+// Unsubscribe from service changes.
+func Unsubscribe(name string, handler func(Addresses)) {
+	l.Lock()
+	defer l.Unlock()
+	a := subscribers[name]
+	if a == nil {
+		return
+	}
+	for i, h := range a {
+		sf1 := reflect.ValueOf(h)
+		sf2 := reflect.ValueOf(handler)
+		if sf1.Pointer() == sf2.Pointer() {
+			a = append(a[:i], a[i+1:]...)
+			break
+		}
+	}
+	subscribers[name] = a
 }
