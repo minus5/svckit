@@ -95,6 +95,15 @@ func (a Addresses) Equal(a2 Addresses) bool {
 	return true
 }
 
+func (a Addresses) Contains(a2 Address) bool {
+	for _, a1 := range a {
+		if a1.Equal(a2) {
+			return true
+		}
+	}
+	return false
+}
+
 // On including package it will try to find consul.
 // Will BLOCK until consul is found.
 // If not found it will raise fatal.

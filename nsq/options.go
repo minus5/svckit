@@ -8,8 +8,10 @@ Primjer:
 package nsq
 
 import (
-	"github.com/minus5/svckit/log"
 	"strings"
+
+	"github.com/minus5/svckit/dcy"
+	"github.com/minus5/svckit/log"
 
 	gonsq "github.com/nsqio/go-nsq"
 )
@@ -43,12 +45,12 @@ func (n *nsqLogger) Output(calldepth int, s string) error {
 }
 
 type options struct {
-	maxInFlight      int
-	channel          string
-	lookupdHTTPAddrs []string
-	nsqdTCPAddr      string
-	logger           *nsqLogger
-	logLevel         gonsq.LogLevel
+	maxInFlight int
+	channel     string
+	nsqdTCPAddr string
+	logger      *nsqLogger
+	logLevel    gonsq.LogLevel
+	lookupds    dcy.Addresses
 }
 
 func (c *options) apply(opts ...func(*options)) *options {

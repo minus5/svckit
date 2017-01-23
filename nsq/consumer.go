@@ -1,8 +1,12 @@
 package nsq
 
 import (
-	"github.com/minus5/svckit/log"
+	"fmt"
 	"sync"
+	"time"
+
+	"github.com/minus5/svckit/dcy"
+	"github.com/minus5/svckit/log"
 
 	gonsq "github.com/nsqio/go-nsq"
 )
@@ -10,6 +14,8 @@ import (
 type Consumer struct {
 	nsqConsumer *gonsq.Consumer
 	onceClose   sync.Once
+	logger      func() *log.Agregator
+	lookups     dcy.Addresses
 }
 
 type nsqHandler struct {
@@ -36,6 +42,7 @@ func NewConsumer(topic string, handler func(*Message) error,
 
 	cfg := gonsq.NewConfig()
 	cfg.MaxInFlight = defaults.maxInFlight
+	cfg.LookupdPollInterval = 2 * time.Second
 
 	c, err := gonsq.NewConsumer(topic, defaults.channel, cfg)
 	if err != nil {
@@ -45,17 +52,44 @@ func NewConsumer(topic string, handler func(*Message) error,
 	c.SetLogger(defaults.logger, defaults.logLevel)
 	c.AddHandler(&nsqHandler{fn: handler})
 
-	err = c.ConnectToNSQLookupds(defaults.lookupdHTTPAddrs)
+	err = c.ConnectToNSQLookupds(defaults.lookupds.String())
 	if err != nil {
 		return nil, err
 	}
 
-	log.S("lib", "svckit.nsq").S("topic", topic).S("channel", defaults.channel).I("maxInFlight", defaults.maxInFlight).Info("starting consumer")
-	return &Consumer{nsqConsumer: c}, nil
+	co := &Consumer{
+		lookups:     defaults.lookupds,
+		nsqConsumer: c,
+		logger: func() *log.Agregator {
+			return logger().S("topic", topic).S("channel", defaults.channel)
+		},
+	}
+
+	co.logger().I("maxInFlight", defaults.maxInFlight).Info("starting consumer")
+	dcy.Subscribe(LookupdHTTPServiceName, co.onLookupChanges)
+	return co, nil
+}
+
+func (c *Consumer) onLookupChanges(as dcy.Addresses) {
+	for _, a := range as {
+		if err := c.nsqConsumer.ConnectToNSQLookupd(a.String()); err != nil {
+			logger().Error(err)
+		}
+	}
+	for _, a := range c.lookups {
+		if !as.Contains(a) {
+			if err := c.nsqConsumer.DisconnectFromNSQLookupd(a.String()); err != nil {
+				logger().Error(err)
+			}
+		}
+	}
+	c.lookups = as
+	c.logger().S("lookupds", fmt.Sprintf("%v", as)).Debug("lookupds update")
 }
 
 func (c *Consumer) Close() {
 	c.onceClose.Do(func() {
+		dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
 		c.nsqConsumer.Stop()
 		<-c.nsqConsumer.StopChan
 	})

@@ -43,12 +43,12 @@ func Set(opts ...func(*options)) {
 
 func initDefaults() {
 	defaults = &options{
-		maxInFlight:      DefaultMaxInFlight,
-		channel:          fmt.Sprintf("%s-%s", env.AppName(), env.NodeName()),
-		nsqdTCPAddr:      "127.0.0.1:4150",
-		lookupdHTTPAddrs: []string{"127.0.0.1:4161"},
-		logLevel:         gonsq.LogLevelWarning,
-		logger:           &nsqLogger{},
+		maxInFlight: DefaultMaxInFlight,
+		channel:     fmt.Sprintf("%s-%s", env.AppName(), env.NodeName()),
+		nsqdTCPAddr: "127.0.0.1:4150",
+		lookupds:    dcy.Addresses{dcy.Address{Address: "127.0.0.1", Port: 4161}},
+		logLevel:    gonsq.LogLevelWarning,
+		logger:      &nsqLogger{},
 	}
 	if e, ok := os.LookupEnv(EnvNsqd); ok && e != "" {
 		defaults.nsqdTCPAddr = e
@@ -60,8 +60,8 @@ func initDefaults() {
 			logger().Error(err)
 			return err
 		}
-		defaults.lookupdHTTPAddrs = addrs.String()
-		logger().S("lookupds", fmt.Sprintf("%v", defaults.lookupdHTTPAddrs)).Debug("init lookupds")
+		defaults.lookupds = addrs
+		logger().S("lookupds", fmt.Sprintf("%v", defaults.lookupds.String())).Debug("init lookupds")
 		return nil
 	}
 	if err := signal.WithExponentialBackoff(connect); err != nil {
