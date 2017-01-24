@@ -30,7 +30,8 @@ func dopunaTopicFromTyp(typ string) string {
 	if strings.HasPrefix(typ, "vfl/") ||
 		strings.HasPrefix(typ, "vbl/") ||
 		strings.HasPrefix(typ, "vto/") ||
-		strings.HasPrefix(typ, "vflm/") {
+		strings.HasPrefix(typ, "vflm/") ||
+		strings.HasPrefix(typ, "vfnc/") {
 		return "vsport.req"
 	}
 	return "tecajna.req"
