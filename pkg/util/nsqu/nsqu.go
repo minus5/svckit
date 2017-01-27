@@ -3,7 +3,9 @@ package nsqu
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"pkg/util"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +46,7 @@ func NewSub(topic string, handler func(string, func(interface{}) error) (interfa
 		if err != nil {
 			return err
 		}
+		// TODO ne radi pub svaki put
 		pub := nsq.Pub(eReq.ReplyTo)
 		if err := pub.Publish(eRsp.Bytes()); err != nil {
 			return err
@@ -54,6 +57,50 @@ func NewSub(topic string, handler func(string, func(interface{}) error) (interfa
 		topic: topic,
 		sub:   nsq.Sub(topic, h),
 	}
+}
+
+func NewSub2(topic string, handler func(string, string, func(interface{}) error) error) *Sub {
+	h := func(m *nsq.Message) error {
+		eReq, err := NewEnvelope(m.Body)
+		if err != nil {
+			return err
+		}
+		if eReq.Expired() {
+			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Info("expired")
+			return nil
+		}
+		cid := fmt.Sprintf("%s|%s|%s", eReq.Type, eReq.CorrelationId, eReq.ReplyTo)
+		err = handler(eReq.Type, cid, func(o interface{}) error {
+			return eReq.ParseBody(o)
+		})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return &Sub{
+		topic: topic,
+		sub:   nsq.Sub(topic, h),
+	}
+}
+
+func (s *Sub) Pub(cid string, body []byte) error {
+	parts := strings.SplitN(cid, "|", 3)
+	if len(parts) != 3 {
+		return fmt.Errorf("wrong cid: %s", cid)
+	}
+	eRsp := &Envelope{
+		Type:          parts[0],
+		CorrelationId: parts[1],
+		ReplyTo:       parts[2],
+		Body:          body,
+	}
+	// TODO ne radi pub svaki put
+	pub := nsq.Pub(eRsp.ReplyTo)
+	if err := pub.Publish(eRsp.Bytes()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Sub) Close() {
