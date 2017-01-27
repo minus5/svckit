@@ -121,7 +121,7 @@ rm -f /tmp/test_mongo.log
 
 // PP prety print object
 func PP(o interface{}) {
-	buf, err := json.MarshalIndent(o, "  ", "  ")
+	buf, err := json.MarshalIndent(o, "", "  ")
 	if err != nil {
 		panic(err)
 	}
