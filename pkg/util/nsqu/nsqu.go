@@ -108,6 +108,9 @@ func (s *Nsqu) pub(topic string) *nsq.Producer {
 
 // ReqRsp send request and wait for response
 func (s *Nsqu) ReqRsp(topic, typ string, req interface{}, rsp interface{}, sig chan struct{}, ttl time.Duration) error {
+	if ttl <= 0 {
+		return ErrTimeout
+	}
 	buf, err := json.Marshal(req)
 	if err != nil {
 		return err
