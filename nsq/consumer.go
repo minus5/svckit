@@ -42,7 +42,7 @@ func NewConsumer(topic string, handler func(*Message) error,
 
 	cfg := gonsq.NewConfig()
 	cfg.MaxInFlight = defaults.maxInFlight
-	cfg.LookupdPollInterval = 2 * time.Second
+	cfg.LookupdPollInterval = 10 * time.Second
 
 	c, err := gonsq.NewConsumer(topic, defaults.channel, cfg)
 	if err != nil {
@@ -50,7 +50,7 @@ func NewConsumer(topic string, handler func(*Message) error,
 	}
 
 	c.SetLogger(defaults.logger, defaults.logLevel)
-	c.AddHandler(&nsqHandler{fn: handler})
+	c.AddConcurrentHandlers(&nsqHandler{fn: handler}, cfg.MaxInFlight)
 
 	err = c.ConnectToNSQLookupds(defaults.lookupds.String())
 	if err != nil {
