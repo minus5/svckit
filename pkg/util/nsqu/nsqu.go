@@ -23,7 +23,7 @@ type Sub struct {
 // NewSub ...
 // handler u njega ulazi tip poruke i funkcija koja parsa body
 //         ocekuje se da vrati reponse (nil ako nema odgovora) ili eventualni error
-func NewSub(topic string, handler func(string, func(interface{}) error) (interface{}, error)) *Sub {
+func NewSub(topic string, handler func(string, []byte) (interface{}, error)) *Sub {
 	h := func(m *nsq.Message) error {
 		eReq, err := NewEnvelope(m.Body)
 		if err != nil {
@@ -33,9 +33,7 @@ func NewSub(topic string, handler func(string, func(interface{}) error) (interfa
 			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Info("expired")
 			return nil
 		}
-		rsp, err := handler(eReq.Type, func(o interface{}) error {
-			return eReq.ParseBody(o)
-		})
+		rsp, err := handler(eReq.Type, eReq.Body)
 		if err != nil {
 			return err
 		}
@@ -59,7 +57,7 @@ func NewSub(topic string, handler func(string, func(interface{}) error) (interfa
 	}
 }
 
-func NewSub2(topic string, handler func(string, string, func(interface{}) error) error) *Sub {
+func NewSub2(topic string, handler func(string, string, []byte) error) *Sub {
 	h := func(m *nsq.Message) error {
 		eReq, err := NewEnvelope(m.Body)
 		if err != nil {
@@ -69,11 +67,8 @@ func NewSub2(topic string, handler func(string, string, func(interface{}) error)
 			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Info("expired")
 			return nil
 		}
-		cid := fmt.Sprintf("%s|%s|%s", eReq.Type, eReq.CorrelationId, eReq.ReplyTo)
-		err = handler(eReq.Type, cid, func(o interface{}) error {
-			return eReq.ParseBody(o)
-		})
-		if err != nil {
+		correlationId := fmt.Sprintf("%s|%s|%s", eReq.Type, eReq.CorrelationId, eReq.ReplyTo)
+		if err := handler(eReq.Type, correlationId, eReq.Body); err != nil {
 			return err
 		}
 		return nil
