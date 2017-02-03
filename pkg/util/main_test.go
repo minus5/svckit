@@ -14,11 +14,6 @@ func TestUuid(t *testing.T) {
 	assert.Equal(t, 36, len(u))
 }
 
-func TestRound(t *testing.T) {
-	assert.Equal(t, 123.45, Round(123.45123, 2))
-	assert.Equal(t, 123.46, Round(123.455, 2))
-}
-
 func TestCoverage(t *testing.T) {
 	Hostname()
 	InitLogger()
