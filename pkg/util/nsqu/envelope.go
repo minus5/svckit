@@ -11,14 +11,21 @@ var (
 	headerSeparator = []byte{10} //new line
 )
 
+// Envelope arround message for request response communication over nsq.
 type Envelope struct {
-	Type          string `json:"t,omitempty"`
-	ReplyTo       string `json:"r,omitempty"`
+	// type of the message
+	Type string `json:"t,omitempty"`
+	// nsq topic to send reply to
+	ReplyTo string `json:"r,omitempty"`
+	// connection between request and response
 	CorrelationId string `json:"c,omitempty"`
-	ExpiresAt     int64  `json:"e,omitempty"`
-	Body          []byte `json:"-"`
+	// unix timestamp when message expires, after that should be dropped
+	ExpiresAt int64 `json:"e,omitempty"`
+	// message body
+	Body []byte `json:"-"`
 }
 
+// NewEnvelope decodes envelope from bytes.
 func NewEnvelope(buf []byte) (*Envelope, error) {
 	parts := bytes.SplitN(buf, headerSeparator, 2)
 	e := &Envelope{}
@@ -31,6 +38,7 @@ func NewEnvelope(buf []byte) (*Envelope, error) {
 	return e, nil
 }
 
+// Bytes encodes envelope into bytes for putting on wire.
 func (m *Envelope) Bytes() []byte {
 	buf, _ := json.Marshal(m)
 	buf = append(buf, headerSeparator...)
@@ -38,6 +46,7 @@ func (m *Envelope) Bytes() []byte {
 	return buf
 }
 
+// ParseBody deocdes Evelope body into o.
 func (m *Envelope) ParseBody(o interface{}) error {
 	if err := json.Unmarshal(m.Body, o); err != nil {
 		return err
@@ -45,6 +54,7 @@ func (m *Envelope) ParseBody(o interface{}) error {
 	return nil
 }
 
+// Reply creates reply Envelope from request Envelope.
 func (m *Envelope) Reply(o interface{}) (*Envelope, error) {
 	e := &Envelope{
 		Type:          strings.Replace(m.Type, ".req", ".rsp", 1),
@@ -60,6 +70,7 @@ func (m *Envelope) Reply(o interface{}) (*Envelope, error) {
 	return e, nil
 }
 
+// Expired returns true if message expired.
 func (m *Envelope) Expired() bool {
 	if m.ExpiresAt <= 0 {
 		return false
