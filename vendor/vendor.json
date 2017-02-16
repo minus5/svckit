@@ -27,6 +27,12 @@
 			"revisionTime": "2016-09-07T16:21:46Z"
 		},
 		{
+			"checksumSHA1": "P/YMhqTnQl9HbvyC72rBhe/N32I=",
+			"path": "github.com/golang/snappy",
+			"revision": "7db9049039a047d955fe8c19b83c8ff5abd765c7",
+			"revisionTime": "2017-01-19T01:47:23Z"
+		},
+		{
 			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
 			"path": "github.com/gorilla/context",
 			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
@@ -69,10 +75,10 @@
 			"revisionTime": "2015-04-16T23:44:20Z"
 		},
 		{
-			"checksumSHA1": "iJ09W/FkOa3bZVSx+2Pzf5yDgog=",
+			"checksumSHA1": "6Uqtc4JNsdsJTR2mkxQpr1ethXw=",
 			"path": "github.com/nsqio/go-nsq",
-			"revision": "d71fb89c9e0263aaed89645b0b168e11ccf597b1",
-			"revisionTime": "2016-06-04T20:00:49Z"
+			"revision": "a53d495e81424aaf7a7665a9d32a97715c40e953",
+			"revisionTime": "2016-12-29T18:58:21Z"
 		},
 		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
