@@ -70,7 +70,7 @@ func WsCompressionSupported(r *http.Request) bool {
 	return strings.Contains(wsExtHeader, "permessage-deflate")
 }
 
-// None match returns true if the given etag doesn't match the request If-None-Match header
+// NoneMatch returns true if the given etag doesn't match the request If-None-Match header
 // If the header or the given etag is empty, it also returns true.
 func NoneMatch(r *http.Request, etag string) bool {
 	ifNoneMatch := r.Header.Get("If-None-Match")
@@ -80,7 +80,7 @@ func NoneMatch(r *http.Request, etag string) bool {
 	return r.Header.Get("If-None-Match") != etag
 }
 
-// UnmodifiedSince returns true if the given lastModified time is before the request If-Modified-Since header.
+// ModifiedSince returns true if the given lastModified time is before the request If-Modified-Since header.
 // If the header is empty or not in RFC1123 format, it also returns true.
 func ModifiedSince(r *http.Request, lastModified time.Time) bool {
 	ifUnmodifiedSince := r.Header.Get("If-Modified-Since")
