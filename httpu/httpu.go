@@ -83,14 +83,14 @@ func NoneMatch(r *http.Request, etag string) bool {
 // ModifiedSince returns true if the given lastModified time is before the request If-Modified-Since header.
 // If the header is empty or not in RFC1123 format, it also returns true.
 func ModifiedSince(r *http.Request, lastModified time.Time) bool {
-	ifUnmodifiedSince := r.Header.Get("If-Modified-Since")
-	if ifUnmodifiedSince == "" {
+	ifModifiedSince := r.Header.Get("If-Modified-Since")
+	if ifModifiedSince == "" {
 		return true
 	}
-	ifUnmodifiedSinceTime, err := time.Parse(time.RFC1123, ifUnmodifiedSince)
+	ifModifiedSinceTime, err := time.Parse(time.RFC1123, ifModifiedSince)
 	if err != nil {
-		log.Errorf("invalid If-Unmodified-Since header: %v", err)
+		log.Errorf("invalid If-Modified-Since header: %v", err)
 		return true
 	}
-	return lastModified.Before(ifUnmodifiedSinceTime)
+	return lastModified.Before(ifModifiedSinceTime)
 }
