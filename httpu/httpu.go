@@ -3,10 +3,11 @@ package httpu
 import (
 	"io"
 	"net/http"
-	"github.com/minus5/svckit/dcy"
-	"github.com/minus5/svckit/log"
 	"strings"
 	"time"
+
+	"github.com/minus5/svckit/dcy"
+	"github.com/minus5/svckit/log"
 )
 
 const (
@@ -67,4 +68,29 @@ func Get(url string) (*http.Response, error) {
 func WsCompressionSupported(r *http.Request) bool {
 	wsExtHeader := r.Header.Get("Sec-WebSocket-Extensions")
 	return strings.Contains(wsExtHeader, "permessage-deflate")
+}
+
+// None match returns true if the given etag doesn't match the request If-None-Match header
+// If the header or the given etag is empty, it also returns true.
+func NoneMatch(r *http.Request, etag string) bool {
+	ifNoneMatch := r.Header.Get("If-None-Match")
+	if ifNoneMatch == "" || etag == "" {
+		return true
+	}
+	return r.Header.Get("If-None-Match") != etag
+}
+
+// UnmodifiedSince returns true if the given lastModified time is before the request If-Modified-Since header.
+// If the header is empty or not in RFC1123 format, it also returns true.
+func ModifiedSince(r *http.Request, lastModified time.Time) bool {
+	ifUnmodifiedSince := r.Header.Get("If-Modified-Since")
+	if ifUnmodifiedSince == "" {
+		return true
+	}
+	ifUnmodifiedSinceTime, err := time.Parse(time.RFC1123, ifUnmodifiedSince)
+	if err != nil {
+		log.Errorf("invalid If-Unmodified-Since header: %v", err)
+		return false
+	}
+	return lastModified.Before(ifUnmodifiedSinceTime)
 }

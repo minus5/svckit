@@ -3,6 +3,7 @@ package httpu
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,5 +38,31 @@ func TestNewRequestDcy(t *testing.T) {
 func TestPing(t *testing.T) {
 	t.Skip("zahtjeva zivi servis")
 	assert.True(t, Ping("http://5-web-backend05.supersport.local:8091/ping"))
+}
 
+func TestNoneMatch(t *testing.T) {
+	r, err := http.NewRequest("GET", "http://localhost/", nil)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	assert.True(t, NoneMatch(r, "perozdero42"))
+	assert.True(t, NoneMatch(r, "perozdero108"))
+	assert.True(t, NoneMatch(r, ""))
+	r.Header.Set("If-None-Match", "perozdero42")
+	assert.True(t, NoneMatch(r, "perozdero108"))
+	assert.False(t, NoneMatch(r, "perozdero42"))
+	assert.True(t, NoneMatch(r, ""))
+}
+
+func TestModifiedSince(t *testing.T) {
+	r, err := http.NewRequest("GET", "http://localhost/", nil)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	lastModified := time.Date(1977, 6, 21, 12, 34, 56, 0, time.UTC)
+	assert.True(t, ModifiedSince(r, lastModified))
+	r.Header.Set("If-Modified-Since", "Tue, 21 Jun 1977 12:34:55 UTC")
+	assert.False(t, ModifiedSince(r, lastModified))
+	r.Header.Set("If-Modified-Since", "Tue, 21 Jun 1977 12:34:57 UTC")
+	assert.True(t, ModifiedSince(r, lastModified))
 }
