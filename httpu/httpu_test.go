@@ -61,6 +61,8 @@ func TestModifiedSince(t *testing.T) {
 	}
 	lastModified := time.Date(1977, 6, 21, 12, 34, 56, 0, time.UTC)
 	assert.True(t, ModifiedSince(r, lastModified))
+	r.Header.Set("If-Modified-Since", "garblegarble")
+	assert.True(t, ModifiedSince(r, lastModified))
 	r.Header.Set("If-Modified-Since", "Tue, 21 Jun 1977 12:34:55 UTC")
 	assert.False(t, ModifiedSince(r, lastModified))
 	r.Header.Set("If-Modified-Since", "Tue, 21 Jun 1977 12:34:57 UTC")

@@ -90,7 +90,7 @@ func ModifiedSince(r *http.Request, lastModified time.Time) bool {
 	ifUnmodifiedSinceTime, err := time.Parse(time.RFC1123, ifUnmodifiedSince)
 	if err != nil {
 		log.Errorf("invalid If-Unmodified-Since header: %v", err)
-		return false
+		return true
 	}
 	return lastModified.Before(ifUnmodifiedSinceTime)
 }
