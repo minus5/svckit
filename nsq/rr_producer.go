@@ -98,12 +98,13 @@ func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{},
 	if ttl > 0 {
 		eReq.ExpiresAt = time.Now().Add(ttl).Unix()
 	}
+	c := make(chan *Envelope)
+	s.add(correlationId, c)
+
 	p := s.pub(topic)
 	if err := p.Publish(eReq.Bytes()); err != nil {
 		return err
 	}
-	c := make(chan *Envelope)
-	s.add(correlationId, c)
 
 	select {
 	case re := <-c:
