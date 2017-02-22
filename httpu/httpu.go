@@ -77,7 +77,7 @@ func NoneMatch(r *http.Request, etag string) bool {
 	if ifNoneMatch == "" || etag == "" {
 		return true
 	}
-	return r.Header.Get("If-None-Match") != etag
+	return ifNoneMatch != etag
 }
 
 // ModifiedSince returns true if the given lastModified time is before the request If-Modified-Since header.
