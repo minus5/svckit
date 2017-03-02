@@ -34,7 +34,7 @@ func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) 
 			t.Logf("diff status %s", err)
 			t.Log("diff dependa na icdiff bin moguce da on nije instaliran http://www.jefftk.com/icdiff")
 		}
-		t.Logf("file differences between %s and %s:\n%s", expectedFile, actualFile, out)
+		//t.Logf("file differences between %s and %s:\n%s", expectedFile, actualFile, out)
 		fmt.Printf("%s", out)
 	}
 	assert.True(t, same, expectedFile)
