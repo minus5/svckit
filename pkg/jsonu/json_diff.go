@@ -99,14 +99,14 @@ const (
 )
 
 func sameKey(k string, l *simplejson.Json, r *simplejson.Json) int {
-	if _, ok := l.CheckGet(k); !ok {
+	vl, ok := l.CheckGet(k)
+	if !ok {
 		return leftMissing
 	}
-	if _, ok := r.CheckGet(k); !ok {
+	vr, ok := r.CheckGet(k)
+	if !ok {
 		return rightMissing
 	}
-	vl := l.Get(k)
-	vr := r.Get(k)
 	return sameValue(k, vl, vr)
 }
 
