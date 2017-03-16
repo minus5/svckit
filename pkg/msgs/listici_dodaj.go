@@ -1,7 +1,11 @@
 package msgs
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"lib/listic"
+)
 
+// Konstante za dodavanje listica igracu na racun
 const (
 	ListiciDodajStatusNijeMoguce            = -2 //pogodio je broj i kontrolni broj ali ne moze loto listic, ili konji ili web -- deprecated
 	ListiciDodajStatusNijePronadjen         = -1
@@ -14,29 +18,29 @@ const (
 type ListiciDodajReq struct {
 	Broj          string `json:"broj"`
 	KontrolniBroj string `json:"kontrolni_broj"`
-	IgracId       string `json:"igrac_id"`
+	IgracID       string `json:"igrac_id"`
 }
 
 // ListiciDodajRsp response podaci nakon dodavanja listica igracu
 type ListiciDodajRsp struct {
-	Status int                    `json:"status"`
-	Listic map[string]interface{} `json:"listic,omitempty"`
+	Status int              `json:"status"`
+	Listic *listic.Dokument `json:"listic,omitempty"`
 }
 
-// ToJson ...
-func (req *ListiciDodajReq) ToJson() []byte {
+// ToJSON ...
+func (req *ListiciDodajReq) ToJSON() []byte {
 	buf, _ := json.Marshal(req)
 	return buf
 }
 
 // IsplataStornoReq request za storniranje transakcije
 type IsplataStornoReq struct {
-	Id      string `json:"id"`
-	IgracId string `json:"igrac_id"`
+	ID      string `json:"id"`
+	IgracID string `json:"igrac_id"`
 }
 
-// ToJson ...
-func (req *IsplataStornoReq) ToJson() []byte {
+// ToJSON ...
+func (req *IsplataStornoReq) ToJSON() []byte {
 	buf, _ := json.Marshal(req)
 	return buf
 }
