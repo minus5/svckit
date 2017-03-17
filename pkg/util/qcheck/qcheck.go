@@ -16,18 +16,24 @@ type QueueChecker struct {
 	ticker       *time.Ticker
 	intervalFunc timeFunc
 	sync.RWMutex
-	first sync.Once
-	any   bool
+	first   sync.Once
+	any     bool
+	maxSize int
 }
 
 func Default() *QueueChecker {
 	return New(10000, func() time.Duration { return time.Minute })
 }
 
+func New2(maxSize int, d time.Duration) *QueueChecker {
+	return New(maxSize, func() time.Duration { return d })
+}
+
 func New(maxSize int, intervalFunc timeFunc) *QueueChecker {
 	qc := &QueueChecker{
 		c:            make(chan time.Time, maxSize),
 		intervalFunc: intervalFunc,
+		maxSize:      maxSize,
 	}
 	go qc.drain()
 	return qc
@@ -58,6 +64,10 @@ func (t *QueueChecker) Push() error {
 
 func (t *QueueChecker) Count() int {
 	return len(t.c) + int(atomic.LoadUint32(&t.surplus))
+}
+
+func (t *QueueChecker) Full() bool {
+	return t.Count() >= t.maxSize
 }
 
 func (t *QueueChecker) Last() time.Time {

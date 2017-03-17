@@ -49,8 +49,17 @@ func TestFull(t *testing.T) {
 	i := 0
 	for range ticker.C {
 		err := qc.Push()
+		if i < 4 {
+			assert.False(t, qc.Full())
+		}
+		if i == 4 {
+			assert.Equal(t, 5, qc.Count())
+			assert.True(t, qc.Full())
+		}
 		if i == 6 {
 			assert.NotNil(t, err)
+			assert.Equal(t, 6, qc.Count())
+			assert.True(t, qc.Full())
 			break
 		} else {
 			assert.Nil(t, err)
