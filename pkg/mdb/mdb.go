@@ -136,7 +136,7 @@ func (c *cache) purge() {
 		// save to db
 		err := c.db.saveId(i.col, i.id, i.o())
 		if err != nil {
-			log.Error(err)
+			log.S("col", i.col).S("id", fmt.Sprintf("%v", i.id)).Error(err)
 		}
 		c.Lock()
 		// if new exists into cache do nothing
