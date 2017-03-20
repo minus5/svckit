@@ -30,10 +30,11 @@ const (
 )
 
 const (
-	KeyId      = "id"
-	KeyIgracId = "igrac_id"
-	KeyFrom    = "from"
-	KeyTo      = "to"
+	KeyId       = "id"
+	KeyIgracId  = "igrac_id"
+	KeyFrom     = "from"
+	KeyTo       = "to"
+	KeySrcMsgID = "src_msg_id"
 )
 
 //Backend - poruka koja dolazi iz backend servisa
@@ -50,6 +51,7 @@ type Backend struct {
 	Version     string `json:"version,omitempty"`
 	Encoding    string `json:"encoding,omitempty"`
 	MessageType string `json:"message_type,omitempty"`
+	SrcMsgID    string `json:"src_msg_id,omitempty"`
 	Body        []byte `json:"-"` //raspakovan body
 	RawBody     []byte `json:"-"`
 	RawHeader   []byte `json:"-"`
@@ -229,6 +231,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		Dc          string `json:"dc"`
 		Version     string `json:"version"`
 		MessageType string `json:"message_type,omitempty"`
+		SrcMsgID    string `json:"src_msg_id,omitempty"`
 	}{
 		No:      -1,
 		IgracId: "*",
@@ -276,6 +279,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		Version:     header.Version,
 		Encoding:    header.Encoding,
 		MessageType: header.MessageType,
+		SrcMsgID:    header.SrcMsgID,
 	}, nil
 
 }
