@@ -28,6 +28,7 @@ func Gunzip(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer r.Close()
 	out, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
