@@ -40,6 +40,35 @@ func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) 
 	assert.True(t, same, expectedFile)
 }
 
+func AssertSameStrings(t *testing.T, expected string, actual string) {
+	same := actual == expected
+	if same {
+		return
+	}
+	a, err := ioutil.TempFile(os.TempDir(), "actual")
+	if err != nil {
+		log.Fatal(err)
+	}
+	e, err := ioutil.TempFile(os.TempDir(), "expected")
+	if err != nil {
+		log.Fatal(err)
+	}
+	ioutil.WriteFile(a.Name(), []byte(actual), 0644)
+	ioutil.WriteFile(e.Name(), []byte(expected), 0644)
+	defer os.Remove(a.Name())
+	defer os.Remove(e.Name())
+
+	cmd := exec.Command("icdiff", "--highlight", a.Name(), e.Name())
+	out, err := cmd.Output()
+	if err != nil {
+		t.Logf("diff status %s", err)
+		t.Log("diff dependa na icdiff bin moguce da on nije instaliran http://www.jefftk.com/icdiff")
+	}
+	fmt.Printf("%s", out)
+
+	assert.True(t, same)
+}
+
 // Exists reports whether the named file or directory exists.
 func Exists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
@@ -126,6 +155,13 @@ func PP(o interface{}) {
 		panic(err)
 	}
 	fmt.Printf("pp:\n%s\n", buf)
+}
+
+// PP prety print object
+func PpBuf(buf []byte) string {
+	var m map[string]interface{}
+	json.Unmarshal(buf, &m)
+	return string(Pp(m))
 }
 
 // PP prety print object
