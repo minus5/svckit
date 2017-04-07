@@ -55,7 +55,7 @@ type seekResult struct {
 }
 
 // Seek returns all files of a type older then fromTs
-func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser) error) error {
+func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser, time.Time) error) error {
 	return fs.db.UseFs(fs.name, fs.name+"_seek", func(g *mgo.GridFS) error {
 		i := g.Find(bson.M{"filename": typ, "uploadDate": bson.M{"$gt": fromTs}}).
 			Sort("uploadDate").Iter()
@@ -66,7 +66,7 @@ func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser) error) er
 			if err != nil {
 				return err
 			}
-			if err := h(f); err != nil {
+			if err := h(f, f.UploadDate()); err != nil {
 				return err
 			}
 		}
@@ -99,7 +99,7 @@ func translateError(err error) error {
 }
 
 // Find retuns last file of a type
-func (fs *Fs) Find(typ string, h func(io.ReadCloser) error) error {
+func (fs *Fs) Find(typ string, h func(io.ReadCloser, time.Time) error) error {
 	return fs.db.UseFs(fs.name, fs.name+"_find", func(g *mgo.GridFS) error {
 		r := seekResult{}
 		if err := g.Find(bson.M{"filename": typ}).Sort("-uploadDate").One(&r); err != nil {
@@ -109,7 +109,7 @@ func (fs *Fs) Find(typ string, h func(io.ReadCloser) error) error {
 		if err != nil {
 			return translateError(err)
 		}
-		if err := h(f); err != nil {
+		if err := h(f, f.UploadDate()); err != nil {
 			return translateError(err)
 		}
 		return nil
