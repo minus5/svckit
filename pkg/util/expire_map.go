@@ -8,7 +8,7 @@ import (
 //required interface
 type ExpireMapEntry interface {
 	Id() string
-	IsExpired() bool	
+	IsExpired() bool
 }
 
 //optional
@@ -20,22 +20,22 @@ type ExpireMapEntryCallback interface {
 type ExpireMapRemoveHandler func(ExpireMapEntry)
 
 type ExpireMap struct {
-	values map[string]ExpireMapEntry
-	valuesMutex sync.RWMutex
+	values        map[string]ExpireMapEntry
+	valuesMutex   sync.RWMutex
 	cleanupTicker *time.Ticker
 	removeHandler ExpireMapRemoveHandler
-	addHandler ExpireMapRemoveHandler
+	addHandler    ExpireMapRemoveHandler
 }
 
-func NewExpireMap(cleanupInterval time.Duration, 
+func NewExpireMap(cleanupInterval time.Duration,
 	removeHandler ExpireMapRemoveHandler,
-	addHandler ExpireMapRemoveHandler) *ExpireMap{
+	addHandler ExpireMapRemoveHandler) *ExpireMap {
 	m := &ExpireMap{
-		values: make(map[string]ExpireMapEntry),
+		values:        make(map[string]ExpireMapEntry),
 		removeHandler: removeHandler,
-		addHandler: addHandler,
+		addHandler:    addHandler,
 	}
-	if (cleanupInterval > 0) {
+	if cleanupInterval > 0 {
 		m.cleanupTicker = time.NewTicker(cleanupInterval)
 		go func() {
 			for _ = range m.cleanupTicker.C {
@@ -53,7 +53,7 @@ func (m *ExpireMap) Find(id string) (ExpireMapEntry, bool) {
 	return v, found
 }
 
-func (m *ExpireMap) Each(handler func(ExpireMapEntry)) { 
+func (m *ExpireMap) Each(handler func(ExpireMapEntry)) {
 	m.valuesMutex.RLock()
 	defer m.valuesMutex.RUnlock()
 	for _, e := range m.values {
@@ -80,7 +80,7 @@ func (m *ExpireMap) callRemoveHandler(entry ExpireMapEntry) {
 }
 
 func (m *ExpireMap) callAddHandler(entry ExpireMapEntry) {
-	if m.addHandler != nil && entry != nil{
+	if m.addHandler != nil && entry != nil {
 		m.addHandler(entry)
 	}
 }
@@ -115,7 +115,7 @@ func (m *ExpireMap) Cleanup() {
 }
 
 func (m *ExpireMap) Close() {
-	if (m.cleanupTicker != nil) {
+	if m.cleanupTicker != nil {
 		m.cleanupTicker.Stop()
 	}
 }
