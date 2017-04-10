@@ -34,6 +34,9 @@ func dopunaTopicFromTyp(typ string) string {
 		strings.HasPrefix(typ, "vfnc/") {
 		return "vsport.req"
 	}
+	if strings.HasPrefix(typ, "li") {
+		return "livescore.req"
+	}
 	return "tecajna.req"
 }
 
