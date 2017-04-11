@@ -1,13 +1,14 @@
 package util
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testMapEntry struct {
-	id string
-	isExpired bool
+	id           string
+	isExpired    bool
 	expireCalled bool
 }
 
@@ -28,26 +29,37 @@ func (e *testMapEntry) nonInterfaceFn() {
 
 func newTestMapEntry() *testMapEntry {
 	return &testMapEntry{
-		id: Uuid(),
-		isExpired: false,
-		expireCalled: false, 
+		id:           Uuid(),
+		isExpired:    false,
+		expireCalled: false,
 	}
 }
 
 func TestAddRemove(t *testing.T) {
 	m := NewExpireMap(0, nil, nil)
 	e := newTestMapEntry()
-	m.Add(e)	
+	m.Add(e)
 	assert.NotNil(t, m)
 	assert.NotNil(t, e)
 	assert.Equal(t, m.Size(), 1)
-	m.Add(e)	
+	m.Add(e)
 	assert.Equal(t, m.Size(), 1)
 	e2 := newTestMapEntry()
-	m.Add(e2)	
+	m.Add(e2)
 	assert.Equal(t, m.Size(), 2)
 	m.Remove(e)
 	assert.Equal(t, m.Size(), 1)
+}
+
+func TestRemoveId(t *testing.T) {
+	m := NewExpireMap(0, nil, nil)
+	e := newTestMapEntry()
+	m.Add(e)
+	assert.NotNil(t, m)
+	assert.NotNil(t, e)
+	assert.Equal(t, m.Size(), 1)
+	m.RemoveId(e.Id())
+	assert.Equal(t, m.Size(), 0)
 }
 
 func TestRemoveOfMissing(t *testing.T) {
@@ -69,7 +81,7 @@ func TestCleanup(t *testing.T) {
 	assert.Equal(t, m.Size(), 2)
 	m.Cleanup()
 	assert.Equal(t, m.Size(), 2)
-	e.isExpired = true;
+	e.isExpired = true
 	m.Cleanup()
 	assert.Equal(t, m.Size(), 1)
 	assert.True(t, e.expireCalled)
@@ -84,7 +96,7 @@ func TestClose(t *testing.T) {
 func TestFind(t *testing.T) {
 	m := NewExpireMap(0, nil, nil)
 	e := newTestMapEntry()
-	m.Add(e)	
+	m.Add(e)
 	e2, found := m.Find(e.Id())
 	assert.True(t, found)
 	assert.Equal(t, e2, e)
@@ -106,7 +118,7 @@ func TestEach(t *testing.T) {
 	testEachCount(1)
 	m.Add(newTestMapEntry())
 	testEachCount(2)
-	e3 :=  newTestMapEntry()
+	e3 := newTestMapEntry()
 	m.Add(e3)
 	testEachCount(3)
 	m.Remove(e3)
@@ -115,9 +127,9 @@ func TestEach(t *testing.T) {
 
 func TestHandlers(t *testing.T) {
 	var removed, added ExpireMapEntry
-	m := NewExpireMap(0, 
-		func(e ExpireMapEntry) { removed = e}, 
-		func(e ExpireMapEntry) { added = e})
+	m := NewExpireMap(0,
+		func(e ExpireMapEntry) { removed = e },
+		func(e ExpireMapEntry) { added = e })
 	e1 := &testMapEntry{id: "1"}
 	e2 := &testMapEntry{id: "2"}
 	m.Add(e1)
@@ -133,5 +145,5 @@ func TestHandlers(t *testing.T) {
 	removed, added = nil, nil
 	m.Add(e1)
 	assert.Equal(t, removed, e1)
-	assert.Equal(t, added, e1) 
+	assert.Equal(t, added, e1)
 }
