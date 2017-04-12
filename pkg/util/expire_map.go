@@ -5,37 +5,43 @@ import (
 	"time"
 )
 
-//required interface
+// ExpireMapEntry required interface
 type ExpireMapEntry interface {
 	Id() string
-	IsExpired() bool	
+	IsExpired() bool
 }
 
-//optional
-//will be called when Entry is expired from map
+// ExpireMapEntryCallback optional
+// will be called when Entry is expired from map
 type ExpireMapEntryCallback interface {
 	Expire()
 }
 
+// ExpireMapRemoveHandler tip za add i remove handlere mape
 type ExpireMapRemoveHandler func(ExpireMapEntry)
 
+// ExpireMap mapa za elemete koji implemtiraju ExpireMapEntry interface
 type ExpireMap struct {
-	values map[string]ExpireMapEntry
-	valuesMutex sync.RWMutex
+	values        map[string]ExpireMapEntry
+	valuesMutex   sync.RWMutex
 	cleanupTicker *time.Ticker
 	removeHandler ExpireMapRemoveHandler
-	addHandler ExpireMapRemoveHandler
+	addHandler    ExpireMapRemoveHandler
 }
 
-func NewExpireMap(cleanupInterval time.Duration, 
+// NewExpireMap kreira novu expire mapu
+// - cleanupInterval == 0 NIJE aktivno automatsko ciscenje mape
+// - removeHandler poziva se prilikom micanja entry-a iz mape
+// - addHandler poziva se prilikom dodavanja entry-a u mapu
+func NewExpireMap(cleanupInterval time.Duration,
 	removeHandler ExpireMapRemoveHandler,
-	addHandler ExpireMapRemoveHandler) *ExpireMap{
+	addHandler ExpireMapRemoveHandler) *ExpireMap {
 	m := &ExpireMap{
-		values: make(map[string]ExpireMapEntry),
+		values:        make(map[string]ExpireMapEntry),
 		removeHandler: removeHandler,
-		addHandler: addHandler,
+		addHandler:    addHandler,
 	}
-	if (cleanupInterval > 0) {
+	if cleanupInterval > 0 {
 		m.cleanupTicker = time.NewTicker(cleanupInterval)
 		go func() {
 			for _ = range m.cleanupTicker.C {
@@ -46,6 +52,7 @@ func NewExpireMap(cleanupInterval time.Duration,
 	return m
 }
 
+// Find promalazi entry po Id-u
 func (m *ExpireMap) Find(id string) (ExpireMapEntry, bool) {
 	m.valuesMutex.RLock()
 	defer m.valuesMutex.RUnlock()
@@ -53,7 +60,8 @@ func (m *ExpireMap) Find(id string) (ExpireMapEntry, bool) {
 	return v, found
 }
 
-func (m *ExpireMap) Each(handler func(ExpireMapEntry)) { 
+// Each izvrsava handler za sve elemente mape
+func (m *ExpireMap) Each(handler func(ExpireMapEntry)) {
 	m.valuesMutex.RLock()
 	defer m.valuesMutex.RUnlock()
 	for _, e := range m.values {
@@ -61,6 +69,9 @@ func (m *ExpireMap) Each(handler func(ExpireMapEntry)) {
 	}
 }
 
+// Add dodaje entry u mapu, ili zamijenjuje u mapi
+// - za dodan entry biti ce pozvan addHandler
+// - za zamijenjen entry-u (onaj koji se izbacije) biti ce pozvan removeHandler
 func (m *ExpireMap) Add(entry ExpireMapEntry) {
 	m.valuesMutex.Lock()
 	removed, found := m.values[entry.Id()]
@@ -80,11 +91,23 @@ func (m *ExpireMap) callRemoveHandler(entry ExpireMapEntry) {
 }
 
 func (m *ExpireMap) callAddHandler(entry ExpireMapEntry) {
-	if m.addHandler != nil && entry != nil{
+	if m.addHandler != nil && entry != nil {
 		m.addHandler(entry)
 	}
 }
 
+func (m *ExpireMap) callExpireHandler(entry ExpireMapEntry) {
+	if nil == entry {
+		return
+	}
+	//if entry implements on expire callback
+	if cb, ok := entry.(ExpireMapEntryCallback); ok {
+		cb.Expire()
+	}
+}
+
+// Remove mice entry iz mape
+// - poziva removeHandler za izbacen entry
 func (m *ExpireMap) Remove(entry ExpireMapEntry) {
 	m.valuesMutex.Lock()
 	delete(m.values, entry.Id())
@@ -92,30 +115,45 @@ func (m *ExpireMap) Remove(entry ExpireMapEntry) {
 	m.callRemoveHandler(entry)
 }
 
+// RemoveId mice entry iz mape po Id-u ako ga pronadje
+// - poziva removeHandler za izbacen entry
 func (m *ExpireMap) RemoveId(id string) {
 	if e, found := m.Find(id); found {
 		m.Remove(e)
 	}
 }
 
+// Size vraca trenutan broj entry-a u mapi
 func (m *ExpireMap) Size() int {
 	return len(m.values)
 }
 
-func (m *ExpireMap) Cleanup() {
+// expired vraca mapu sa svim expired entry-ima kao priprema za cleanup
+func (m *ExpireMap) expired() map[string]ExpireMapEntry {
+	exp := make(map[string]ExpireMapEntry)
+	m.valuesMutex.RLock()
+	defer m.valuesMutex.RUnlock()
 	for _, e := range m.values {
 		if e.IsExpired() {
-			m.Remove(e)
-			//if entry implements on expire callback
-			if cb, ok := e.(ExpireMapEntryCallback); ok {
-				cb.Expire()
-			}
+			exp[e.Id()] = e
 		}
+	}
+	return exp
+}
+
+// Cleanup cisti iz mape entry-e koji su expired
+func (m *ExpireMap) Cleanup() {
+	exp := m.expired()
+	for _, e := range exp {
+		m.Remove(e)
+		m.callExpireHandler(e)
 	}
 }
 
+// Close zatvara koristenje mape
+// - zaustavalja cleanup ticker ako je pokrenut
 func (m *ExpireMap) Close() {
-	if (m.cleanupTicker != nil) {
+	if m.cleanupTicker != nil {
 		m.cleanupTicker.Stop()
 	}
 }
