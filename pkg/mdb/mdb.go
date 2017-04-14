@@ -128,7 +128,15 @@ func (c *cache) save(i *cacheItem) error {
 // purge saves all cached item into database
 // and removes them from cache
 func (c *cache) purge() {
+	// napravi kopiju c.m mape
+	m := make(map[string]*cacheItem)
+	c.Lock()
 	for k, i := range c.m {
+		m[k] = i
+	}
+	c.Unlock()
+	// range po kopiji
+	for k, i := range m {
 		c.Lock()
 		// delete from cache
 		delete(c.m, k)
