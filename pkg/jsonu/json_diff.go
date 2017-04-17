@@ -30,21 +30,31 @@ func diff(bufL, bufR []byte) []byte {
 func merge(full, diff []byte) []byte {
 	f, _ := simplejson.NewJson(full)
 	d, _ := simplejson.NewJson(diff)
-	Merge(f, d)
-	ret, _ := f.Encode()
+	f2 := Merge(f, d)
+	ret, _ := f2.Encode()
 	return ret
 }
 
+func copy(full *simplejson.Json) *simplejson.Json {
+	m := make(map[string]interface{})
+	for k, v := range full.MustMap() {
+		//fmt.Printf("copy %s  %v\n", k, v)
+		m[k] = v
+	}
+	return simplejson.NewFromMap(m)
+}
+
 // Merge spaja diff u full
-func Merge(full, diff *simplejson.Json) *simplejson.Json {
+func Merge(f, diff *simplejson.Json) *simplejson.Json {
+	full := copy(f)
 	set := func(k string) {
 		v := diff.Get(k)
 		if v.Interface() == nil {
 			//fmt.Printf("del %s \n", k)
 			full.Del(k)
 		} else {
-			//fmt.Printf("set %s %#v %#v \n", k, v, full.MustMap())
 			full.Set(k, v)
+			//fmt.Printf("set %s %#v %#v \n", k, v, full.MustMap())
 		}
 	}
 	for k, _ := range diff.MustMap() {
@@ -56,7 +66,8 @@ func Merge(full, diff *simplejson.Json) *simplejson.Json {
 		switch dv.Interface().(type) {
 		case *map[string]interface{}, map[string]interface{}, *simplejson.Json:
 			//fmt.Printf("ulazim u key %s\n", k)
-			Merge(full.Get(k), dv)
+			fv := Merge(full.Get(k), dv)
+			full.Set(k, fv)
 		default:
 			set(k)
 		}

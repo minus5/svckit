@@ -2,7 +2,6 @@ package jsonu
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/minus5/go-simplejson"
@@ -99,24 +98,54 @@ func TestMerge0(t *testing.T) {
 	assert.Equal(t, `{"o1":{"k1":"v1","k2":"v3"},"o2":{"k3":4},"o3":{"k4":5}}`, string(full))
 }
 
+func TestMerge00(t *testing.T) {
+	full := merge(
+		[]byte(`{"k":"v"}`),
+		[]byte(`{"k":"v2"}`))
+	assert.Equal(t, `{"k":"v2"}`, string(full))
+}
+
+func TestMergeCopyMap(t *testing.T) {
+	fe := `{"k1":"v1","o1":{"k2":"v2"},"o2":{"k3":1,"o3":{"o4":"v3"}}}`
+	f, err := simplejson.NewJson([]byte(fe))
+	assert.Nil(t, err)
+	d, err := simplejson.NewJson([]byte(`{"k1":"v11","o1":{"k2":"v22"}}`))
+	assert.Nil(t, err)
+	f2 := Merge(f, d)
+	buf, _ := f2.Encode()
+	e := `{"k1":"v11","o1":{"k2":"v22"},"o2":{"k3":1,"o3":{"o4":"v3"}}}`
+	assert.Equal(t, e, string(buf))
+
+	// f nije promjenjen nakon merge
+	buf, _ = f.Encode()
+	assert.Equal(t, fe, string(buf))
+
+	//fo2 := f.MustMap()["o2"].(map[string]interface{})["o3"]
+	//f2o2 := f2.MustMap()["o2"].(map[string]interface{})["o3"]
+	//fmt.Printf("%v %v\n", &fo2, &f2o2)
+	//assert.True(t, &fo2 == &f2o2)
+	//assert.Equal(t, f.Get("o1"), f2.Get("o1"))
+
+}
+
 func TestMerge1(t *testing.T) {
 	f, err := simplejson.NewJson([]byte(`{}`))
 	assert.Nil(t, err)
 	d, err := simplejson.NewJson([]byte(`{"o":1}`))
 	assert.Nil(t, err)
-	Merge(f, d)
+	f = Merge(f, d)
 	buf, _ := f.Encode()
 	assert.Equal(t, `{"o":1}`, string(buf))
 
 	d, err = simplejson.NewJson([]byte(`{"o2":2}`))
 	assert.Nil(t, err)
-	Merge(f, d)
+	f = Merge(f, d)
 	buf, _ = f.Encode()
 	assert.Equal(t, `{"o":1,"o2":2}`, string(buf))
 
 	d, err = simplejson.NewJson([]byte(`{"o3":{"k1":5}}`))
 	assert.Nil(t, err)
-	Merge(f, d)
+	f = Merge(f, d)
 	buf, _ = f.Encode()
 	assert.Equal(t, `{"o":1,"o2":2,"o3":{"k1":5}}`, string(buf))
 
@@ -189,7 +218,7 @@ func TestMapEqual(t *testing.T) {
 	j2 := MapToSimplejson(m2)
 	j1m := j1.Get("k").Interface()
 	j2m := j2.Get("k").Interface()
-	fmt.Println(j1m, j2m)
+	//fmt.Println(j1m, j2m)
 	assert.True(t, j1m == j2m)
 }
 

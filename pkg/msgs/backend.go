@@ -530,7 +530,7 @@ func (b *Backend) Merge(diff *Backend) {
 		log.Notice("poruka nije full/diff tipa")
 		return
 	}
-	jsonu.Merge(b.Json(), diff.Json())
+	b.jsonBody = jsonu.Merge(b.Json(), diff.Json())
 	b.Ts = diff.Ts
 	b.No = diff.No
 	// ovi podaci vise nemaju smisla pa ih brisem da ih ne bi greskom koristio
