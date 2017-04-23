@@ -164,6 +164,10 @@ func PpBuf(buf []byte) string {
 	return string(Pp(m))
 }
 
+func PPBuf(buf []byte) {
+	fmt.Printf("pp:\n%s\n", PpBuf(buf))
+}
+
 // PP prety print object
 func Pp(o interface{}) []byte {
 	buf, err := json.MarshalIndent(o, "", "  ")
