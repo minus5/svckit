@@ -42,7 +42,6 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			}
 			if m.Event == "status" && string(m.Data) == "done" {
 				go b.Unsubscribe(msgsCh)
-				return
 			}
 		case <-closeSignal:
 			go b.Unsubscribe(msgsCh)
