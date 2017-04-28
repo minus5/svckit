@@ -2,6 +2,7 @@ package log
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -29,7 +30,16 @@ func NewEntry(b []byte) (*Entry, error) {
 	}
 	m := map[string]interface{}{}
 	if err := json.Unmarshal(b, &m); err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "hexadecimal character escape") {
+			// popravi parsing kod ove greske
+			b = []byte(strings.Replace(string(b), `\u0`, "", -1))
+			err := json.Unmarshal(b, &m)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 	for k, v := range m {
 		switch vv := v.(type) {
