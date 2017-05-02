@@ -37,4 +37,5 @@ const (
 	PortListici                   = "8350"
 	PortIgraci                    = "8360"
 	PortBetradarLivescoreMerger   = "8370"
+	PortBackned                   = "8380"
 )
