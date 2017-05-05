@@ -10,6 +10,12 @@ import (
 
 // StreamingSSE sse helper
 func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal <-chan struct{}, extraWork func(*Message, error)) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.S("panic", fmt.Sprintf("%v", r)).
+				ErrorS("recover from panic")
+		}
+	}()
 	f, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
