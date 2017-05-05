@@ -2,6 +2,7 @@ package jsonu
 
 import (
 	"encoding/json"
+	"pkg/testu"
 	"testing"
 
 	"github.com/minus5/go-simplejson"
@@ -244,4 +245,80 @@ func TestDiffObjectPointerNaRazlicitMap(t *testing.T) {
 	d := diffmap(l, r)
 	assert.Equal(t, 2, len(d))
 	//fmt.Printf("%#v\n", d)
+}
+
+func TestBugFix(t *testing.T) {
+	t.Skip("vizualno testiranje")
+	full := `{
+	"S": {
+		" X": {
+			"C": {
+				" )%": {
+					"T": {
+						" g)": {
+							"M": {
+								"%Fh;": {
+									"#1": {
+										"en": "St Kilda Saints",
+										"hr": "St Kilda Saints"
+									},
+									"#2": {
+										"en": "Greater Western Sydney",
+										"hr": "Greater Western Sydney"
+									},
+									"1": "St Kilda Saints",
+									"2": "Greater Western Sydney",
+									"O": {
+										" !": {
+											"1": 42,
+											"2": 35,
+											"y": "Current"
+										}
+									},
+									"a": 20,
+									"d": "2017-05-05T11:50:00+02:00",
+									"i": 11279535,
+									"u": "2017-05-05T11:50:37+02:00",
+									"v": {
+										"#c": {
+											"en": "Melbourne",
+											"hr": "Melbourne"
+										},
+										"#o": {
+											"en": "Australia",
+											"hr": "Australija"
+										},
+										"#t": {
+											"en": "Etihad Stadium",
+											"hr": "Etihad"
+										},
+										"c": "Melbourne",
+										"o": "Australia",
+										"t": "Etihad Stadium"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+`
+	diff := `{"S":{" X":{"C":{" )%":{"T":{" g)":{"M":{"%Fh;":{"O":{" !":{"1":43,"2":48}}}}}}}}}}}`
+	diff2 := `{"S":{" X":{"C":{" )%":{"T":{" g)":{"M":{"%Fh;":{"O":{" !":{"1":44,"2":49}}}}}}}}}}}`
+	f, err := simplejson.NewJson([]byte(full))
+	assert.Nil(t, err)
+	d, err := simplejson.NewJson([]byte(diff))
+	assert.Nil(t, err)
+	d2, err := simplejson.NewJson([]byte(diff2))
+	assert.Nil(t, err)
+
+	f2 := Merge(f, d)
+	f2 = Merge(f, d2)
+	//f2 := Diff(d, f)
+	buf, err := f2.EncodePretty()
+	assert.Nil(t, err)
+	testu.PPBuf(buf)
 }
