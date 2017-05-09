@@ -114,3 +114,29 @@ func (req *PromijeniPodatkeReq) ToJSON() []byte {
 	buf, _ := json.Marshal(req)
 	return buf
 }
+
+// AktivirajEmailReq request za aktivaciju nove email adrese
+type AktivirajEmailReq struct {
+	RememberToken   string `json:"remember_token"`
+	AktivacijskiKod string `json:"activation_code"`
+}
+
+// ToJSON ...
+func (req *AktivirajEmailReq) ToJSON() []byte {
+	buf, _ := json.Marshal(req)
+	return buf
+}
+
+// ProvjerUplateReq request za provjeru corvus i paysafe uplate
+type ProvjeraUplateReq struct {
+	RememberToken string `json:"remember_token"`
+	GUID          string `json:"guid,omitempty"`
+	GatewayType   string `json:"gateway_type,omitempty"`
+	OrderNumber   string `json:"order_number,omitempty"`
+}
+
+// ToJSON ...
+func (req *ProvjeraUplateReq) ToJSON() []byte {
+	buf, _ := json.Marshal(req)
+	return buf
+}
