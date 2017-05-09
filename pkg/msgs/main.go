@@ -21,6 +21,8 @@ const (
 	TypePromijeniLozinku   = "promijeni_lozinku"
 	TypePromijeniEmail     = "promijeni_email"
 	TypePromijeniPodatke   = "promijeni_podatke"
+	TypeAktivirajEmail     = "aktiviraj_email"
+	TypeProvjeraUplate     = "provjera_uplate"
 	TypeSamoogranicenjeSet = "samoogranicenje/set"
 	TypeSamoogranicenjeDel = "samoogranicenje/del"
 	TypeTransakcije        = "transakcije"
