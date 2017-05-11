@@ -27,12 +27,4 @@ const (
 	TypeSamoogranicenjeDel = "samoogranicenje/del"
 	TypeTransakcije        = "transakcije"
 	TypePoruke             = "poruke"
-
-	TypeValidacijaNadimak      = "registracija/validacija/nadimak"
-	TypeValidacijaEmail        = "registracija/validacija/email"
-	TypeValidacijaOib          = "registracija/validacija/oib"
-	TypeValidacijaPunoljetnost = "registracija/validacija/punoljetnost"
-	TypeValidacijaKod          = "registracija/validacija/kod"
-	TypeValidacijaProvjeriKod  = "registracija/validacija/provjeriKod"
-	TypeValidacijaTelefon      = "registracija/validacija/telefon"
 )
