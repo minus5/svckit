@@ -9,10 +9,10 @@
 			"revisionTime": "2016-03-20T18:21:10Z"
 		},
 		{
-			"checksumSHA1": "WKXLN2idT76UTsen/ALkl3/9AjQ=",
+			"checksumSHA1": "NfQBkfSVHEmnR2OaORxdOXmhLcs=",
 			"path": "github.com/cenkalti/backoff",
-			"revision": "8edc80b07f38c27352fb186d971c628a6c32552b",
-			"revisionTime": "2016-09-04T14:09:58Z"
+			"revision": "5d150e7eec023ce7a124856b37c68e54b4050ac7",
+			"revisionTime": "2017-03-29T03:22:34Z"
 		},
 		{
 			"checksumSHA1": "NQWrITjQCpJdsRzaPQIsfClTF6M=",
@@ -103,6 +103,12 @@
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "d77da356e56a7428ad25149ca77381849a6a5232",
 			"revisionTime": "2016-06-15T09:26:46Z"
+		},
+		{
+			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
+			"path": "golang.org/x/net/context",
+			"revision": "34057069f4ab13dc4433c68d368737ebeafcccdc",
+			"revisionTime": "2017-05-09T19:22:37Z"
 		}
 	],
 	"rootPath": "github.com/minus5/svckit"
