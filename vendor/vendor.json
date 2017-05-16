@@ -39,16 +39,16 @@
 			"revisionTime": "2016-08-17T18:46:32Z"
 		},
 		{
-			"checksumSHA1": "oDsOWp1nBMGpQ9gCFnczGADwZTE=",
+			"checksumSHA1": "zmCk+lgIeiOf0Ng9aFP9aFy8ksE=",
 			"path": "github.com/gorilla/mux",
-			"revision": "0a192a193177452756c362c20087ddafcf6829c4",
-			"revisionTime": "2016-09-02T15:33:43Z"
+			"revision": "4c1c3952b7d9d0a061a3fa7b36fd373ba0398ebc",
+			"revisionTime": "2017-04-27T04:12:50Z"
 		},
 		{
-			"checksumSHA1": "BMEJLBjl91k5k3vMMzzT7G2SO1U=",
+			"checksumSHA1": "iGAHizBUN43QlmYmn1bPLlNN9pw=",
 			"path": "github.com/hashicorp/consul/api",
-			"revision": "0a34741d7266af34eed36048d1a8e8880a7b17a1",
-			"revisionTime": "2016-09-06T14:50:06Z"
+			"revision": "ad40a855bd5003eb5d4c48f791479828d6a9393e",
+			"revisionTime": "2017-05-15T20:10:36Z"
 		},
 		{
 			"checksumSHA1": "Uzyon2091lmwacNsl1hCytjhHtg=",
@@ -57,10 +57,22 @@
 			"revisionTime": "2016-04-07T17:41:26Z"
 		},
 		{
+			"checksumSHA1": "A1PcINvF3UiwHRKn8UcgARgvGRs=",
+			"path": "github.com/hashicorp/go-rootcerts",
+			"revision": "6bb64b370b90e7ef1fa532be9e591a81c3493e00",
+			"revisionTime": "2016-05-03T14:34:40Z"
+		},
+		{
 			"checksumSHA1": "E3Xcanc9ouQwL+CZGOUyA/+giLg=",
 			"path": "github.com/hashicorp/serf/coordinate",
 			"revision": "9432bc08aa8d486e497e27f84878ebbe8c1eab66",
 			"revisionTime": "2016-08-16T23:01:54Z"
+		},
+		{
+			"checksumSHA1": "V/quM7+em2ByJbWBLOsEwnY3j/Q=",
+			"path": "github.com/mitchellh/go-homedir",
+			"revision": "b8bc1bf767474819792c23f32d8286a45736f1c6",
+			"revisionTime": "2016-12-03T19:45:07Z"
 		},
 		{
 			"checksumSHA1": "IwuaGWkq9sh9hzmmgkyHvCEMGzM=",
