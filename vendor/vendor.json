@@ -75,10 +75,10 @@
 			"revisionTime": "2015-04-16T23:44:20Z"
 		},
 		{
-			"checksumSHA1": "6Uqtc4JNsdsJTR2mkxQpr1ethXw=",
+			"checksumSHA1": "IJq06OzNRyvJ1v0h9zNAutGzEzA=",
 			"path": "github.com/nsqio/go-nsq",
-			"revision": "a53d495e81424aaf7a7665a9d32a97715c40e953",
-			"revisionTime": "2016-12-29T18:58:21Z"
+			"revision": "b2d0b4429f2082bc44babe089418d8da16d71e8a",
+			"revisionTime": "2017-04-15T17:56:51Z"
 		},
 		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
