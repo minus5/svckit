@@ -163,6 +163,9 @@ func noConsulTestMode() {
 		{"127.0.0.1", 27017},
 		{"192.168.10.123", 27017},
 	}
+	cache["nsqlookupd-http"] = []Address{
+		{"127.0.0.1", 4161},
+	}
 }
 
 func mustConnect() {

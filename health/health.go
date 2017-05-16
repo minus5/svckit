@@ -142,7 +142,7 @@ func sendNotification() {
 		return
 	}
 	if notificationSent {
-		logger().S("status", status.String()).Jc("note", note).Event("health check OK")
+		logger().S("status", status.String()).Jc("note", note).Notice("health check OK")
 		notificationSent = false
 	}
 	lastPassingCheck = time.Now()
