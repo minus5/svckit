@@ -424,6 +424,7 @@ func (db *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) 
 	return c.EnsureIndex(mgo.Index{
 		Key:         key,
 		ExpireAfter: expireAfter,
+		Background:  true,
 	})
 }
 
