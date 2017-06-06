@@ -79,6 +79,7 @@ func (dbs *Mongo) start() {
 }
 
 // Stop stops the test server process, if it is running.
+// Uses os.Interrupt signal to stop server (clean exit)
 //
 // It's okay to call Stop multiple times. After the test server is
 // stopped it cannot be restarted.
@@ -87,17 +88,46 @@ func (dbs *Mongo) start() {
 // is running. Otherwise Stop will panic after a timeout informing that
 // there is a session leak.
 func (dbs *Mongo) Stop() {
-	if dbs.session != nil {
-		if dbs.session != nil {
-			dbs.session.Close()
-			dbs.session = nil
-		}
-	}
-	if dbs.server != nil {
-		dbs.server.Process.Signal(os.Interrupt)
-		dbs.server = nil
-	}
+	dbs.stop(false)
+}
+
+// Kill kils the test server process, if it is running.
+// Uses os.Kill signal to kill server process
+//
+// It's okay to call Stop multiple times. After the test server is
+// stopped it cannot be restarted.
+//
+// All database sessions must be closed before or while the Stop method
+// is running. Otherwise Stop will panic after a timeout informing that
+// there is a session leak.
+func (dbs *Mongo) Kill() {
+	dbs.stop(true)
+}
+
+func (dbs *Mongo) stop(kill bool) {
+	dbs.closeSession()
+	dbs.stopServer(kill)
 	os.RemoveAll(dbs.DbPath)
+}
+
+func (dbs *Mongo) closeSession() {
+	if dbs.session == nil {
+		return
+	}
+	dbs.session.Close()
+	dbs.session = nil
+}
+
+func (dbs *Mongo) stopServer(kill bool) {
+	if dbs.server == nil {
+		return
+	}
+	if kill {
+		dbs.server.Process.Signal(os.Kill)
+	} else {
+		dbs.server.Process.Signal(os.Interrupt)
+	}
+	dbs.server = nil
 }
 
 // Session returns a new session to the server. The returned session
