@@ -434,8 +434,9 @@ func (db *Mdb) EnsureUniqueIndex(col string, key []string) error {
 	defer s.Close()
 	c := s.DB(db.name).C(col)
 	return c.EnsureIndex(mgo.Index{
-		Key:    key,
-		Unique: true,
+		Key:        key,
+		Unique:     true,
+		Background: true,
 	})
 }
 
