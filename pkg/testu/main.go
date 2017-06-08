@@ -193,3 +193,11 @@ func FnName(i interface{}) string {
 	}
 	return n
 }
+
+func Ppt(t *testing.T, o interface{}) {
+	buf, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	t.Logf("%s", buf)
+}
