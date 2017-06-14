@@ -84,3 +84,7 @@ func ChannelAppName() {
 func ChannelEphemeral() {
 	Set(Channel(fmt.Sprintf("%s-%s#ephemeral", env.AppName(), env.NodeName())))
 }
+
+func DefaultChannel(c string) {
+	Set(Channel(c))
+}
