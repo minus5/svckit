@@ -17,17 +17,26 @@ import (
 //InvalidConnStr, je neispravan connect string na bazu
 const InvalidConnStr = "user=krivi;password=krivi;server=mssql-unit-test;database=SuperSportUnitTest"
 
-// TestIgracId, id testnog igraca u test bazi, ianic account
+// TestIgracId je id testnog igraca u test bazi, ianic account
 const TestIgracId = "3" // ianic
 
-// TestIgracGuid, remember_token testnog igraca u test bazi, ianic account
+// TestIgracGuid je remember_token testnog igraca u test bazi, ianic account
 const TestIgracGuid = "235436360ef4e64add59b56894a488be0f89ff57" // ianic
 
-// TestIgracTesterGuid, remember_token testnog igraca u test bazi, tester account
+// TestIgracTesterGuid je remember_token testnog igraca u test bazi, tester account
 const TestIgracTesterGuid = "71f3bd95ff4aaa3a6776aa9f509185b046561f78" // tester
 
-// TestKladomatGuid, guid testnog kladomata u test bazi
+// TestKladomatGuid je guid testnog kladomata u test bazi
 const TestKladomatGuid = "F5995E98-9A89-424F-BCA5-99FBF6A772CF"
+
+// TestKladomatID je id testnog kladomata u test bazi
+const TestKladomatID = 1
+
+// TestKladomatPosID je PosID testnog kladomata u test bazi
+const TestKladomatPosID = 1
+
+// TestKladomatSubsidiaryID je SubsidiaryID testnog kladomata u test bazi
+const TestKladomatSubsidiaryID = 3
 
 // TestMSSQLUtility sluzi za pristupe bazi, provjer i podesavanja koji nemaju veze sa
 // funkcijama i paketima koji se testiraju i zato ima odvojenu konekkciju kako se
