@@ -81,7 +81,7 @@ func (util *TestMSSQLUtility) TestDbConnStr() string {
            nije postavljena env varijabla GO_SS_TEST_DB
            zapisi u ~/.bash_profile (ili slicno) nesto ovako:
            export GO_SS_TEST_DB="user=minus5;password=minus5;server=mssql.s.minus5.hr;database=SuperSportTest_usernameUnit"
-           umjesto username treba ici naziv racunala
+           umjesto username treba ici naziv korisnickog racuna (npr. za pero je baza "SuperSportTest_peroUnit")
 `)
 	}
 	return s
