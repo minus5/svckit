@@ -469,3 +469,15 @@ func (db *Mdb) NextSerialNumber(colName, key string) (int, error) {
 
 	return no, err
 }
+
+// EnsureIndex kreira index ako ne postoji
+func (db *Mdb) CreateCapedCollection(col string, maxGB int) error {
+	s := db.session.Copy()
+	defer s.Close()
+	c := s.DB(db.name).C(col)
+	return c.Create(
+		&mgo.CollectionInfo{
+			Capped:   true,
+			MaxBytes: maxGB * 1024 * 1024 * 1024,
+		})
+}
