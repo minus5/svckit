@@ -425,6 +425,7 @@ func (db *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) 
 		Key:         key,
 		ExpireAfter: expireAfter,
 		Background:  true,
+		Sparse:      true,
 	})
 }
 
@@ -437,6 +438,7 @@ func (db *Mdb) EnsureUniqueIndex(col string, key []string) error {
 		Key:        key,
 		Unique:     true,
 		Background: true,
+		Sparse:     true,
 	})
 }
 
