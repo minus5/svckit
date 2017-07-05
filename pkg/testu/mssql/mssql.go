@@ -17,8 +17,8 @@ import (
 //InvalidConnStr, je neispravan connect string na bazu
 const InvalidConnStr = "user=krivi;password=krivi;server=mssql-unit-test;database=SuperSportUnitTest"
 
-// TestIgracId je id testnog igraca u test bazi, ianic account
-const TestIgracId = "3" // ianic
+// TestIgracID je id testnog igraca u test bazi, ianic account
+const TestIgracID = 3 // ianic
 
 // TestIgracGuid je remember_token testnog igraca u test bazi, ianic account
 const TestIgracGuid = "235436360ef4e64add59b56894a488be0f89ff57" // ianic
