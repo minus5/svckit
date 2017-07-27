@@ -40,4 +40,5 @@ const (
 	PortBackned                   = "8380"
 	PortKornerPlug                = "8390"
 	PortArchiver                  = "8400"
+	PortAutorizacija              = "8410"
 )
