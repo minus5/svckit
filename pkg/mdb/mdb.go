@@ -344,6 +344,20 @@ func (db *Mdb) Use2(col string, handler func(*mgo.Collection) error) error {
 	return err
 }
 
+// Use2 same as Use but withiout metriceKey
+// metricKey is set to collection name (col)
+func (db *Mdb) UseWithoutTimeout(col string, handler func(*mgo.Collection) error) error {
+	s := db.session.Copy()
+	s.SetCursorTimeout(0)
+	defer s.Close()
+	c := s.DB(db.name).C(col)
+	var err error
+	metric.Timing("db."+col, func() {
+		err = handler(c)
+	})
+	return err
+}
+
 func (db *Mdb) UseFs(col string, metricKey string,
 	handler func(*mgo.GridFS) error) error {
 	s := db.session.Copy()
