@@ -89,6 +89,7 @@ func (c *Consumer) onLookupChanges(as dcy.Addresses) {
 
 func (c *Consumer) Close() {
 	c.onceClose.Do(func() {
+
 		dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
 		c.nsqConsumer.Stop()
 		<-c.nsqConsumer.StopChan

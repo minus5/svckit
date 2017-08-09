@@ -78,7 +78,7 @@ func (s *RrProducer) pub(topic string) *Producer {
 // typ   - message type for envelope
 // req   - body of the request
 // rsp   - stucture to unpuck response into
-// sig   - timout singal to signal stop witing for response
+// sig   - timout singal to signal stop waiting for response
 // ttl   - time to live of message for envelope
 func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{}, sig chan struct{}, ttl time.Duration) error {
 	if ttl < 0 {
@@ -108,8 +108,10 @@ func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{},
 
 	select {
 	case re := <-c:
-		if err := json.Unmarshal(re.Body, rsp); err != nil {
-			return err
+		if rsp != nil {
+			if err := json.Unmarshal(re.Body, rsp); err != nil {
+				return err
+			}
 		}
 	case <-sig:
 		s.timeout(correlationId)

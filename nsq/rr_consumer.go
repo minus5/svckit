@@ -4,8 +4,13 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/minus5/svckit/log"
+)
+
+var (
+	RequeueDelay = 2 * time.Second
 )
 
 // RrConsumer request reponse consumer.
@@ -36,7 +41,9 @@ func RrSub(topic string, handler func(string, []byte) (interface{}, error)) *RrC
 		}
 		rsp, err := handler(eReq.Type, eReq.Body)
 		if err != nil {
-			return err
+			m.RequeueWithoutBackoff(RequeueDelay)
+			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Error(err)
+			return nil
 		}
 		if eReq.ReplyTo == "" {
 			return nil
