@@ -54,11 +54,34 @@ type seekResult struct {
 	Id interface{} `bson:"_id"`
 }
 
-// Seek returns all files of a type older then fromTs
+// Seek returns all files of a type newer than fromTs
 func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser, time.Time, interface{}) error) error {
 	return fs.db.UseFs(fs.name, fs.name+"_seek", func(g *mgo.GridFS) error {
 		i := g.Find(bson.M{"filename": typ, "uploadDate": bson.M{"$gt": fromTs}}).
 			Sort("uploadDate").Iter()
+		r := seekResult{}
+		defer i.Close()
+		for i.Next(&r) {
+			f, err := g.OpenId(r.Id)
+			if err != nil {
+				return err
+			}
+			if err := h(f, f.UploadDate(), f.Id()); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// Seek returns all files of a type newer than fromTs and older than toTs
+func (fs *Fs) SeekRange(typ string, fromTs time.Time, toTs time.Time, h func(io.ReadCloser, time.Time, interface{}) error) error {
+	return fs.db.UseFs(fs.name, fs.name+"_seek", func(g *mgo.GridFS) error {
+		i := g.Find(bson.M{"filename": typ,
+							"$and": []interface{}{
+								bson.M{"uploadDate": bson.M{"$gt": fromTs}},
+								bson.M{"uploadDate": bson.M{"$lt": toTs}},
+		}}).Sort("uploadDate").Iter()
 		r := seekResult{}
 		defer i.Close()
 		for i.Next(&r) {
