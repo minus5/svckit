@@ -494,8 +494,12 @@ func packURL(scheme, host, port, path string, query url.Values) (url string) {
 }
 
 // MongoConnStr finds service mongo in consul and returns it in mongo connection string format.
-func MongoConnStr() (string, error) {
-	addrs, err := Services("mongo")
+func MongoConnStr(names ...string) (string, error) {
+	name := "mongo"
+	if len(names) > 0 {
+		name = names[0]
+	}
+	addrs, err := Services(name)
 	if err != nil {
 		return "", err
 	}

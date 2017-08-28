@@ -130,6 +130,10 @@ func TestMongo(t *testing.T) {
 	c, err := MongoConnStr()
 	assert.Nil(t, err)
 	assert.Equal(t, "127.0.0.1:27017,192.168.10.123:27017", c)
+
+	c, err = MongoConnStr("mongo")
+	assert.Nil(t, err)
+	assert.Equal(t, "127.0.0.1:27017,192.168.10.123:27017", c)
 }
 
 func TestSubscribe(t *testing.T) {
