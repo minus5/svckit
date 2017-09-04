@@ -185,8 +185,12 @@ func Json(o interface{}) []byte {
 	return buf
 }
 
+func FnFullName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
 func FnName(i interface{}) string {
-	n := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+	n := FnFullName(i)
 	p := strings.Split(n, ".")
 	if len(p) > 1 {
 		return p[1]
