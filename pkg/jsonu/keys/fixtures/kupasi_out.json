@@ -1,0 +1,108 @@
+{
+  "sports": {
+    " '": {
+      "#n": {
+        "en": "Soccer",
+        "hr": "Nogomet"
+      },
+      "categories": {
+        "Y": {
+          "name": "Turkey",
+          "tournaments": {
+            "cornerKicks": {
+              "matches": {
+                "h4F;": {
+                  "currentPeriodStart": "2017-03-01T17:57:01+01:00",
+                  "date": "2017-03-01T16:00:00+01:00",
+                  "id": 11051095,
+                  "scores": {
+                    "assist": {
+                      "team1": 5,
+                      "team2": 6,
+                      "type": "Current"
+                    },
+                    "team1": {
+                      "team1": 3,
+                      "team2": 4,
+                      "type": "Period1"
+                    },
+                    "team2": {
+                      "team1": 1,
+                      "team2": 2,
+                      "type": "Normaltime"
+                    }
+                  },
+                  "statistics": {
+                    "ballPossesion": {
+                      "team1": 47,
+                      "team2": 53
+                    },
+                    "cornerKicks": {
+                      "team1": 7,
+                      "team2": 1
+                    },
+                    "fouls": {
+                      "team1": 17,
+                      "team2": 14
+                    },
+                    "freeKicks": {
+                      "team1": 15,
+                      "team2": 17
+                    },
+                    "goalKicks": {
+                      "team1": 6,
+                      "team2": 11
+                    },
+                    "goalkeeperSaves": {
+                      "team1": 2,
+                      "team2": 4
+                    },
+                    "offsides": {
+                      "team1": 0,
+                      "team2": 1
+                    },
+                    "shotsOffGoal": {
+                      "team1": 4,
+                      "team2": 3
+                    },
+                    "shotsOnGoal": {
+                      "team1": 4,
+                      "team2": 2
+                    },
+                    "throwIns": {
+                      "team1": 35,
+                      "team2": 41
+                    }
+                  },
+                  "status": 100,
+                  "team1": "Sivasspor",
+                  "team2": "Atiker Konyaspor 1922",
+                  "venue": {
+                    "city": "Sivas",
+                    "country": "Turkey",
+                    "stadium": "Sivas 4 Eylül Stadium"
+                  }
+                },
+                "t4F;": {
+                  "date": "2017-04-06T19:00:00+02:00",
+                  "id": 11051107,
+                  "status": 0,
+                  "team1": "Atiker Konyaspor 1922",
+                  "team2": "Sivasspor",
+                  "venue": {
+                    "city": "Konya",
+                    "country": "Turkey",
+                    "stadium": "Konya Büyüksehir Stadi"
+                  }
+                }
+              },
+              "name": "Turkiye Kupasi"
+            }
+          }
+        }
+      },
+      "id": 1,
+      "name": "Soccer"
+    }
+  }
+}
