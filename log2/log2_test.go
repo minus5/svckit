@@ -5,7 +5,6 @@ import (
 	"os"
 	"runtime/pprof"
 	"testing"
-	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -78,11 +77,17 @@ func BenchmarkSvckitLog(b *testing.B) {
 
 func BenchmarkZap2(b *testing.B) {
 	//startProfile()
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.TimeKey = "time"
-	config.EncoderConfig.CallerKey = "file"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logger, _ := config.Build(zap.Fields(
+	//for n := 0; n < b.N; n++ {
+	cfg := zap.NewProductionConfig()
+	cfg.EncoderConfig.TimeKey = "time"
+	cfg.EncoderConfig.CallerKey = "file"
+	//cfg.EncoderConfig.LevelKey = "level"
+	//cfg.EncoderConfig.MessageKey = "msg"
+	//cfg.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	//cfg.Development = false
+	//cfg.Encoding = "json"
+	logger, _ := cfg.Build(zap.Fields(
 		zap.String("host", env.Hostname()),
 		zap.String("app", env.AppName()),
 	))
@@ -102,21 +107,33 @@ func BenchmarkZap2(b *testing.B) {
 
 func BenchmarkZapSvckit(b *testing.B) {
 	//startProfile()
+	//a := newAgregator(2)
+	//fmt.Println(a)
 	for n := 0; n < b.N; n++ {
-		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Debug("iso medo u ducan")
+		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
 	}
 	//stopProfile()
 }
 
 func TestZap(t *testing.T) {
 	//startProfile()
-	n := 1
-	I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")
+	//n := 1
+	//I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")
+	//Info("msg")
 	//stopProfile()
+	//I("puta", 1).Debug("msg")
+	F("float64", 3.1415926535, -1).Info("msg")
+	S("pero", "zdero").Info("msg")
+	S("key", "value").Notice("iso medo u ducan")
+	//Debug("msg")
+	Info("msg")
+	Notice("msg")
+	Errorf("msg")
 }
 
 func startProfile() {
-	output := fmt.Sprintf("/Users/antonio/work/pprof/log/%s.pprof", time.Now().Format(time.RFC3339))
+	//output := fmt.Sprintf("/Users/antonio/work/pprof/log/%s.pprof", time.Now().Format(time.RFC3339))
+	output := fmt.Sprintf("/Users/antonio/work/pprof/log/a.pprof")
 	log.S("output", output).Info("starting profile")
 	// msgs := reply.New(profileDir)
 	f, err := os.Create(output)

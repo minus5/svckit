@@ -7,10 +7,9 @@ import (
 	"log/syslog"
 	"os"
 
+	"github.com/minus5/svckit/env"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/minus5/svckit/env"
 )
 
 const (
@@ -21,7 +20,7 @@ const (
 
 var (
 	out                  io.Writer
-	cfg                  zap.Config
+	a                    Agregator
 	prefix               []byte
 	debugLogLevelEnabled = true
 )
@@ -41,7 +40,7 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 	msg := string(p)
 	level, msg := splitLevelMessage(msg)
 
-	a := newAgregator(5)
+	a := newAgregator(3)
 	a.print(level, msg)
 
 	return len(p), nil
@@ -56,18 +55,19 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 func init() {
 	out = os.Stderr
 
-	cfg = zap.NewDevelopmentConfig()
+	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.CallerKey = "file"
-	cfg.EncoderConfig.LevelKey = "level"
-	cfg.EncoderConfig.MessageKey = "msg"
-	cfg.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	cfg.Development = true
-	cfg.Encoding = "json"
 
-	//initSyslog()
-	//initLogLevel()
+	logger, _ := cfg.Build(zap.Fields(
+		zap.String("host", env.Hostname()),
+		zap.String("app", env.AppName()),
+	))
+	a.zlog = logger
+
+	initSyslog()
+	initLogLevel()
 }
 
 func initSyslog() {
@@ -129,53 +129,52 @@ func Printf(format string, v ...interface{}) {
 		return
 	}
 	level, msg := splitLevelMessage(format)
-	a := newAgregator(3)
+	a := newAgregator(1)
 	a.print(level, msg)
 }
 
 // Debug function receives message, sets: "level":"debug" and "msg":"message"
 // in log buffer and then prints it
 func Debug(msg string, v ...interface{}) {
-	//logger.Debug(msg, v)
-	newAgregator(4).Debug(sprintf(msg, v...))
+	newAgregator(2).Debug(sprintf(msg, v...))
 }
 
 // Info function receives message, sets: "level":"info" and "msg":"message"
 // in log buffer and then prints it
 func Info(msg string, v ...interface{}) {
-	newAgregator(4).Info(sprintf(msg, v...))
+	newAgregator(2).Info(sprintf(msg, v...))
 }
 
 // Error function receives error, sets: "level":"error" and "msg":"error"
 // if error != nil or "msg":"" if error == nill
 // in log buffer and then prints it
 func Error(err error) {
-	newAgregator(4).Error(err)
+	newAgregator(2).Error(err)
 }
 
 //Errorf function receives message, sets "level":"error" and "msg":"message"
 //in log buffer and then prints it
 func Errorf(msg string, v ...interface{}) {
-	newAgregator(4).Error(fmt.Errorf(msg, v...))
+	newAgregator(2).Error(fmt.Errorf(msg, v...))
 }
 
 // Notice function receives message, sets: "level":"notice" and "msg":"message"
 // in log buffer and then prints it
 func Notice(msg string, v ...interface{}) {
-	newAgregator(4).Notice(sprintf(msg, v...))
+	newAgregator(2).Notice(sprintf(msg, v...))
 }
 
 // Fatal function receives error, sets: "level":"fatal" and "msg":"error"
 // if error != nil or "msg":"" if error == nill
 // in log buffer, prints buffer and then exits
 func Fatal(err error) {
-	newAgregator(4).Fatal(err)
+	newAgregator(2).Fatal(err)
 }
 
 // Fatalf function receives error, sets: "level":"fatal" and "msg":"error"
 // in log buffer, prints buffer and then exits
 func Fatalf(msg string, v ...interface{}) {
-	newAgregator(4).Fatal(fmt.Errorf(msg, v...))
+	newAgregator(2).Fatal(fmt.Errorf(msg, v...))
 	os.Exit(-1)
 }
 
@@ -189,7 +188,7 @@ func sprintf(msg string, v ...interface{}) string {
 
 //B finds and handles key-value pairs with boolean value
 func B(key string, val bool) *Agregator {
-	return newAgregator(3).B(key, val)
+	return newAgregator(1).B(key, val)
 }
 
 //I finds and handles key-value pairs with int value
@@ -199,22 +198,22 @@ func I(key string, val int) *Agregator {
 
 //F finds and handles key-value pairs with float64 value
 func F(key string, val float64, prec int) *Agregator {
-	return newAgregator(3).F(key, val, prec)
+	return newAgregator(1).F(key, val, prec)
 }
 
 //S finds and handles key-value pairs with string value
 func S(key string, val string) *Agregator {
-	return newAgregator(3).S(key, val)
+	return newAgregator(1).S(key, val)
 }
 
 //J finds and handles key-value pairs with []byte value
 func J(key string, val []byte) *Agregator {
-	return newAgregator(3).J(key, val)
+	return newAgregator(1).J(key, val)
 }
 
 // Jc finds and handles key-value pairs with []byte value with check
 func Jc(key string, val []byte) *Agregator {
-	return newAgregator(3).Jc(key, val)
+	return newAgregator(1).Jc(key, val)
 }
 
 // Write sends byte array into output

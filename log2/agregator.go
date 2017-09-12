@@ -2,13 +2,13 @@ package log2
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
-	"github.com/minus5/svckit/env"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Agregator - spaja json log liniju.
@@ -17,8 +17,9 @@ import (
 // Rezultat je da je brz otprilike kao i logger iz standard go lib-a.
 // Trenutno podrzava samo int i string tipove.
 type Agregator struct {
-	zlog zap.Logger
-	//zcon zap.Config
+	zlog   *zap.Logger
+	fields []zapcore.Field
+	depth  int
 }
 
 const (
@@ -29,12 +30,9 @@ const (
 )
 
 // isto ka pool u library-ju
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		buf := make([]byte, 0)
-		return &buf
-	},
-}
+var (
+//a Agregator
+)
 
 // return as quoted string
 var (
@@ -61,24 +59,19 @@ var (
 	reservedKeys = []string{"host", "app", "level", "msg", "file", "time"}
 )
 
-func newAgregator(depth int) *Agregator {
-	a := Agregator{}
-	//a.zcon = zap.NewDevelopmentConfig()
-	//a.zcon.EncoderConfig.TimeKey = "time"
-	//a.zcon.EncoderConfig.CallerKey = "file"
-	//a.zcon.EncoderConfig.LevelKey = "level"
-	//a.zcon.EncoderConfig.MessageKey = "msg"
-	//a.zcon.EncoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
-	//a.zcon.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	//a.zcon.Development = false
-	//a.zcon.Encoding = "json"
-	logger, _ := cfg.Build(zap.Fields(
-		zap.String("host", env.Hostname()),
-		zap.String("app", env.AppName()),
-	), zap.AddCallerSkip(depth))
-	a.zlog = *logger
-	//defer a.zlog.Sync()
+//NewAgregator creates new agregator based on output writer and depth
+func NewAgregator(output io.Writer, callerDepth int) *Agregator {
+	if output == nil {
+		output = out
+	}
 
+	return newAgregator(callerDepth)
+}
+
+//Problem dodavanja dubine svaki put kad se ude u agregator!!!
+func newAgregator(depth int) *Agregator {
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(depth))
+	a.depth = -depth
 	return &a
 }
 
@@ -110,18 +103,37 @@ func escapeKey(key string) string {
 	return key
 }
 
+// Debug function prints log with "level":"debug"
 func (a *Agregator) Debug(msg string) {
-	a.zlog.Debug(msg)
+	a.zlog.Debug(msg, a.fields...)
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
+	a.zlog.Sync()
+	a.fields = nil
+
 }
 
+// Sync function syncs logger
+func (a *Agregator) Sync() {
+	a.zlog.Sync()
+}
+
+// Info function prints log with "level":"info"
 func (a *Agregator) Info(msg string) {
-	a.zlog.Info(msg)
+	a.zlog.Info(msg, a.fields...)
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
+	a.zlog.Sync()
+	a.fields = nil
 }
 
+// ErrorS function prints log with "level":"error"
 func (a *Agregator) ErrorS(msg string) {
-	a.zlog.Error(msg)
+	a.zlog.Error(msg, a.fields...)
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
+	a.zlog.Sync()
+	a.fields = nil
 }
 
+// Error function prints log with "level":"error"
 func (a *Agregator) Error(err error) {
 	var msg string
 	if err != nil {
@@ -132,21 +144,28 @@ func (a *Agregator) Error(err error) {
 	a.ErrorS(msg)
 }
 
-// NEMA NOTICE-A U STANDARDNOM ZAP paketu
+// Notice function prints log with "level":"info" and "notice":"info"
 func (a *Agregator) Notice(msg string) {
-	a.zlog = *a.zlog.With(zap.String("notice", "info"))
-	a.zlog.Info(msg)
+	a.fields = append(a.fields, zap.String("notice", "info"))
+	a.zlog.Info(msg, a.fields...)
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
+	a.zlog.Sync()
+	a.fields = nil
 
 	//ce := *a.zlog.Check(zap.InfoLevel, msg)
 	//ce.Write()
 }
 
-// NEMA EVENT-A U STANDARDNOM ZAP PAKETU
+// Event function prints log with "level":"info" and "event":"info"
 func (a *Agregator) Event(msg string) {
-	a.zlog = *a.zlog.With(zap.String("event", "info"))
-	a.zlog.Info(msg)
+	a.fields = append(a.fields, zap.String("event", "info"))
+	a.zlog.Info(msg, a.fields...)
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
+	a.zlog.Sync()
+	a.fields = nil
 }
 
+// Fatal function prints log with "level":"fatal"
 func (a *Agregator) Fatal(err error) {
 	var msg string
 	if err != nil {
@@ -154,7 +173,10 @@ func (a *Agregator) Fatal(err error) {
 	} else {
 		msg = ""
 	}
-	a.zlog.Fatal(msg)
+	a.zlog.Fatal(msg, a.fields...)
+	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
+	a.zlog.Sync()
+	a.fields = nil
 	os.Exit(-1)
 }
 
@@ -172,57 +194,60 @@ func limitStrLen(s string) string {
 	return s + `..."`
 }
 
-// B - add boolean key, value attribute
+// B - add boolean key:value attribute
 func (a *Agregator) B(key string, val bool) *Agregator {
 	key = escapeKey(key)
-	a.zlog = *a.zlog.With(zap.Bool(key, val))
+	//a.zlog = a.zlog.With(zap.Bool(key, val))
+	a.fields = append(a.fields, zap.Bool(key, val))
 	return a
 }
 
-// I - add integer key, value attribute
+// I - add integer key:value attribute
 func (a *Agregator) I(key string, val int) *Agregator {
 	key = escapeKey(key)
-	a.zlog = *a.zlog.With(zap.Int(key, val))
+	//a.zlog = a.zlog.With(zap.Int(key, val))
+	a.fields = append(a.fields, zap.Int(key, val))
 	return a
 }
 
-// F - add float64 key, value attribute
+// F - add float64 key:value attribute
 func (a *Agregator) F(key string, val float64, prec int) *Agregator {
 	key = escapeKey(key)
 	//s := strconv.FormatFloat(val, 'f', prec, 64)
-	a.zlog = *a.zlog.With(zap.Float64(key, val))
+	a.fields = append(a.fields, zap.Float64(key, val))
 	return a
 }
 
-// S - add integer key, value attribute
-// val se umisto "val" ispisuje "\"val\"" !!!!!!!
+// S - add string key:value attribute
 func (a *Agregator) S(key string, val string) *Agregator {
 	key = escapeKey(key)
 	if len(val) > MaxStrLen {
 		val = limitStrLen(strconv.QuoteToASCII(val))
 	}
-	a.zlog = *a.zlog.With(zap.String(key, val))
-
+	//a.zlog = a.zlog.With(zap.String(key, val))
+	a.fields = append(a.fields, zap.String(key, val))
 	return a
 }
 
-// Dodaj json atribut.
-// Odgovornost je aplikacije da je val validan json.
-// Nisan siguran triba li se dodavat priko stringa ili priko byte-a
+// J - add json key:value attribute
+// It is applications responsibility to asure valid json
 func (a *Agregator) J(key string, val []byte) *Agregator {
 	key = escapeKey(key)
 	if val == nil || len(val) == 0 {
-		a.zlog = *a.zlog.With(zap.String(key, "null"))
+		//a.zlog = a.zlog.With(zap.String(key, "null"))
+		a.fields = append(a.fields, zap.String(key, "null"))
 		return a
 	}
 	if len(val) > MaxStrLen {
 		return a.S(key, string(val))
 	}
-	a.zlog = *a.zlog.With(zap.String(key, string(val)))
+	//a.zlog = a.zlog.With(zap.String(key, string(val)))
+	a.fields = append(a.fields, zap.String(key, string(val)))
 	return a
 }
 
-// Isto kao j ali provjerava da li je val validan json
+// Jc - add json key:value attribute
+// Contains control
 func (a *Agregator) Jc(key string, val []byte) *Agregator {
 	key = escapeKey(key)
 	var m map[string]interface{}
