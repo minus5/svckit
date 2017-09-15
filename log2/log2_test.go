@@ -2,6 +2,7 @@ package log2
 
 import (
 	"fmt"
+	"log/syslog"
 	"os"
 	"runtime/pprof"
 	"testing"
@@ -14,7 +15,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//obrisat println-ove!!!!!!!
+func TestSyslog(t *testing.T) {
+	initSyslog()
+	sysLog, err := syslog.Dial("udp", "127.0.0.1:514",
+		syslog.LOG_WARNING|syslog.LOG_DAEMON, "demotag")
+	if err != nil {
+		//log.Fatal(err)
+		fmt.Println(err)
+	}
+	fmt.Println(sysLog, "This is a daemon warning with demotag.")
+	sysLog.Emerg("And this is a daemon emergency with demotag.")
+}
+
 func TestCompare(t *testing.T) {
 	n := 1
 	I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")

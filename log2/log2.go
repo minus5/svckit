@@ -55,19 +55,23 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 func init() {
 	out = os.Stderr
 
+	initSyslog()
+	initLogLevel()
+
 	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.CallerKey = "file"
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	logger, _ := cfg.Build(zap.Fields(
+	//kako bi se implementiralo pisanje u syslog potrebno je promijeniti rad
+	//nekih funkcija iz zap biblioteke (uvodim fromZap.go)
+	build(cfg, zap.Fields(
 		zap.String("host", env.Hostname()),
 		zap.String("app", env.AppName()),
 	))
-	a.zlog = logger
 
-	initSyslog()
-	initLogLevel()
+	//pribaceno u interni build
+	//a.zlog = logger
 }
 
 func initSyslog() {
@@ -89,12 +93,6 @@ func initLogLevel() {
 	if !ok || (env == "0") || (env == "false") || (env == "") {
 		return
 	}
-	DisableDebug()
-}
-
-// DisableDebug do not log Debug messages
-func DisableDebug() {
-	debugLogLevelEnabled = false
 }
 
 // uspostavlja vezu sa serveron
@@ -119,7 +117,6 @@ func SetOutput(o io.Writer) {
 // na neku null vrijednost sta bi u ovon slucaju tribala bit ?nil?
 func Discard() {
 	SetOutput(ioutil.Discard)
-	//golog.SetOutput(ioutil.Discard)
 }
 
 // Printf addes msg to log and writes log
