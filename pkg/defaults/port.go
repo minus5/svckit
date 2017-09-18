@@ -42,4 +42,5 @@ const (
 	PortArchiver                  = "8400"
 	PortAutorizacija              = "8410"
 	PortSentinel                  = "8420"
+	PortSessionsAuth              = "8430"
 )
