@@ -137,3 +137,12 @@ func (util *TestPostgresUtility) RunStoredProcedure(t *testing.T, name string) e
 	_, err := util.conn.Exec(fmt.Sprintf("SELECT %s()", name))
 	return err
 }
+
+func (util *TestPostgresUtility) AssertRecordsCount(t *testing.T, expected int, table string) {
+	cnt, err := util.RecordsCount(t, table)
+	assert.NoError(t, err)
+	if !assert.Equal(t, expected, cnt, table) {
+		t.Errorf("AssertRecordsCount failed. Expected: %d, actual: %d, table: %s", expected, cnt, table)
+		t.Fail()
+	}
+}
