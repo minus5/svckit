@@ -40,6 +40,13 @@ func (util *TestPostgresUtility) DBOpen(t *testing.T) *sql.DB {
 
 }
 
+func (util *TestPostgresUtility) DBConnect(t *testing.T, conn *sql.DB) {
+	if util.conn != nil {
+		util.DBClose(t)
+	}
+	util.conn = conn
+}
+
 // DBClose zatvara konekciju za pristup bazi
 func (util *TestPostgresUtility) DBClose(t *testing.T) {
 	if util.conn == nil {
