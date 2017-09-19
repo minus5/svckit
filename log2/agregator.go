@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/minus5/svckit/env"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,9 +18,9 @@ import (
 // Rezultat je da je brz otprilike kao i logger iz standard go lib-a.
 // Trenutno podrzava samo int i string tipove.
 type Agregator struct {
-	zlog   *zap.Logger
-	fields []zapcore.Field
-	depth  int
+	zlog         *zap.Logger
+	commonFields []zapcore.Field
+	fields       []zapcore.Field
 }
 
 const (
@@ -60,21 +61,49 @@ var (
 )
 
 //NewAgregator creates new agregator based on output writer and depth
-func NewAgregator(output io.Writer, callerDepth int) *Agregator {
+func NewAgregator(output io.Writer, depth int) *Agregator {
 	if output == nil {
 		output = out
 	}
+	loger := build(cfg, out, zap.Fields(
+		zap.String("host", env.Hostname()),
+		zap.String("app", env.AppName()),
+	), zap.AddCallerSkip(depth))
 
-	return newAgregator(callerDepth)
+	a := &Agregator{
+		zlog: loger,
+	}
+	return a
 }
 
-//Problem dodavanja dubine svaki put kad se ude u agregator!!!
+//newAgregator creates new agregator based on depth
 func newAgregator(depth int) *Agregator {
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(depth))
-	a.depth = -depth
-	return &a
+	agregator := &Agregator{
+		zlog: a.zlog.WithOptions(zap.AddCallerSkip(depth)),
+	}
+	return agregator
 }
 
+// New function creates new agregator
+func New() *Agregator {
+	return newAgregator(1).Build()
+}
+
+// Build function adds fields as commonFields
+func (a *Agregator) Build() *Agregator {
+	a = &Agregator{
+		commonFields: a.fields,
+		zlog:         a.zlog,
+	}
+	return a
+}
+
+// New function adds fields as commonFields
+func (a *Agregator) New() *Agregator {
+	return a.Build()
+}
+
+//print switches printing between different levels
 func (a *Agregator) print(level, msg string) {
 	switch level {
 	case "debug":
@@ -94,6 +123,7 @@ func (a *Agregator) print(level, msg string) {
 	}
 }
 
+//escapeKey assures no additional key matches system keys
 func escapeKey(key string) string {
 	for _, k := range reservedKeys {
 		if key == k {
@@ -105,32 +135,20 @@ func escapeKey(key string) string {
 
 // Debug function prints log with "level":"debug"
 func (a *Agregator) Debug(msg string) {
-	a.zlog.Debug(msg, a.fields...)
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
-	a.zlog.Sync()
-	a.fields = nil
-
-}
-
-// Sync function syncs logger
-func (a *Agregator) Sync() {
-	a.zlog.Sync()
+	a.zlog.Debug(msg, append(a.fields, a.commonFields...)...)
+	a.Sync()
 }
 
 // Info function prints log with "level":"info"
 func (a *Agregator) Info(msg string) {
-	a.zlog.Info(msg, a.fields...)
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
-	a.zlog.Sync()
-	a.fields = nil
+	a.zlog.Info(msg, append(a.fields, a.commonFields...)...)
+	a.Sync()
 }
 
 // ErrorS function prints log with "level":"error"
 func (a *Agregator) ErrorS(msg string) {
-	a.zlog.Error(msg, a.fields...)
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
-	a.zlog.Sync()
-	a.fields = nil
+	a.zlog.Error(msg, append(a.fields, a.commonFields...)...)
+	a.Sync()
 }
 
 // Error function prints log with "level":"error"
@@ -147,10 +165,8 @@ func (a *Agregator) Error(err error) {
 // Notice function prints log with "level":"info" and "notice":"info"
 func (a *Agregator) Notice(msg string) {
 	a.fields = append(a.fields, zap.String("notice", "info"))
-	a.zlog.Info(msg, a.fields...)
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
-	a.zlog.Sync()
-	a.fields = nil
+	a.zlog.Info(msg, append(a.fields, a.commonFields...)...)
+	a.Sync()
 
 	//ce := *a.zlog.Check(zap.InfoLevel, msg)
 	//ce.Write()
@@ -159,10 +175,8 @@ func (a *Agregator) Notice(msg string) {
 // Event function prints log with "level":"info" and "event":"info"
 func (a *Agregator) Event(msg string) {
 	a.fields = append(a.fields, zap.String("event", "info"))
-	a.zlog.Info(msg, a.fields...)
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
-	a.zlog.Sync()
-	a.fields = nil
+	a.zlog.Info(msg, append(a.fields, a.commonFields...)...)
+	a.Sync()
 }
 
 // Fatal function prints log with "level":"fatal"
@@ -174,10 +188,14 @@ func (a *Agregator) Fatal(err error) {
 		msg = ""
 	}
 	a.zlog.Fatal(msg, a.fields...)
-	a.zlog = a.zlog.WithOptions(zap.AddCallerSkip(a.depth))
-	a.zlog.Sync()
+	a.Sync()
 	a.fields = nil
 	os.Exit(-1)
+}
+
+// Sync function syncs logger
+func (a *Agregator) Sync() {
+	a.zlog.Sync()
 }
 
 // udp syslog poruka ima limit ~8k
@@ -196,6 +214,13 @@ func limitStrLen(s string) string {
 
 // B - add boolean key:value attribute
 func (a *Agregator) B(key string, val bool) *Agregator {
+	if a.fields == nil {
+		a = &Agregator{
+			zlog:         a.zlog,
+			commonFields: a.commonFields,
+		}
+	}
+
 	key = escapeKey(key)
 	//a.zlog = a.zlog.With(zap.Bool(key, val))
 	a.fields = append(a.fields, zap.Bool(key, val))
@@ -204,6 +229,13 @@ func (a *Agregator) B(key string, val bool) *Agregator {
 
 // I - add integer key:value attribute
 func (a *Agregator) I(key string, val int) *Agregator {
+	if a.fields == nil {
+		a = &Agregator{
+			zlog:         a.zlog,
+			commonFields: a.commonFields,
+		}
+	}
+
 	key = escapeKey(key)
 	//a.zlog = a.zlog.With(zap.Int(key, val))
 	a.fields = append(a.fields, zap.Int(key, val))
@@ -212,14 +244,28 @@ func (a *Agregator) I(key string, val int) *Agregator {
 
 // F - add float64 key:value attribute
 func (a *Agregator) F(key string, val float64, prec int) *Agregator {
+	if a.fields == nil {
+		a = &Agregator{
+			zlog:         a.zlog,
+			commonFields: a.commonFields,
+		}
+	}
+
 	key = escapeKey(key)
-	//s := strconv.FormatFloat(val, 'f', prec, 64)
-	a.fields = append(a.fields, zap.Float64(key, val))
+	s := strconv.FormatFloat(val, 'f', prec, 64)
+	a.fields = append(a.fields, zap.String(key, s))
 	return a
 }
 
 // S - add string key:value attribute
 func (a *Agregator) S(key string, val string) *Agregator {
+	if a.fields == nil {
+		a = &Agregator{
+			zlog:         a.zlog,
+			commonFields: a.commonFields,
+		}
+	}
+
 	key = escapeKey(key)
 	if len(val) > MaxStrLen {
 		val = limitStrLen(strconv.QuoteToASCII(val))
@@ -232,6 +278,13 @@ func (a *Agregator) S(key string, val string) *Agregator {
 // J - add json key:value attribute
 // It is applications responsibility to asure valid json
 func (a *Agregator) J(key string, val []byte) *Agregator {
+	if a.fields == nil {
+		a = &Agregator{
+			zlog:         a.zlog,
+			commonFields: a.commonFields,
+		}
+	}
+
 	key = escapeKey(key)
 	if val == nil || len(val) == 0 {
 		//a.zlog = a.zlog.With(zap.String(key, "null"))
@@ -258,6 +311,7 @@ func (a *Agregator) Jc(key string, val []byte) *Agregator {
 	return a.S(key, string(val))
 }
 
+//splitLevelMessage cuts key words from msg
 func splitLevelMessage(line string) (string, string) {
 	if !strings.Contains(line, "[") {
 		if strings.Contains(line, "error") {

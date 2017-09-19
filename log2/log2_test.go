@@ -3,15 +3,12 @@ package log2
 import (
 	"fmt"
 	"log/syslog"
-	"os"
-	"runtime/pprof"
 	"testing"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/minus5/svckit/env"
-	"github.com/minus5/svckit/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -122,7 +119,8 @@ func BenchmarkZapSvckit(b *testing.B) {
 	//a := newAgregator(2)
 	//fmt.Println(a)
 	for n := 0; n < b.N; n++ {
-		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
+		//		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
+		Info("msg")
 	}
 	//stopProfile()
 }
@@ -134,29 +132,82 @@ func TestZap(t *testing.T) {
 	//Info("msg")
 	//stopProfile()
 	//I("puta", 1).Debug("msg")
-	F("float64", 3.1415926535, -1).Info("msg")
-	S("pero", "zdero").Info("msg")
-	S("key", "value").Notice("iso medo u ducan")
-	//Debug("msg")
-	Info("msg")
-	Notice("msg")
-	Errorf("msg")
+	for i := 0; i < 1; i++ {
+
+		F("float64", 3.1415926535, -1).Info("msg")
+		S("pero", "zdero").Info("msg")
+		S("key", "value").Notice("iso medo u ducan")
+		//Debug("msg")
+		Info("msg")
+		Notice("msg")
+	}
+	//Errorf("msg")
 }
 
+func BenchmarkKeyValue1(b *testing.B) {
+	a := Agregator{}
+	for n := 0; n < b.N; n++ {
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = nil
+	}
+}
+
+func BenchmarkKeyValue2(b *testing.B) {
+	a := Agregator{}
+	for n := 0; n < b.N; n++ {
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = nil
+	}
+}
+
+func BenchmarkKeyValue3(b *testing.B) {
+	a := Agregator{}
+	for n := 0; n < b.N; n++ {
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = nil
+	}
+}
+
+/*
 func startProfile() {
 	//output := fmt.Sprintf("/Users/antonio/work/pprof/log/%s.pprof", time.Now().Format(time.RFC3339))
 	output := fmt.Sprintf("/Users/antonio/work/pprof/log/a.pprof")
-	log.S("output", output).Info("starting profile")
+	log2.S("output", output).Info("starting profile")
 	// msgs := reply.New(profileDir)
 	f, err := os.Create(output)
 	if err != nil {
-		log.Fatal(err)
+		log2.Fatal(err)
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatal(err)
+		log2.Fatal(err)
 	}
 }
 
 func stopProfile() {
 	pprof.StopCPUProfile()
+}
+
+*/
+
+func TestUse(t *testing.T) {
+	// globalni
+	S("pero", "zdero").Info("1")
+	S("jozo", "bozo").S("jozo1", "bozo1").Info("2")
+
+	// lokalni
+	logger := New()                     // kreira novu instancu agregatora i zap-a
+	logger.S("pero", "zdero").Info("1") // nova instanca agregagtora
+	logger.S("jozo", "bozo").Info("2")
+
+	// lokalni sa zajednickim atributima
+	logger = S("part", "1").New()
+	logger.S("pero", "zdero").S("1", "1").Info("1")
+	logger.S("jozo", "bozo").S("2", "2").Info("2")
+
+	func() {
+		logger.S("bozo", "misteriozo").Info("3")
+	}()
 }

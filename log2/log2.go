@@ -19,19 +19,15 @@ const (
 )
 
 var (
-	out                  io.Writer
-	a                    Agregator
-	prefix               []byte
-	debugLogLevelEnabled = true
+	out io.Writer
+	a   Agregator
+	cfg zap.Config
 )
 
 type stdLibOutput struct{}
 
 //Write returns size of the parameter and error
 func (o *stdLibOutput) Write(p []byte) (int, error) {
-	if !debugLogLevelEnabled {
-		return len(p), nil
-	}
 	if len(p) > 0 {
 		//izbaci zadnji znak (\n)
 		p = p[0 : len(p)-1]
@@ -56,16 +52,15 @@ func init() {
 	out = os.Stderr
 
 	initSyslog()
-	initLogLevel()
 
-	cfg := zap.NewProductionConfig()
+	cfg = zap.NewProductionConfig()
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.CallerKey = "file"
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	//kako bi se implementiralo pisanje u syslog potrebno je promijeniti rad
 	//nekih funkcija iz zap biblioteke (uvodim fromZap.go)
-	build(cfg, zap.Fields(
+	a.zlog = build(cfg, out, zap.Fields(
 		zap.String("host", env.Hostname()),
 		zap.String("app", env.AppName()),
 	))
@@ -74,6 +69,7 @@ func init() {
 	//a.zlog = logger
 }
 
+// initSyslog gets env variable
 func initSyslog() {
 	env, ok := os.LookupEnv(EnvSyslog)
 	if !ok || (env == "0") || (env == "false") {
@@ -87,15 +83,7 @@ func initSyslog() {
 	setSyslogOutput("127.0.0.1:514")
 }
 
-//pozva disabledebug
-func initLogLevel() {
-	env, ok := os.LookupEnv(EnvDisableDebug)
-	if !ok || (env == "0") || (env == "false") || (env == "") {
-		return
-	}
-}
-
-// uspostavlja vezu sa serveron
+// setSyslogOutput sets syslog as output
 func setSyslogOutput(addr string) {
 	sys, err := syslog.Dial("udp", addr, syslog.LOG_LOCAL5, env.AppName())
 	if err != nil {
@@ -112,19 +100,12 @@ func SetOutput(o io.Writer) {
 }
 
 // Discard discardes log output
-// kako maknit sadrzaj ouputa za zap posto nemogu pristupit direktno
-// zap-ovon outputpath-u. Tip podatka je []string a moran ga postavit
-// na neku null vrijednost sta bi u ovon slucaju tribala bit ?nil?
 func Discard() {
 	SetOutput(ioutil.Discard)
 }
 
 // Printf addes msg to log and writes log
-// Problem dobijanja error elementa iz stringa saljen nil
 func Printf(format string, v ...interface{}) {
-	if !debugLogLevelEnabled {
-		return
-	}
 	level, msg := splitLevelMessage(format)
 	a := newAgregator(1)
 	a.print(level, msg)
@@ -175,7 +156,7 @@ func Fatalf(msg string, v ...interface{}) {
 	os.Exit(-1)
 }
 
-//ako je v razlicit od 0 vrati sve inace vrati samo msg
+//sprintf returns msg or everything
 func sprintf(msg string, v ...interface{}) string {
 	if len(v) != 0 {
 		return fmt.Sprintf(msg, v...)
@@ -214,7 +195,6 @@ func Jc(key string, val []byte) *Agregator {
 }
 
 // Write sends byte array into output
-// Nije implementirano u log2
 func Write(buf []byte) {
 	out.Write(buf)
 }
