@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,13 +39,6 @@ func (util *TestPostgresUtility) DBOpen(t *testing.T) *sql.DB {
 	util.conn = db
 	return util.conn
 
-}
-
-func (util *TestPostgresUtility) DBConnect(t *testing.T, conn *sql.DB) {
-	if util.conn != nil {
-		util.DBClose(t)
-	}
-	util.conn = conn
 }
 
 // DBClose zatvara konekciju za pristup bazi
@@ -111,6 +105,14 @@ func (util *TestPostgresUtility) ReadFixture(t *testing.T, fileName string) []by
 	return buf
 }
 
+func (util *TestPostgresUtility) ExecFixture(t *testing.T, name string) {
+	f := string(util.ReadFixture(t, name))
+	util.DBOpen(t)
+	for _, cmd := range strings.Split(f, "GO\n") {
+		util.TestDbExec(t, cmd)
+	}
+}
+
 // SpExists provjerava postoji li procedura
 func (util *TestPostgresUtility) SpExists(t *testing.T, schemaName, spName string) (bool, error) {
 	util.DBOpen(t)
@@ -138,7 +140,8 @@ func (util *TestPostgresUtility) RunStoredProcedure(t *testing.T, name string) e
 	return err
 }
 
-func (util *TestPostgresUtility) AssertRecordsCount(t *testing.T, expected int, table string) {
+func (util *TestPostgresUtility) AssertRecordsCount(t *testing.T, expected int, table string, v ...interface{}) {
+	table = fmt.Sprintf(table, v...)
 	cnt, err := util.RecordsCount(t, table)
 	assert.NoError(t, err)
 	if !assert.Equal(t, expected, cnt, table) {
