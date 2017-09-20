@@ -79,15 +79,17 @@ func initSyslog() {
 		setSyslogOutput(env)
 		return
 	}
-
+	//setSyslogOutput("10.0.66.192:514")
 	setSyslogOutput("127.0.0.1:514")
 }
 
 // setSyslogOutput sets syslog as output
 func setSyslogOutput(addr string) {
+	//fmt.Println(addr)
 	sys, err := syslog.Dial("udp", addr, syslog.LOG_LOCAL5, env.AppName())
 	if err != nil {
 		//For udp err is not raised if server don't exists.
+		//fmt.Println(err)
 		return
 	}
 	SetOutput(sys)
@@ -127,13 +129,13 @@ func Info(msg string, v ...interface{}) {
 // if error != nil or "msg":"" if error == nill
 // in log buffer and then prints it
 func Error(err error) {
-	newAgregator(2).Error(err)
+	newAgregator(3).Error(err)
 }
 
 //Errorf function receives message, sets "level":"error" and "msg":"message"
 //in log buffer and then prints it
 func Errorf(msg string, v ...interface{}) {
-	newAgregator(2).Error(fmt.Errorf(msg, v...))
+	newAgregator(3).Error(fmt.Errorf(msg, v...))
 }
 
 // Notice function receives message, sets: "level":"notice" and "msg":"message"

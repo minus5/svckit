@@ -4,9 +4,9 @@ package main
 
 import (
 	"fmt"
-	golog "log"
+
 	"github.com/minus5/svckit/env"
-	"github.com/minus5/svckit/log"
+	log "github.com/minus5/svckit/log2"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	log.Errorf("neki error")
 	log.Notice("neki notice")
 
-	golog.Printf("[NOTICE] sto bude kada u istoj app koristim classic logger")
+	log.Printf("[NOTICE] sto bude kada u istoj app koristim classic logger")
 
 	// Kako dodati atribute
 	log.S("key1", "value2").S("key2", "value2 value2").I("keyi", 12345).Debug("neka poruka koja ide na kraju")

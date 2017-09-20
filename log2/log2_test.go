@@ -1,8 +1,6 @@
 package log2
 
 import (
-	"fmt"
-	"log/syslog"
 	"testing"
 
 	"go.uber.org/zap"
@@ -12,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+/*
 func TestSyslog(t *testing.T) {
-	initSyslog()
 	sysLog, err := syslog.Dial("udp", "127.0.0.1:514",
 		syslog.LOG_WARNING|syslog.LOG_DAEMON, "demotag")
 	if err != nil {
@@ -23,6 +21,7 @@ func TestSyslog(t *testing.T) {
 	fmt.Println(sysLog, "This is a daemon warning with demotag.")
 	sysLog.Emerg("And this is a daemon emergency with demotag.")
 }
+*/
 
 func TestCompare(t *testing.T) {
 	n := 1
@@ -47,6 +46,23 @@ func TestCompare(t *testing.T) {
 		zap.String("pero", "zdero"),
 		zap.String("key", "value"),
 	)
+}
+
+func TestCallerDepth(t *testing.T) {
+	config := zap.NewProductionConfig()
+	config.EncoderConfig.TimeKey = "time"
+	config.EncoderConfig.CallerKey = "file"
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger, _ := config.Build(zap.Fields(
+		zap.String("host", env.Hostname()),
+		zap.String("app", env.AppName()),
+	))
+
+	defer logger.Sync()
+
+	logger.Info("level 0")
+
 }
 
 //obrisat println-ove!!!!!!!
@@ -76,6 +92,36 @@ func TestSplitLevelMessage(t *testing.T) {
 		assert.Equal(t, d.level, level)
 		assert.Equal(t, d.msg, msg)
 	}
+}
+
+func TestInfoLog0(t *testing.T) {
+	S("pero", "zdero").Info("prvi")
+	S("pero", "zdero").Info("drugi")
+	S("pero", "zdero").Info("treci")
+}
+
+func TestInfoLog(t *testing.T) {
+	logger := func() *Agregator {
+		return S("pero", "zdero")
+	}
+	logger().Info("prvi")
+	logger().Info("drugi")
+	logger().Info("treci")
+}
+
+func TestInfoLog2(t *testing.T) {
+	logger := S("pero", "zdero") //.New()
+	logger.Info("prvi")
+	logger.Info("drugi")
+	logger.Info("treci")
+
+	logger.Info("prvi")
+	logger.Info("drugi")
+	logger.Info("treci")
+
+	logger.Info("prvi")
+	logger.Info("drugi")
+	logger.Info("treci")
 }
 
 func BenchmarkSvckitLog(b *testing.B) {
@@ -119,8 +165,8 @@ func BenchmarkZapSvckit(b *testing.B) {
 	//a := newAgregator(2)
 	//fmt.Println(a)
 	for n := 0; n < b.N; n++ {
-		//		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
-		Info("msg")
+		//Info("msg")
+		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
 	}
 	//stopProfile()
 }
@@ -132,41 +178,22 @@ func TestZap(t *testing.T) {
 	//Info("msg")
 	//stopProfile()
 	//I("puta", 1).Debug("msg")
-	for i := 0; i < 1; i++ {
-
-		F("float64", 3.1415926535, -1).Info("msg")
-		S("pero", "zdero").Info("msg")
-		S("key", "value").Notice("iso medo u ducan")
-		//Debug("msg")
-		Info("msg")
-		Notice("msg")
-	}
+	F("float64", 3.1415926535, -1).Info("msg")
+	S("pero", "zdero").Info("msg")
+	S("key", "value").Notice("iso medo u ducan")
+	//Debug("msg")
+	Info("msg")
+	Notice("msg")
 	//Errorf("msg")
 }
 
-func BenchmarkKeyValue1(b *testing.B) {
+func BenchmarkKeyValue4(b *testing.B) {
 	a := Agregator{}
 	for n := 0; n < b.N; n++ {
 		a.fields = append(a.fields, zap.Int("key", 5))
-		a.fields = nil
-	}
-}
-
-func BenchmarkKeyValue2(b *testing.B) {
-	a := Agregator{}
-	for n := 0; n < b.N; n++ {
-		a.fields = append(a.fields, zap.Int("key", 5))
-		a.fields = append(a.fields, zap.Int("key", 5))
-		a.fields = nil
-	}
-}
-
-func BenchmarkKeyValue3(b *testing.B) {
-	a := Agregator{}
-	for n := 0; n < b.N; n++ {
-		a.fields = append(a.fields, zap.Int("key", 5))
-		a.fields = append(a.fields, zap.Int("key", 5))
-		a.fields = append(a.fields, zap.Int("key", 5))
+		//a.fields = append(a.fields, zap.Int("key", 5))
+		//a.fields = append(a.fields, zap.Int("key", 5))
+		//a.fields = append(a.fields, zap.Int("key", 5))
 		a.fields = nil
 	}
 }
@@ -175,23 +202,21 @@ func BenchmarkKeyValue3(b *testing.B) {
 func startProfile() {
 	//output := fmt.Sprintf("/Users/antonio/work/pprof/log/%s.pprof", time.Now().Format(time.RFC3339))
 	output := fmt.Sprintf("/Users/antonio/work/pprof/log/a.pprof")
-	log2.S("output", output).Info("starting profile")
+	log.S("output", output).Info("starting profile")
 	// msgs := reply.New(profileDir)
 	f, err := os.Create(output)
 	if err != nil {
-		log2.Fatal(err)
+		log.Fatal(err)
 	}
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log2.Fatal(err)
+		log.Fatal(err)
 	}
 }
 
 func stopProfile() {
 	pprof.StopCPUProfile()
 }
-
 */
-
 func TestUse(t *testing.T) {
 	// globalni
 	S("pero", "zdero").Info("1")
@@ -210,4 +235,10 @@ func TestUse(t *testing.T) {
 	func() {
 		logger.S("bozo", "misteriozo").Info("3")
 	}()
+}
+
+func TestLocal(t *testing.T) {
+	logger := S("part", "1").New()
+	logger.S("pero", "zdero").S("1", "1").Info("1")
+	logger.S("jozo", "bozo").S("2", "2").Info("2")
 }
