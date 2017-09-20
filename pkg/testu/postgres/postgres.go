@@ -50,6 +50,14 @@ func (util *TestPostgresUtility) DBClose(t *testing.T) {
 	util.conn = nil
 }
 
+
+func (util *TestPostgresUtility) DBConnect(t *testing.T, conn *sql.DB) {
+	if util.conn != nil {
+		util.DBClose(t)
+	}
+	util.conn = conn
+}
+
 // TestDbConnStr dohvaca env varijablu POSTGRES_TEST_DB sa default stringom za bazu
 func (util *TestPostgresUtility) TestDbConnStr() string {
 	s := os.Getenv("POSTGRES_TEST_DB")
