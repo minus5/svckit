@@ -13,7 +13,7 @@ func main() {
 	defer log.Debug("stopped")
 
 	//ovo je zamjena za postojecit logger
-	log.Printf("pero zdero")
+	log.Printf("hej")
 	log.Printf("[INFO] pero zdero")
 	log.Printf("[NOTICE] pero zdero %d", 123)
 

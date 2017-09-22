@@ -2,6 +2,7 @@ package log2
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -37,12 +38,12 @@ var (
 
 // return as quoted string
 var (
-	LevelDebug  = `"debug"`
-	LevelInfo   = `"info"`
-	LevelError  = `"error"`
-	LevelFatal  = `"fatal"`
-	LevelNotice = `"notice"`
-	LevelEvent  = `"event"`
+	LevelDebug  = `debug`
+	LevelInfo   = `info`
+	LevelError  = `error`
+	LevelFatal  = `fatal`
+	LevelNotice = `notice`
+	LevelEvent  = `event`
 )
 
 // unquoted versions
@@ -65,7 +66,8 @@ func NewAgregator(output io.Writer, depth int) *Agregator {
 	if output == nil {
 		output = out
 	}
-	loger := build(cfg, out, zap.Fields(
+
+	loger := build(cfg, output, zap.Fields(
 		zap.String("host", env.Hostname()),
 		zap.String("app", env.AppName()),
 	), zap.AddCallerSkip(depth))
@@ -120,6 +122,9 @@ func (a *Agregator) print(level, msg string) {
 		a.Fatal(nil)
 	case "event":
 		a.Event(msg)
+	default:
+		fmt.Println("ide debug")
+		a.Debug(msg)
 	}
 }
 

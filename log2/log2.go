@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log/syslog"
 	"os"
+	"time"
 
 	"github.com/minus5/svckit/env"
 	"go.uber.org/zap"
@@ -52,11 +53,11 @@ func init() {
 	out = os.Stderr
 
 	initSyslog()
-
+	//out.Write([]byte("test slanja"))
 	cfg = zap.NewProductionConfig()
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.CallerKey = "file"
-	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	cfg.EncoderConfig.EncodeTime = timeFormat
 
 	//kako bi se implementiralo pisanje u syslog potrebno je promijeniti rad
 	//nekih funkcija iz zap biblioteke (uvodim fromZap.go)
@@ -69,9 +70,14 @@ func init() {
 	//a.zlog = logger
 }
 
+func timeFormat(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format("2006-01-02T15:04:05.999999-07:00"))
+}
+
 // initSyslog gets env variable
 func initSyslog() {
 	env, ok := os.LookupEnv(EnvSyslog)
+
 	if !ok || (env == "0") || (env == "false") {
 		return
 	}
@@ -85,13 +91,14 @@ func initSyslog() {
 
 // setSyslogOutput sets syslog as output
 func setSyslogOutput(addr string) {
-	//fmt.Println(addr)
 	sys, err := syslog.Dial("udp", addr, syslog.LOG_LOCAL5, env.AppName())
+	//sys.Write([]byte("test"))
 	if err != nil {
 		//For udp err is not raised if server don't exists.
 		//fmt.Println(err)
 		return
 	}
+
 	SetOutput(sys)
 }
 
@@ -108,8 +115,10 @@ func Discard() {
 
 // Printf addes msg to log and writes log
 func Printf(format string, v ...interface{}) {
+	//fmt.Println(format)
 	level, msg := splitLevelMessage(format)
-	a := newAgregator(1)
+	//fmt.Println("level:", level, "msg", msg)
+	a := newAgregator(3)
 	a.print(level, msg)
 }
 

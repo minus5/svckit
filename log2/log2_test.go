@@ -1,6 +1,8 @@
 package log2
 
 import (
+	"fmt"
+	"log/syslog"
 	"testing"
 
 	"go.uber.org/zap"
@@ -10,18 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/*
 func TestSyslog(t *testing.T) {
-	sysLog, err := syslog.Dial("udp", "127.0.0.1:514",
-		syslog.LOG_WARNING|syslog.LOG_DAEMON, "demotag")
+	sysLog, err := syslog.Dial("udp", "10.0.66.192:514", syslog.LOG_LOCAL5, "testtag")
+	fmt.Println(sysLog, err)
 	if err != nil {
 		//log.Fatal(err)
 		fmt.Println(err)
 	}
+	sysLog.Write([]byte("test slanja"))
 	fmt.Println(sysLog, "This is a daemon warning with demotag.")
-	sysLog.Emerg("And this is a daemon emergency with demotag.")
+	//sysLog.Emerg("And this is a daemon emergency with demotag.")
 }
-*/
 
 func TestCompare(t *testing.T) {
 	n := 1
@@ -175,7 +176,8 @@ func TestZap(t *testing.T) {
 	//startProfile()
 	//n := 1
 	//I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")
-	//Info("msg")
+	Printf("hej")
+	Info("msg")
 	//stopProfile()
 	//I("puta", 1).Debug("msg")
 	F("float64", 3.1415926535, -1).Info("msg")
@@ -241,4 +243,10 @@ func TestLocal(t *testing.T) {
 	logger := S("part", "1").New()
 	logger.S("pero", "zdero").S("1", "1").Info("1")
 	logger.S("jozo", "bozo").S("2", "2").Info("2")
+}
+
+func TestPrint(t *testing.T) {
+	Printf("[INFO] pero zdero")
+	Printf("[NOTICE] pero zdero %d", 123)
+	Printf("[NOTICE] sto bude kada u istoj app koristim classic logger")
 }
