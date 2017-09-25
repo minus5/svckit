@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/minus5/svckit/env"
-	log "github.com/minus5/svckit/log"
+	log "github.com/minus5/svckit/log2"
 )
 
 func main() {
@@ -57,11 +57,9 @@ runtime.goexit()
 	//Primjer za context logging.
 	//Ako zelim imati isti set atributa na vise mjesta, a da ih ne moram svaki put dodavati.
 	//Napravim funkciju koja doda atribute.
-	ctx := func() *log.Agregator {
-		return log.S("common1", "jedan").I("common2", 2)
-	}
-	ctx().I("atrr", 1).I("attr2", 2).Debug("one")
-	ctx().Info("two")
+	logger := log.S("part", "1").New()
+	logger.S("pero", "zdero").S("1", "1").Info("1")
+	logger.S("jozo", "bozo").S("2", "2").Info("2")
 
 	//log.Fatal("neki fatal")
 }

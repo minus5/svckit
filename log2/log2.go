@@ -65,9 +65,6 @@ func init() {
 		zap.String("host", env.Hostname()),
 		zap.String("app", env.AppName()),
 	))
-
-	//pribaceno u interni build
-	//a.zlog = logger
 }
 
 func timeFormat(t time.Time, enc zapcore.PrimitiveArrayEncoder) {

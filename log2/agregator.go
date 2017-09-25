@@ -260,8 +260,8 @@ func (a *Agregator) F(key string, val float64, prec int) *Agregator {
 	//}
 
 	key = escapeKey(key)
-	s := strconv.FormatFloat(val, 'f', prec, 64)
-	a.fields = append(a.fields, zap.String(key, s))
+	//s := strconv.FormatFloat(val, 'f', prec, 64)
+	a.fields = append(a.fields, zap.Float64(key, val))
 	return a
 }
 

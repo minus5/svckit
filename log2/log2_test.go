@@ -1,17 +1,24 @@
 package log2
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"log/syslog"
+	"os"
+	"strconv"
+	"sync"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/minus5/svckit/env"
+	log "github.com/minus5/svckit/log"
 	"github.com/stretchr/testify/assert"
 )
 
+/*
 func TestSyslog(t *testing.T) {
 	sysLog, err := syslog.Dial("udp", "10.0.66.192:514", syslog.LOG_LOCAL5, "testtag")
 	fmt.Println(sysLog, err)
@@ -23,30 +30,63 @@ func TestSyslog(t *testing.T) {
 	fmt.Println(sysLog, "This is a daemon warning with demotag.")
 	//sysLog.Emerg("And this is a daemon emergency with demotag.")
 }
+*/
 
 func TestCompare(t *testing.T) {
 	n := 1
-	I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")
-	//logger, _ := zap.NewProduction()
-	//logger := zap.New(zapcore.)
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.TimeKey = "time"
-	config.EncoderConfig.CallerKey = "file"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	logger, _ := config.Build(zap.Fields(
-		zap.String("host", env.Hostname()),
-		zap.String("app", env.AppName()),
-	))
+	//log.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
+	//log.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
 
-	defer logger.Sync()
+	var buf bytes.Buffer
+	a := NewAgregator(&buf, 1)
+	a.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
+	outputlog2 := buf.String()
 
-	logger.Info("iso medo u ducan",
-		zap.Int("puta", n),
-		zap.Float64("float64", 3.1415926535),
-		zap.String("pero", "zdero"),
-		zap.String("key", "value"),
-	)
+	outputlog := captureOutput(func() {
+		log.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
+	})
+
+	logkv := parse(outputlog)
+	log2kv := parse(outputlog2)
+
+	if !assert.Equal(t, logkv["puta"], log2kv["puta"]) {
+		fmt.Println("error u intu")
+	}
+
+	if !assert.Equal(t, logkv["pero"], log2kv["pero"]) {
+		fmt.Println("error u s")
+	}
+
+	if !assert.Equal(t, logkv["float64"], log2kv["float64"]) {
+		fmt.Println("error u float")
+	}
+
+	if !assert.Equal(t, logkv["host"], log2kv["host"]) {
+		fmt.Println("error host")
+	}
+
+	if !assert.Equal(t, logkv["app"], log2kv["app"]) {
+		fmt.Println("error app")
+	}
+
+	if !assert.Equal(t, logkv["msg"], log2kv["msg"]) {
+		fmt.Println("error msg")
+	}
+}
+
+func captureOutput(f func()) string {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	f()
+	log.SetOutput(os.Stderr)
+	return buf.String()
+}
+
+func parse(s string) map[string]interface{} {
+	var data map[string]interface{}
+	_ = json.Unmarshal([]byte(s), &data)
+	return data
 }
 
 func TestCallerDepth(t *testing.T) {
@@ -127,7 +167,7 @@ func TestInfoLog2(t *testing.T) {
 
 func BenchmarkSvckitLog(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Debug("iso medo u ducan")
+		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
 	}
 }
 
@@ -167,7 +207,7 @@ func BenchmarkZapSvckit(b *testing.B) {
 	//fmt.Println(a)
 	for n := 0; n < b.N; n++ {
 		//Info("msg")
-		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
+		I("puta", n).S("pero", "zdero").F("float64", 3.1415926535, -1).S("key", "value").Info("iso medo u ducan")
 	}
 	//stopProfile()
 }
@@ -187,6 +227,12 @@ func TestZap(t *testing.T) {
 	Info("msg")
 	Notice("msg")
 	//Errorf("msg")
+}
+
+func TestError(t *testing.T) {
+	Errorf("msg")
+	Error(nil)
+
 }
 
 func BenchmarkKeyValue4(b *testing.B) {
@@ -249,4 +295,30 @@ func TestPrint(t *testing.T) {
 	Printf("[INFO] pero zdero")
 	Printf("[NOTICE] pero zdero %d", 123)
 	Printf("[NOTICE] sto bude kada u istoj app koristim classic logger")
+}
+
+func TestLogLog2routines(t *testing.T) {
+	var wg sync.WaitGroup
+
+	for j := 0; j < 5; j++ {
+		wg.Add(1)
+		go l2(strconv.Itoa(j))
+		go l(strconv.Itoa(j))
+		wg.Done()
+	}
+	wg.Wait()
+}
+
+func l2(s string) {
+	for i := 0; i < 5; i++ {
+		time.Sleep(100 * time.Millisecond)
+		S("log2 rutina", s).I("poziv", i).Info("msg")
+	}
+}
+
+func l(s string) {
+	for i := 0; i < 5; i++ {
+		time.Sleep(100 * time.Millisecond)
+		log.S("log rutina", s).I("poziv", i).Info("msg")
+	}
 }
