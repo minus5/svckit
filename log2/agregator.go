@@ -2,7 +2,6 @@ package log2
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -13,11 +12,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Agregator - spaja json log liniju.
-// Po uzoru na kod u https://golang.org/src/log/log.go ne koristi fmt.Sprintf ni bytes.Buffer
-// nego dodaje na neki postojeci buffer. Odatle vecina komplikacije.
-// Rezultat je da je brz otprilike kao i logger iz standard go lib-a.
-// Trenutno podrzava samo int i string tipove.
+// Agregator structure is used to save all data of single log output
+// zlog field is used to save zapLogger structure
+// commonFields is array of all key:value pairs used in more than one output of same instance of logger (type: zapcore.Field)
+// fields is array of all key:value pairs used in single output by instance of logger (type: zapcore.Field)
 type Agregator struct {
 	zlog         *zap.Logger
 	commonFields []zapcore.Field
@@ -25,15 +23,9 @@ type Agregator struct {
 }
 
 const (
-	// syslog udp paket ima limit
-	// iskusveno sam zapeo u korisnom dijelu od 8047-8055 znakova
-	// pa stavljam limit na pojedinacni string:
+	// MaxStrLen assures that length of string does not pass 7500 characters
+	// syslog udp package has limit (in experience no more than 8047-8055 usefull characters)
 	MaxStrLen = 7500
-)
-
-// isto ka pool u library-ju
-var (
-//a Agregator
 )
 
 // return as quoted string
@@ -100,9 +92,23 @@ func (a *Agregator) Build() *Agregator {
 	return a
 }
 
-// New function adds fields as commonFields
-func (a *Agregator) New() *Agregator {
-	return a.Build()
+// ClearFields function sets fields array as nil
+func (a *Agregator) ClearFields() *Agregator {
+	a = &Agregator{
+		commonFields: a.commonFields,
+		zlog:         a.zlog,
+	}
+	return a
+}
+
+// ClearCommonFields function sets commonFields array as nil
+func (a *Agregator) ClearCommonFields() *Agregator {
+	a = &Agregator{
+		fields: a.fields,
+		
+		zlog:   a.zlog,
+	}
+	return a
 }
 
 //print switches printing between different levels
@@ -123,7 +129,6 @@ func (a *Agregator) print(level, msg string) {
 	case "event":
 		a.Event(msg)
 	default:
-		fmt.Println("ide debug")
 		a.Debug(msg)
 	}
 }
@@ -141,21 +146,18 @@ func escapeKey(key string) string {
 // Debug function prints log with "level":"debug"
 func (a *Agregator) Debug(msg string) {
 	a.zlog.Debug(msg, append(a.fields, a.commonFields...)...)
-	a.Sync()
 	a.fields = nil
 }
 
 // Info function prints log with "level":"info"
 func (a *Agregator) Info(msg string) {
 	a.zlog.Info(msg, append(a.fields, a.commonFields...)...)
-	a.Sync()
 	a.fields = nil
 }
 
 // ErrorS function prints log with "level":"error"
 func (a *Agregator) ErrorS(msg string) {
 	a.zlog.Error(msg, append(a.fields, a.commonFields...)...)
-	a.Sync()
 	a.fields = nil
 }
 
@@ -174,16 +176,13 @@ func (a *Agregator) Error(err error) {
 func (a *Agregator) Notice(msg string) {
 	a.fields = append(a.fields, zap.String("notice", "info"))
 	a.zlog.Info(msg, append(a.fields, a.commonFields...)...)
-	a.Sync()
 	a.fields = nil
-
 }
 
 // Event function prints log with "level":"info" and "event":"info"
 func (a *Agregator) Event(msg string) {
 	a.fields = append(a.fields, zap.String("event", "info"))
 	a.zlog.Info(msg, append(a.fields, a.commonFields...)...)
-	a.Sync()
 	a.fields = nil
 }
 
@@ -195,8 +194,7 @@ func (a *Agregator) Fatal(err error) {
 	} else {
 		msg = ""
 	}
-	a.zlog.Fatal(msg, a.fields...)
-	a.Sync()
+	a.zlog.Fatal(msg, append(a.fields, a.commonFields...)...)
 	a.fields = nil
 	os.Exit(-1)
 }
@@ -206,8 +204,8 @@ func (a *Agregator) Sync() {
 	a.zlog.Sync()
 }
 
-// udp syslog poruka ima limit ~8k
-// radi sa stringom koji je dobiven nakon QuoteToASCII (ima " na pocetku i kraju)
+// udp syslog message has limit ~8k
+// use string after QuoteToASCII (" on the start and at the end)
 func limitStrLen(s string) string {
 	if len(s) <= MaxStrLen {
 		return s
@@ -222,87 +220,50 @@ func limitStrLen(s string) string {
 
 // B - add boolean key:value attribute
 func (a *Agregator) B(key string, val bool) *Agregator {
-	//if a.fields == nil{
-	//	a = &Agregator{
-	//		zlog:         a.zlog,
-	//		commonFields: a.commonFields,
-	//	}
-	//}
-
 	key = escapeKey(key)
-	//a.zlog = a.zlog.With(zap.Bool(key, val))
+
 	a.fields = append(a.fields, zap.Bool(key, val))
 	return a
 }
 
 // I - add integer key:value attribute
 func (a *Agregator) I(key string, val int) *Agregator {
-	//if a.fields == nil {
-	//	a = &Agregator{
-	//		zlog:         a.zlog,
-	//		commonFields: a.commonFields,
-	//	}
-	//}
-
 	key = escapeKey(key)
-	//a.zlog = a.zlog.With(zap.Int(key, val))
+
 	a.fields = append(a.fields, zap.Int(key, val))
 	return a
 }
 
 // F - add float64 key:value attribute
 func (a *Agregator) F(key string, val float64, prec int) *Agregator {
-	//if a.fields == nil {
-	//	a = &Agregator{
-	//		zlog:         a.zlog,
-	//		commonFields: a.commonFields,
-	//	}
-	//}
-
 	key = escapeKey(key)
-	//s := strconv.FormatFloat(val, 'f', prec, 64)
 	a.fields = append(a.fields, zap.Float64(key, val))
 	return a
 }
 
 // S - add string key:value attribute
 func (a *Agregator) S(key string, val string) *Agregator {
-	//if a.fields == nil {
-	//	a = &Agregator{
-	//		zlog:         a.zlog,
-	//		commonFields: a.commonFields,
-	//	}
-	//}
-
 	key = escapeKey(key)
 	if len(val) > MaxStrLen {
 		val = limitStrLen(strconv.QuoteToASCII(val))
 	}
-	//a.zlog = a.zlog.With(zap.String(key, val))
+
 	a.fields = append(a.fields, zap.String(key, val))
 	return a
 }
 
 // J - add json key:value attribute
-// It is applications responsibility to asure valid json
+// It is applications responsibility to assure valid json
 func (a *Agregator) J(key string, val []byte) *Agregator {
-	//if a.fields == nil {
-	//	a = &Agregator{
-	//		zlog:         a.zlog,
-	//		commonFields: a.commonFields,
-	//	}
-	//}
-
 	key = escapeKey(key)
 	if val == nil || len(val) == 0 {
-		//a.zlog = a.zlog.With(zap.String(key, "null"))
 		a.fields = append(a.fields, zap.String(key, "null"))
 		return a
 	}
 	if len(val) > MaxStrLen {
 		return a.S(key, string(val))
 	}
-	//a.zlog = a.zlog.With(zap.String(key, string(val)))
+
 	a.fields = append(a.fields, zap.String(key, string(val)))
 	return a
 }

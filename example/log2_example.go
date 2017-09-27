@@ -57,9 +57,18 @@ runtime.goexit()
 	//Primjer za context logging.
 	//Ako zelim imati isti set atributa na vise mjesta, a da ih ne moram svaki put dodavati.
 	//Napravim funkciju koja doda atribute.
-	logger := log.S("part", "1").New()
+	logger := log.S("part", "1").Build()
 	logger.S("pero", "zdero").S("1", "1").Info("1")
 	logger.S("jozo", "bozo").S("2", "2").Info("2")
+
+	//funkcija ocisti zajednicka polja jednog logera
+	logger = logger.ClearCommonFields()
+	logger.S("key", "val").Info("3")
+
+	// funkcija ocisti spremljena polja
+	logger.S("key", "val")
+	logger = logger.ClearFields()
+	logger.Info("4")
 
 	//log.Fatal("neki fatal")
 }

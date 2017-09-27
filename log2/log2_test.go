@@ -35,9 +35,6 @@ func TestSyslog(t *testing.T) {
 func TestCompare(t *testing.T) {
 	n := 1
 
-	//log.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
-	//log.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
-
 	var buf bytes.Buffer
 	a := NewAgregator(&buf, 1)
 	a.I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
@@ -165,14 +162,13 @@ func TestInfoLog2(t *testing.T) {
 	logger.Info("treci")
 }
 
-func BenchmarkSvckitLog(b *testing.B) {
+func BenchmarkSvckitLog2(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
 	}
 }
 
-func BenchmarkZap2(b *testing.B) {
-	//startProfile()
+func BenchmarkZap(b *testing.B) {
 	//for n := 0; n < b.N; n++ {
 	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig.TimeKey = "time"
@@ -198,35 +194,21 @@ func BenchmarkZap2(b *testing.B) {
 			zap.String("key", "value"),
 		)
 	}
-	//stopProfile()
-}
-
-func BenchmarkZapSvckit(b *testing.B) {
-	//startProfile()
-	//a := newAgregator(2)
-	//fmt.Println(a)
-	for n := 0; n < b.N; n++ {
-		//Info("msg")
-		I("puta", n).S("pero", "zdero").F("float64", 3.1415926535, -1).S("key", "value").Info("iso medo u ducan")
-	}
-	//stopProfile()
 }
 
 func TestZap(t *testing.T) {
-	//startProfile()
-	//n := 1
-	//I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")
+	n := 1
+	I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Notice("iso medo u ducan")
 	Printf("hej")
 	Info("msg")
-	//stopProfile()
-	//I("puta", 1).Debug("msg")
+	I("puta", 1).Debug("msg")
 	F("float64", 3.1415926535, -1).Info("msg")
 	S("pero", "zdero").Info("msg")
 	S("key", "value").Notice("iso medo u ducan")
-	//Debug("msg")
+	Debug("msg")
 	Info("msg")
 	Notice("msg")
-	//Errorf("msg")
+	Errorf("msg")
 }
 
 func TestError(t *testing.T) {
@@ -235,36 +217,44 @@ func TestError(t *testing.T) {
 
 }
 
-func BenchmarkKeyValue4(b *testing.B) {
+func BenchmarkKeyValue1(b *testing.B) {
 	a := Agregator{}
 	for n := 0; n < b.N; n++ {
 		a.fields = append(a.fields, zap.Int("key", 5))
-		//a.fields = append(a.fields, zap.Int("key", 5))
-		//a.fields = append(a.fields, zap.Int("key", 5))
-		//a.fields = append(a.fields, zap.Int("key", 5))
 		a.fields = nil
 	}
 }
 
-/*
-func startProfile() {
-	//output := fmt.Sprintf("/Users/antonio/work/pprof/log/%s.pprof", time.Now().Format(time.RFC3339))
-	output := fmt.Sprintf("/Users/antonio/work/pprof/log/a.pprof")
-	log.S("output", output).Info("starting profile")
-	// msgs := reply.New(profileDir)
-	f, err := os.Create(output)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatal(err)
+func BenchmarkKeyValue2(b *testing.B) {
+	a := Agregator{}
+	for n := 0; n < b.N; n++ {
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = nil
 	}
 }
 
-func stopProfile() {
-	pprof.StopCPUProfile()
+func BenchmarkKeyValue3(b *testing.B) {
+	a := Agregator{}
+	for n := 0; n < b.N; n++ {
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = nil
+	}
 }
-*/
+
+func BenchmarkKeyValue4(b *testing.B) {
+	a := Agregator{}
+	for n := 0; n < b.N; n++ {
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = append(a.fields, zap.Int("key", 5))
+		a.fields = nil
+	}
+}
+
 func TestUse(t *testing.T) {
 	// globalni
 	S("pero", "zdero").Info("1")
@@ -276,7 +266,7 @@ func TestUse(t *testing.T) {
 	logger.S("jozo", "bozo").Info("2")
 
 	// lokalni sa zajednickim atributima
-	logger = S("part", "1").New()
+	logger = S("part", "1").Build()
 	logger.S("pero", "zdero").S("1", "1").Info("1")
 	logger.S("jozo", "bozo").S("2", "2").Info("2")
 
@@ -286,7 +276,7 @@ func TestUse(t *testing.T) {
 }
 
 func TestLocal(t *testing.T) {
-	logger := S("part", "1").New()
+	logger := S("part", "1").Build()
 	logger.S("pero", "zdero").S("1", "1").Info("1")
 	logger.S("jozo", "bozo").S("2", "2").Info("2")
 }
@@ -321,4 +311,19 @@ func l(s string) {
 		time.Sleep(100 * time.Millisecond)
 		log.S("log rutina", s).I("poziv", i).Info("msg")
 	}
+}
+
+func TestClear(t *testing.T) {
+	logger := S("part", "1").Build()
+	logger.S("pero", "zdero").S("1", "1").Info("1")
+	logger.S("jozo", "bozo").S("2", "2").Info("2")
+
+	//funkcija ocisti zajednicka polja jednog logera
+	logger = logger.ClearCommonFields()
+	logger.S("key", "val").Info("3")
+
+	// funkcija ocisti spremljena polja
+	logger.S("key", "val")
+	logger = logger.ClearFields()
+	logger.Info("4")
 }

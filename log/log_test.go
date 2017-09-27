@@ -10,10 +10,6 @@ import (
 	"runtime"
 	"testing"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-
-	"github.com/minus5/svckit/env"
 	"github.com/stretchr/testify/assert"
 
 	golog "log"
@@ -77,56 +73,6 @@ BenchmarkStructuredLogrus-4             	  100000	     12627 ns/op
 BenchmarkSplitLevelMsgRegexp-4   	  300000	      3982 ns/op
 BenchmarkSplitLevelMsgAlternate-4	 2000000	       601 ns/op
 */
-
-func TestZap(t *testing.T) {
-	n := 1
-	I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Info("iso medo u ducan")
-	//logger, _ := zap.NewProduction()
-	//logger := zap.New(zapcore.)
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.TimeKey = "time"
-	config.EncoderConfig.CallerKey = "file"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logger, _ := config.Build(zap.Fields(
-		zap.String("host", env.Hostname()),
-		zap.String("app", env.AppName()),
-	))
-	defer logger.Sync()
-	logger.Info("iso medo u ducan",
-		zap.Int("puta", n),
-		zap.Float64("float64", 3.1415926535),
-		zap.String("pero", "zdero"),
-		zap.String("key", "value"),
-	)
-}
-
-func BenchmarkZap(b *testing.B) {
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.TimeKey = "time"
-	config.EncoderConfig.CallerKey = "file"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logger, _ := config.Build(zap.Fields(
-		zap.String("host", env.Hostname()),
-		zap.String("app", env.AppName()),
-	))
-	defer logger.Sync()
-	//sugar := logger.Sugar()
-
-	for n := 0; n < b.N; n++ {
-		logger.Info("iso medo u ducan",
-			zap.Int("puta", n),
-			zap.Float64("float64", 3.1415926535),
-			zap.String("pero", "zdero"),
-			zap.String("key", "value"),
-		)
-	}
-}
-
-func BenchmarkZapSvckit(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		I("puta", n).F("float64", 3.1415926535, -1).S("pero", "zdero").S("key", "value").Debug("iso medo u ducan")
-	}
-}
 
 func BenchmarkSplitLevelMsg(b *testing.B) {
 	line := "[NOTICE] neki message koji ide nakon toga"

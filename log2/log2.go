@@ -44,16 +44,14 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 }
 
 /* TODO
-- opcija da iskljuci logiranje file-a
-- preusmjeri na syslog
-- pazi na keys koji su vec zauzeti kada netko pokusava u njih upisati nesto, dodaj im neki prefix (reserved keys)
-- sync.Pool iskoristi da ima vise buffera pa da ne mora nikada raditi lock
+- redirects output on syslog
+- assures no reserved key is used
 */
 func init() {
 	out = os.Stderr
 
 	initSyslog()
-	//out.Write([]byte("test slanja"))
+
 	cfg = zap.NewProductionConfig()
 	cfg.EncoderConfig.TimeKey = "time"
 	cfg.EncoderConfig.CallerKey = "file"
@@ -82,7 +80,7 @@ func initSyslog() {
 		setSyslogOutput(env)
 		return
 	}
-	//setSyslogOutput("10.0.66.192:514")
+
 	setSyslogOutput("127.0.0.1:514")
 }
 
