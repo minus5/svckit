@@ -4,17 +4,16 @@ package main
 
 import (
 	"fmt"
-	golog "log"
 
 	"github.com/minus5/svckit/env"
-	log "github.com/minus5/svckit/log"
+	log "github.com/minus5/svckit/log2"
 )
 
 func main() {
 	defer log.Debug("stopped")
 
 	//ovo je zamjena za postojecit logger
-	log.Printf("pero zdero")
+	log.Printf("hej")
 	log.Printf("[INFO] pero zdero")
 	log.Printf("[NOTICE] pero zdero %d", 123)
 
@@ -23,7 +22,7 @@ func main() {
 	log.Errorf("neki error")
 	log.Notice("neki notice")
 
-	golog.Printf("[NOTICE] sto bude kada u istoj app koristim classic logger")
+	log.Printf("[NOTICE] sto bude kada u istoj app koristim classic logger")
 
 	// Kako dodati atribute
 	log.S("key1", "value2").S("key2", "value2 value2").I("keyi", 12345).Debug("neka poruka koja ide na kraju")
@@ -58,11 +57,18 @@ runtime.goexit()
 	//Primjer za context logging.
 	//Ako zelim imati isti set atributa na vise mjesta, a da ih ne moram svaki put dodavati.
 	//Napravim funkciju koja doda atribute.
-	ctx := func() *log.Agregator {
-		return log.S("common1", "jedan").I("common2", 2)
-	}
-	ctx().I("atrr", 1).I("attr2", 2).Debug("one")
-	ctx().Info("two")
+	logger := log.S("part", "1").Build()
+	logger.S("pero", "zdero").S("1", "1").Info("1")
+	logger.S("jozo", "bozo").S("2", "2").Info("2")
+
+	//funkcija ocisti zajednicka polja jednog logera
+	logger = logger.ClearCommonFields()
+	logger.S("key", "val").Info("3")
+
+	// funkcija ocisti spremljena polja
+	logger.S("key", "val")
+	logger = logger.ClearFields()
+	logger.Info("4")
 
 	//log.Fatal("neki fatal")
 }

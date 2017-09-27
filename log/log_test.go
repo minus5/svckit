@@ -73,6 +73,7 @@ BenchmarkStructuredLogrus-4             	  100000	     12627 ns/op
 BenchmarkSplitLevelMsgRegexp-4   	  300000	      3982 ns/op
 BenchmarkSplitLevelMsgAlternate-4	 2000000	       601 ns/op
 */
+
 func BenchmarkSplitLevelMsg(b *testing.B) {
 	line := "[NOTICE] neki message koji ide nakon toga"
 	for n := 0; n < b.N; n++ {
