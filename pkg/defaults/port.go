@@ -43,4 +43,5 @@ const (
 	PortAutorizacija              = "8410"
 	PortSentinel                  = "8420"
 	PortSessionsAuth              = "8430"
+	PortLottery                   = "8440"
 )
