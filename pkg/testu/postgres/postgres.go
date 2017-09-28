@@ -50,7 +50,7 @@ func (util *TestPostgresUtility) DBClose(t *testing.T) {
 	util.conn = nil
 }
 
-
+// DBConnect iskoristava vec postojecu db konekciju za pristup bazi
 func (util *TestPostgresUtility) DBConnect(t *testing.T, conn *sql.DB) {
 	if util.conn != nil {
 		util.DBClose(t)
@@ -105,6 +105,7 @@ func (util *TestPostgresUtility) RecordsCount(t *testing.T, table string) (int, 
 	return count, nil
 }
 
+// ReadFixture cita fixture file
 func (util *TestPostgresUtility) ReadFixture(t *testing.T, fileName string) []byte {
 	buf, err := ioutil.ReadFile(fileName)
 	if !assert.NoError(t, err) {
@@ -113,6 +114,8 @@ func (util *TestPostgresUtility) ReadFixture(t *testing.T, fileName string) []by
 	return buf
 }
 
+// ExecFixture izvrsava na bazi queryje iz fixture datoteke
+// Splita po "GO" i izvrsava kao zasebne queryje
 func (util *TestPostgresUtility) ExecFixture(t *testing.T, name string) {
 	f := string(util.ReadFixture(t, name))
 	util.DBOpen(t)
@@ -148,6 +151,7 @@ func (util *TestPostgresUtility) RunStoredProcedure(t *testing.T, name string) e
 	return err
 }
 
+// AssertRecordsCount provjerava odgovara li broj redaka u tablici ocekivanom
 func (util *TestPostgresUtility) AssertRecordsCount(t *testing.T, expected int, table string, v ...interface{}) {
 	table = fmt.Sprintf(table, v...)
 	cnt, err := util.RecordsCount(t, table)
