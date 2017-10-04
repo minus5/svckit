@@ -1,5 +1,5 @@
-// Mongo server za testove.
-// Kopirano iz https://github.com/go-mgo/mgo/blob/v2-unstable/dbtest/dbserver.go
+// Package mongo je server za potrebe pokretanja testova koji koriste mongo bazu
+// Djelomicno kopirano iz https://github.com/go-mgo/mgo/blob/v2-unstable/dbtest/dbserver.go
 package mongo
 
 import (
@@ -12,15 +12,17 @@ import (
 	"strconv"
 
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // Mongo controls a MongoDB server process to be used within test suites.
 type Mongo struct {
-	session *mgo.Session
-	output  bytes.Buffer
-	server  *exec.Cmd
-	DbPath  string
-	Host    string
+	session    *mgo.Session
+	output     bytes.Buffer
+	server     *exec.Cmd
+	serverExit chan struct{}
+	DbPath     string
+	Host       string
 }
 
 // New creates new MongoDB server to be used within test suites.
@@ -29,7 +31,7 @@ func New() *Mongo {
 	if err != nil {
 		log.Fatal(err)
 	}
-	m := &Mongo{DbPath: dir}
+	m := &Mongo{DbPath: dir, serverExit: make(chan struct{})}
 	m.start()
 	return m
 }
@@ -71,11 +73,20 @@ func (dbs *Mongo) start() {
 	dbs.server = exec.Command("mongod", args...)
 	dbs.server.Stdout = &dbs.output
 	dbs.server.Stderr = &dbs.output
-	err = dbs.server.Start()
-	if err != nil {
+	if err = dbs.server.Start(); err != nil {
 		panic(err)
 	}
 	dbs.Wipe()
+	go dbs.waitServerExit()
+}
+
+func (dbs *Mongo) waitServerExit() {
+	_, err := dbs.server.Process.Wait()
+	if err != nil {
+		log.Println(err)
+	}
+	dbs.server = nil
+	close(dbs.serverExit)
 }
 
 // Stop stops the test server process, if it is running.
@@ -122,12 +133,25 @@ func (dbs *Mongo) stopServer(kill bool) {
 	if dbs.server == nil {
 		return
 	}
+	var err error
 	if kill {
-		dbs.server.Process.Signal(os.Kill)
+		err = dbs.server.Process.Kill()
 	} else {
-		dbs.server.Process.Signal(os.Interrupt)
+		// Iz nekog razloga mongod ignorira Interrupt signal
+		//err = dbs.server.Process.Signal(os.Interrupt)
+		err = dbs.shutdownServer()
 	}
-	dbs.server = nil
+	if err != nil {
+		log.Println(err)
+	}
+	// Wait for mongo proces to exit
+	<-dbs.serverExit
+}
+
+func (dbs *Mongo) shutdownServer() error {
+	session := dbs.Session()
+	defer session.Close()
+	return session.DB("admin").Run(bson.D{{Name: "shutdown", Value: 1}}, nil)
 }
 
 // Session returns a new session to the server. The returned session
