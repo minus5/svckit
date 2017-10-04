@@ -334,14 +334,7 @@ func (db *Mdb) Use(col string, metricKey string, handler func(*mgo.Collection) e
 // Use2 same as Use but withiout metriceKey
 // metricKey is set to collection name (col)
 func (db *Mdb) Use2(col string, handler func(*mgo.Collection) error) error {
-	s := db.session.Copy()
-	defer s.Close()
-	c := s.DB(db.name).C(col)
-	var err error
-	metric.Timing("db."+col, func() {
-		err = handler(c)
-	})
-	return err
+	return db.Use(col, col, handler)
 }
 
 // Use2 same as Use but withiout metriceKey
