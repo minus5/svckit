@@ -108,6 +108,15 @@ func (c *cache) find(col string, id interface{}) (*cacheItem, bool) {
 	return i, ok
 }
 
+func (c *cache) remove(col string, id interface{}) {
+	key := fmt.Sprintf("%s.%v", col, id)
+	c.Lock()
+	defer c.Unlock()
+	if i, ok := c.m[key]; ok {
+		os.Remove(i.fn)
+	}
+}
+
 func newCacheItem(col string, id interface{}, raw []byte, cacheDir string) *cacheItem {
 	key := fmt.Sprintf("%s.%v", col, id)
 	i := &cacheItem{
@@ -385,7 +394,7 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 	if db.cache != nil {
 		// try to find in cache
 		if i, ok := db.cache.find(col, id); ok {
-			log.S("col", col).S("id", fmt.Sprintf("%v", id)).Info("ReadId from cache")
+			//log.S("col", col).S("id", fmt.Sprintf("%v", id)).Info("ReadId from cache")
 			return i.unmarshal(o)
 		}
 	}
@@ -401,6 +410,9 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 }
 
 func (db *Mdb) RemoveId(col string, id interface{}) error {
+	if db.cache != nil {
+		db.cache.remove(col, id)
+	}
 	return db.Use(col, col+"remove", func(c *mgo.Collection) error {
 		return c.RemoveId(id)
 	})
