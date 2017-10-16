@@ -350,6 +350,7 @@ func (db *Mdb) Use2(col string, handler func(*mgo.Collection) error) error {
 // metricKey is set to collection name (col)
 func (db *Mdb) UseWithoutTimeout(col string, handler func(*mgo.Collection) error) error {
 	s := db.session.Copy()
+	s.SetSocketTimeout(60 * time.Minute)
 	s.SetCursorTimeout(0)
 	defer s.Close()
 	c := s.DB(db.name).C(col)
