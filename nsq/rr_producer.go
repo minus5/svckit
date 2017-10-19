@@ -12,29 +12,57 @@ import (
 	"github.com/minus5/svckit/log"
 )
 
+// ErrTimeout deafult timeout error
 var ErrTimeout = errors.New("timeout")
 
 // RrProducer request response producer.
-// Implemets reuest response communication over nsq.
+// Implements request response communication over nsq.
 type RrProducer struct {
 	s         map[string]chan *Envelope
 	producers map[string]*Producer
 	topic     string
 	sub       *Consumer
 	msgNo     int
+	corr      RrProducerCorrelation
 	sync.Mutex
 }
 
+// RrProducerCorrelation interface for custom generation of correlation IDs
+type RrProducerCorrelation interface {
+	// NewCorrelationID creates new correlation ID for message
+	NewCorrelationID(topic, typ string, req interface{}) string
+}
+
 // RrPub creates new RrProducer.
-// Topic is nsq topic where remote services send responses.
-func RrPub(topic string) *RrProducer {
+// - topic is nsq topic where remote services send responses.
+// - opts are functions to set additional options
+func RrPub(topic string, opts ...func(*RrProducer)) *RrProducer {
 	s := &RrProducer{
 		msgNo:     rand.Intn(math.MaxInt32),
 		s:         make(map[string]chan *Envelope),
 		producers: make(map[string]*Producer),
 		topic:     topic,
 	}
+	// Set default calc of correlation id-a
+	s.apply(SetRrProducerCorrelation(s))
+	// Set all options
+	s.apply(opts...)
 	go s.listen()
+	return s
+}
+
+// SetRrProducerCorrelation sets new correleationID creation function
+func SetRrProducerCorrelation(corr RrProducerCorrelation) func(*RrProducer) {
+	return func(s *RrProducer) {
+		s.corr = corr
+	}
+}
+
+// apply calls all functions to setup options
+func (s *RrProducer) apply(opts ...func(*RrProducer)) *RrProducer {
+	for _, fn := range opts {
+		fn(s)
+	}
 	return s
 }
 
@@ -88,7 +116,7 @@ func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{},
 	if err != nil {
 		return err
 	}
-	correlationId := s.correlationId()
+	correlationId := s.corr.NewCorrelationID(topic, typ, req)
 	eReq := &Envelope{
 		Type:          typ,
 		ReplyTo:       s.topic,
@@ -120,8 +148,8 @@ func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{},
 	return nil
 }
 
-// creates unique request identifier
-func (s *RrProducer) correlationId() string {
+// NewCorrelationID creates unique correlationID as request identifier
+func (s *RrProducer) NewCorrelationID(topic, typ string, req interface{}) string {
 	s.Lock()
 	defer s.Unlock()
 	s.msgNo++
@@ -156,8 +184,8 @@ func (s *RrProducer) listen() {
 			return err
 		}
 		if s, found := s.get(e.CorrelationId); found {
-			// ako je s == nil to znaci da se dogodio timeout pa vise nitko ne ceka na response
-			// u tom slucaju nista ne radim
+			// when s == nil, means that request timed out, nobody is waiting for response
+			// nothing to do in that case
 			if s != nil {
 				s <- e
 			}
