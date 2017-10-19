@@ -39,24 +39,33 @@ const (
 
 //Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
-	Type        string `json:"type,omitempty"`
-	Id          string `json:"id,omitempty"`
-	IgracId     string `json:"igrac_id,omitempty"`
-	No          int    `json:"no,omitempty"`
-	From        string `json:"from,omitempty"`
-	To          string `json:"to,omitempty"`
-	IsDel       bool   `json:"is_del,omitempty"`
-	Ts          int    `json:"ts,omitempty"`
-	Dc          string `json:"dc,omitempty"`
-	Version     string `json:"version,omitempty"`
-	Encoding    string `json:"encoding,omitempty"`
-	MessageType string `json:"message_type,omitempty"`
-	SrcMsgID    string `json:"src_msg_id,omitempty"`
-	Body        []byte `json:"-"` //raspakovan body
-	RawBody     []byte `json:"-"`
-	RawHeader   []byte `json:"-"`
-	rawMsg      []byte
-	jsonBody    *simplejson.Json
+	Type              string `json:"type,omitempty"`
+	Id                string `json:"id,omitempty"`
+	IgracId           string `json:"igrac_id,omitempty"`
+	No                int    `json:"no,omitempty"`
+	From              string `json:"from,omitempty"`
+	To                string `json:"to,omitempty"`
+	IsDel             bool   `json:"is_del,omitempty"`
+	Ts                int    `json:"ts,omitempty"`
+	Dc                string `json:"dc,omitempty"`
+	Version           string `json:"version,omitempty"`
+	Encoding          string `json:"encoding,omitempty"`
+	MessageType       string `json:"message_type,omitempty"`
+	SrcMsgID          string `json:"src_msg_id,omitempty"`
+	NSQReqRspEnvelope        // NSQ Req/Rsp message envelope, za potrebe prebacivanja NSQ Req/Rsp poruka sa nsq_to_ws
+	Body              []byte `json:"-"` //raspakovan body
+	RawBody           []byte `json:"-"`
+	RawHeader         []byte `json:"-"`
+	rawMsg            []byte
+	jsonBody          *simplejson.Json
+}
+
+// NSQReqRspEnvelope message envelope
+type NSQReqRspEnvelope struct {
+	NRRType          string `json:"t,omitempty"` // type of the message
+	NRRReplyTo       string `json:"r,omitempty"` // topic to send reply to
+	NRRCorrelationID string `json:"c,omitempty"` // connection between request and response
+	NRRExpiresAt     int64  `json:"e,omitempty"` // unix timestamp when message expires, after that should be dropped
 }
 
 func NewBackendOrSimple(buf []byte, topic string) *Backend {
@@ -232,6 +241,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		Version     string `json:"version"`
 		MessageType string `json:"message_type,omitempty"`
 		SrcMsgID    string `json:"src_msg_id,omitempty"`
+		NSQReqRspEnvelope
 	}{
 		No:      -1,
 		IgracId: "*",
@@ -266,20 +276,21 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 	}
 
 	return &Backend{
-		Type:        header.Type,
-		IgracId:     header.IgracId,
-		Id:          header.Id,
-		No:          header.No,
-		IsDel:       header.DocAction == "del" || header.Action == "del" || header.IsDel,
-		From:        header.From,
-		To:          header.To,
-		Ts:          header.Ts,
-		RawHeader:   rawHeader,
-		Dc:          header.Dc,
-		Version:     header.Version,
-		Encoding:    header.Encoding,
-		MessageType: header.MessageType,
-		SrcMsgID:    header.SrcMsgID,
+		Type:              header.Type,
+		IgracId:           header.IgracId,
+		Id:                header.Id,
+		No:                header.No,
+		IsDel:             header.DocAction == "del" || header.Action == "del" || header.IsDel,
+		From:              header.From,
+		To:                header.To,
+		Ts:                header.Ts,
+		RawHeader:         rawHeader,
+		Dc:                header.Dc,
+		Version:           header.Version,
+		Encoding:          header.Encoding,
+		MessageType:       header.MessageType,
+		SrcMsgID:          header.SrcMsgID,
+		NSQReqRspEnvelope: header.NSQReqRspEnvelope,
 	}, nil
 
 }

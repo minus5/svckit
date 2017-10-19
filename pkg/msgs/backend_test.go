@@ -448,3 +448,19 @@ func TestMessageIdMessageExpiresAt(t *testing.T) {
 	assert.Equal(t, "tecajna/full-1", b.MessageId())
 	assert.NotNil(t, b.MessageExpiresAt())
 }
+
+func TestNSQReqRspEnvelope(t *testing.T) {
+	m := []byte(`{"t":"tecajevi","r":"upis.rsp-Gorans-MacBook-Pro","c":"tecajna.req2-tecajevi-858703FA-6250-40D8-776A-3A96E882F914","e":1508402228}
+{"listic_id":"858703FA-6250-40D8-776A-3A96E882F914","tecajevi":[2319]}`)
+	b := NewBackendFromTopic(m, "upis.rsp-Gorans-MacBook-Pro")
+	assert.NotNil(t, b)
+	// Header check
+	assert.Equal(t, "tecajevi", b.NRRType)
+	assert.Equal(t, "upis.rsp-Gorans-MacBook-Pro", b.NRRReplyTo)
+	assert.Equal(t, "tecajna.req2-tecajevi-858703FA-6250-40D8-776A-3A96E882F914", b.NRRCorrelationID)
+	assert.Equal(t, int64(1508402228), b.NRRExpiresAt)
+	// Body check
+	assert.Equal(t, `{"listic_id":"858703FA-6250-40D8-776A-3A96E882F914","tecajevi":[2319]}`, b.bodyStr())
+	// Raw msg
+	assert.Equal(t, m, b.RawMessage())
+}
