@@ -1,6 +1,7 @@
 package util
 
 import (
+	"sync"
 	"time"
 )
 
@@ -11,18 +12,24 @@ import (
 // Done() oznacava task kao zavrsen (inicijalno je u working stanju).
 
 type WaitTimeout struct {
-	doneCh chan struct{}
+	doneCh    chan struct{}
+	onceClose sync.Once
 }
 
 func NewWaitTimeout() *WaitTimeout {
-	return &WaitTimeout{doneCh: make(chan struct{})}
+	return &WaitTimeout{
+		doneCh: make(chan struct{}),
+	}
 }
 
 //Mark task as done, will release all goroutines blocked in Wait()
 func (w *WaitTimeout) Done() {
-	if !w.Finished() {
+	// if !w.Finished() {
+	// 	close(w.doneCh)
+	// }
+	w.onceClose.Do(func() {
 		close(w.doneCh)
-	}
+	})
 }
 
 func (w *WaitTimeout) WaitInfinite() {
