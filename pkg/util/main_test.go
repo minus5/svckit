@@ -41,3 +41,29 @@ func TestTimeUnixMilli(t *testing.T) {
 	tt, _ := time.Parse("Jan 2, 2006 at 3:04 (MST)", "Oct 1, 2015 at 9:30 (CET)")
 	assert.Equal(t, int64(1443688200000), TimeUnixMilli(tt))
 }
+
+func TestEqualFloat64(t *testing.T) {
+	var src, dst, maxDelta float64
+	src = 1.111
+	dst = 1.111
+	maxDelta = 0
+	assert.True(t, EqualFloat64(src, dst, maxDelta))
+	dst += 0.001
+	assert.False(t, EqualFloat64(src, dst, maxDelta))
+	maxDelta = 0.001
+	assert.True(t, EqualFloat64(src, dst, maxDelta))
+	assert.True(t, EqualFloat64(dst, src, maxDelta))
+}
+
+func TestEqualTime(t *testing.T) {
+	var src, dst time.Time
+	maxDeltaTime := 2 * time.Second
+	src = time.Date(2010, 10, 24, 11, 1, 20, 0, time.Local)
+	dst = time.Date(2010, 10, 24, 11, 1, 20, 0, time.Local)
+	assert.True(t, EqualTime(src, dst, 0))
+	assert.True(t, EqualTime(src, dst, maxDeltaTime))
+	src = src.Add(maxDeltaTime)
+	assert.False(t, EqualTime(src, dst, 0))
+	assert.True(t, EqualTime(src, dst, maxDeltaTime))
+	assert.True(t, EqualTime(dst, src, maxDeltaTime))
+}

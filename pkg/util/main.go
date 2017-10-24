@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -241,4 +242,20 @@ func diacriticReplace(s string) string {
 func Sanitize(s string) string {
 	s = diacriticReplacer.Replace(s)
 	return sanitizeRx.ReplaceAllString(s, "")
+}
+
+// EqualFloat64 provjerava da li su src i dst jednaki unutar delta razlike
+func EqualFloat64(src, dst, maxDelta float64) bool {
+	return math.Abs(src-dst) <= maxDelta
+}
+
+// EqualTime provjerava da li je src i dst vrijeme jednako unutar delta razlike
+// maxDelta mora biti pozitivna
+func EqualTime(src, dst time.Time, maxDelta time.Duration) bool {
+	diff := src.UnixNano() - dst.UnixNano()
+	fmt.Println(diff)
+	if diff >= 0 {
+		return diff <= maxDelta.Nanoseconds()
+	}
+	return diff >= -(maxDelta.Nanoseconds())
 }
