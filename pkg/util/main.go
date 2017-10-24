@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -253,7 +252,6 @@ func EqualFloat64(src, dst, maxDelta float64) bool {
 // maxDelta mora biti pozitivna
 func EqualTime(src, dst time.Time, maxDelta time.Duration) bool {
 	diff := src.UnixNano() - dst.UnixNano()
-	fmt.Println(diff)
 	if diff >= 0 {
 		return diff <= maxDelta.Nanoseconds()
 	}
