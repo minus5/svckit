@@ -45,4 +45,5 @@ const (
 	PortSessionsAuth              = "8430"
 	PortLottery                   = "8440"
 	PortVideo                     = "8450"
+	PortLotteryConnector          = "8460"
 )
