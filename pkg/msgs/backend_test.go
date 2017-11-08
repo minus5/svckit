@@ -309,23 +309,21 @@ func TestSitePostavke(t *testing.T) {
 }
 
 func TestVideoIdDogadjaji(t *testing.T) {
-	buf := []byte(`{"video_id":1,"dogadjaj_id":2,"_deleted_id":3}`)
+	buf := []byte(`{"video_id":1,"dogadjaj_id":2}`)
 	m := NewBackendOrSimple(buf, "")
 	assert.NotNil(t, m)
 	var vs tDto.VideoStream
 	m.UnmarshalBody(&vs)
 	assert.Equal(t, 1, vs.VideoId)
 	assert.Equal(t, 2, vs.DogadjajId)
-	assert.Equal(t, 3, vs.DeletedId)
 
 	buf = []byte(`{"type":"video_id_dogadjaj"}
-{"video_id":4,"dogadjaj_id":5,"_deleted_id":6}`)
+{"video_id":4,"dogadjaj_id":5}`)
 	m = NewBackendOrSimple(buf, "")
 	assert.NotNil(t, m)
 	m.UnmarshalBody(&vs)
 	assert.Equal(t, 4, vs.VideoId)
 	assert.Equal(t, 5, vs.DogadjajId)
-	assert.Equal(t, 6, vs.DeletedId)
 }
 
 func TestMerge(t *testing.T) {
