@@ -308,15 +308,6 @@ func TestSitePostavke(t *testing.T) {
 	assert.Equal(t, buf, m.RawBody)
 }
 
-func TestVideoStreams(t *testing.T) {
-	buf := []byte(`{"_id":"15929","id":15929,"provider":1,"provider_id":1084163,"ts":6330095206}`)
-	m := NewBackendFromTopic(buf, "video_streams")
-	assert.NotNil(t, m)
-	assert.Equal(t, "", m.IgracId)
-	assert.Equal(t, "15929", m.Id)
-	assert.Equal(t, buf, m.RawBody)
-}
-
 func TestVideoIdDogadjaji(t *testing.T) {
 	buf := []byte(`{"video_id":1,"dogadjaj_id":2,"_deleted_id":3}`)
 	m := NewBackendOrSimple(buf, "")

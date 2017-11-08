@@ -21,12 +21,11 @@ var (
 
 const (
 	// GzipMsgSizeLimit poruke manje od ove ne gzipamo
-	GzipMsgSizeLimit  = 32768
-	IgraciTopic       = "igraci"
-	PorukeTopic       = "poruke"
-	TransakcijeTopic  = "transakcije"
-	VideoStreamsTopic = "video_streams"
-	StatsTopic        = "stats"
+	GzipMsgSizeLimit = 32768
+	IgraciTopic      = "igraci"
+	PorukeTopic      = "poruke"
+	TransakcijeTopic = "transakcije"
+	StatsTopic       = "stats"
 )
 
 const (
@@ -92,8 +91,6 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 		case TransakcijeTopic:
 			//transakcije imaju id int
 			return newTransakcijeBackend(buf)
-		case VideoStreamsTopic:
-			return newVideoStreams(buf)
 		}
 	}
 	if topic == StatsTopic {
@@ -466,24 +463,6 @@ func newPorukeBackend(buf []byte) *Backend {
 		Id:      strconv.Itoa(msg.Id),
 		Ts:      msg.Ts,
 		IgracId: msg.IgracId,
-		Body:    buf,
-		RawBody: buf,
-	}
-}
-
-func newVideoStreams(buf []byte) *Backend {
-	var msg struct {
-		Id string `json:"_id"`
-		Ts int    `json:"ts"`
-	}
-	if err := json.Unmarshal(buf, &msg); err != nil {
-		log.Printf("[ERROR] unmarshal error %s %s", err, buf)
-		return nil
-	}
-	return &Backend{
-		Type:    VideoStreamsTopic,
-		Id:      msg.Id,
-		Ts:      msg.Ts,
 		Body:    buf,
 		RawBody: buf,
 	}
