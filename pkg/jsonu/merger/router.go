@@ -7,6 +7,8 @@
 // Inicijalni full se dobija na zahtjev (Dopuna metoda).
 package merger
 
+import "time"
+
 // Router prima poruke za razlicite kanale i prosljedjuje ih
 // fullDiffOrderer-ima na obradu.
 type Router struct {
@@ -14,6 +16,7 @@ type Router struct {
 	in            chan *msg
 	Output        chan *OutMsg
 	dopunaHandler func(string, string)
+	queueSize     int
 }
 
 // New ulazna tocak u paket.
@@ -41,40 +44,61 @@ func (r *Router) handler(m *msg) {
 }
 
 func (r *Router) loop() {
-	for m := range r.in {
-		channel := m.channel
-		fdo, ok := r.fdos[channel]
-		if m.isDel {
-			if ok {
-				fdo.close()
-				delete(r.fdos, channel)
-				//log.Printf("[DEBUG] remove fdo %s", channel)
+	stat := time.Tick(10 * time.Second)
+	for {
+		select {
+		case m := <-r.in:
+			if m == nil {
+				r.close()
+				return
 			}
-			r.handler(m)
-			continue
+			r.onInMsg(m)
+		case <-stat:
+			queueSize := 0
+			for _, fdo := range r.fdos {
+				queueSize += fdo.queueSize()
+			}
+			r.queueSize = queueSize
 		}
-		if !ok {
-			typ := m.typ
-			d := func() {
-				if r.dopunaHandler != nil {
-					r.dopunaHandler(typ, channel)
-				}
-			}
-			fdo = newFullDiffOrderer(d)
-			if limit, ok := oooLimits[channel]; ok {
-				fdo.oooLimit = limit //ako imamo custom limit za ovaj kanal
-			}
-			r.fdos[channel] = fdo
-			go func() {
-				for m := range fdo.out {
-					r.handler(m)
-					mtrc.Counter("out")
-				}
-			}()
-		}
-		fdo.in <- m
-		mtrc.Counter("in")
 	}
+}
+
+func (r *Router) onInMsg(m *msg) {
+	channel := m.channel
+	fdo, ok := r.fdos[channel]
+	if m.isDel {
+		if ok {
+			fdo.close()
+			delete(r.fdos, channel)
+			//log.Printf("[DEBUG] remove fdo %s", channel)
+		}
+		r.handler(m)
+		return
+	}
+	if !ok {
+		typ := m.typ
+		d := func() {
+			if r.dopunaHandler != nil {
+				r.dopunaHandler(typ, channel)
+			}
+		}
+		fdo = newFullDiffOrderer(d)
+		if limit, ok := oooLimits[channel]; ok {
+			fdo.oooLimit = limit //ako imamo custom limit za ovaj kanal
+		}
+		r.fdos[channel] = fdo
+		go func() {
+			for m := range fdo.out {
+				r.handler(m)
+				mtrc.Counter("out")
+			}
+		}()
+	}
+	fdo.in <- m
+	mtrc.Counter("in")
+}
+
+func (r *Router) close() {
 	for _, fdo := range r.fdos {
 		fdo.close()
 	}
@@ -98,9 +122,5 @@ func (r *Router) Size() int {
 
 // QueueSize - ukupan broj poruka u queue-ima svih kanala.
 func (r *Router) QueueSize() int {
-	queueSize := 0
-	for _, fdo := range r.fdos {
-		queueSize += fdo.queueSize()
-	}
-	return queueSize
+	return r.queueSize
 }

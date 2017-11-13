@@ -11,11 +11,11 @@ import (
 )
 
 func full(no int) *msg {
-	return &msg{typ: "d_123/full", isFull: true, no: no}
+	return &msg{typ: "d_123/full", isFull: true, no: int64(no)}
 }
 
 func diff(no int) *msg {
-	return &msg{typ: "d_123/diff", isDiff: true, no: no}
+	return &msg{typ: "d_123/diff", isDiff: true, no: int64(no)}
 }
 
 func TestCheck(t *testing.T) {
@@ -115,8 +115,8 @@ func TestFullDiffOrderer(t *testing.T) {
 	m = out()
 	assert.NotNil(t, o.current)
 	assert.True(t, m.isFull)
-	assert.Equal(t, 10, m.no)
-	assert.Equal(t, 10, o.no)
+	assert.EqualValues(t, 10, m.no)
+	assert.EqualValues(t, 10, o.no)
 	assert.Equal(t, 2, len(o.queue))
 	assert.Equal(t, 1, fullRequests)
 	assert.Equal(t, "d11 d12", o.inQueue())
@@ -125,35 +125,35 @@ func TestFullDiffOrderer(t *testing.T) {
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isDiff)
-	assert.Equal(t, 10, m.no)
+	assert.EqualValues(t, 10, m.no)
 	assert.Equal(t, "d11 d12", o.inQueue())
 
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isDiff)
-	assert.Equal(t, 11, m.no)
+	assert.EqualValues(t, 11, m.no)
 	assert.Equal(t, "d12", o.inQueue())
 
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isFull)
-	assert.Equal(t, 11, m.no)
+	assert.EqualValues(t, 11, m.no)
 
 	m = out()
 	assert.Equal(t, "", o.inQueue())
 	assert.NotNil(t, m)
 	assert.True(t, m.isDiff)
-	assert.Equal(t, 12, m.no)
+	assert.EqualValues(t, 12, m.no)
 
 	m = out()
 	assert.Equal(t, "", o.inQueue())
 	assert.NotNil(t, m)
 	assert.True(t, m.isFull)
-	assert.Equal(t, 12, m.no)
+	assert.EqualValues(t, 12, m.no)
 
 	m = out()
 	assert.Nil(t, m)
-	assert.Equal(t, 12, o.no)
+	assert.EqualValues(t, 12, o.no)
 	assert.Equal(t, 0, len(o.queue))
 	assert.Equal(t, 1, fullRequests)
 	assert.Equal(t, "", o.inQueue())
@@ -219,30 +219,30 @@ func TestFullDiffOrderer(t *testing.T) {
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isDiff)
-	assert.Equal(t, 15, m.no)
+	assert.EqualValues(t, 15, m.no)
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isFull)
-	assert.Equal(t, 15, m.no)
+	assert.EqualValues(t, 15, m.no)
 	assert.Equal(t, "d16 d17", o.inQueue())
 
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isDiff)
-	assert.Equal(t, 16, m.no)
+	assert.EqualValues(t, 16, m.no)
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isFull)
-	assert.Equal(t, 16, m.no)
+	assert.EqualValues(t, 16, m.no)
 
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isDiff)
-	assert.Equal(t, 17, m.no)
+	assert.EqualValues(t, 17, m.no)
 	m = out()
 	assert.NotNil(t, m)
 	assert.True(t, m.isFull)
-	assert.Equal(t, 17, m.no)
+	assert.EqualValues(t, 17, m.no)
 
 	m = out()
 	assert.Nil(t, m)

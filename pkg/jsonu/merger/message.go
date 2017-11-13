@@ -92,3 +92,11 @@ func (o *OutMsg) Filename() string {
 	t := strings.Replace(o.Type, "/", "_", -1)
 	return fmt.Sprintf("%s_%d.json", t, o.No)
 }
+
+func (o *OutMsg) Channel() string {
+	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(o.Type, "/full"), "/diff"), "/", ".", -1)
+}
+
+func (o *OutMsg) IsFull() bool {
+	return strings.HasSuffix(o.Type, "/diff")
+}
