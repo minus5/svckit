@@ -19,11 +19,14 @@ const (
 	msgRead      = "read"
 	msgPing      = "ping"
 	msgJezik     = "jezik"
+	msgAppVersion= "app_version"
 )
 
 type Frontend struct {
 	url     string
 	origin  string
+	app		string
+	ver		string
 	ws      *websocket.Conn
 	retry   int
 	jezik   string
@@ -34,12 +37,14 @@ type Frontend struct {
 	input   chan *inMsg
 }
 
-func New(url, origin string, lang string) *Frontend {
+func New(url, origin string, lang string, app string, ver string) *Frontend {
 	fmt.Printf("Frontend new, lang=%s.\n",lang)
 	url = url + "?conn_id=" + util.Uuid()[0:4]
 	f := &Frontend{
 		url:    url,
 		origin: origin,
+		app:	app,
+		ver:	ver,
 		retry:  0,
 		jezik:  lang,
 		subs:   make(map[string]bool),
@@ -76,6 +81,7 @@ func (f *Frontend) loop() {
 				//f.Output = make(chan *Envelope, 1024)
 				f.retry = 0
 				f.Jezik(f.jezik)
+				f.AppVersion()
 				f.sendSubs()
 				go f.sendLoop()
 				f.listen()
@@ -219,6 +225,14 @@ func (f *Frontend) Jezik(jezik string) int {
 	counter := f.counter //treba nam da bi znali cekati odgovor na ovu poruku
 	f.send(msgJezik, msg)
 	return counter
+}
+
+func (f *Frontend) AppVersion() {
+	msg := &struct {
+		App string  `json:"app"`
+		Version string `json:"version"`
+	}{App: f.app, Version: f.ver}
+	f.send(msgAppVersion, msg)
 }
 
 func (f *Frontend) Read(key string) {
