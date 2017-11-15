@@ -20,6 +20,8 @@ const (
 	msgPing      = "ping"
 	msgJezik     = "jezik"
 	msgAppVersion= "app_version"
+	msgLog       = "log"
+	msgStat      = "stat"
 )
 
 type Frontend struct {
@@ -233,6 +235,14 @@ func (f *Frontend) AppVersion() {
 		Version string `json:"version"`
 	}{App: f.app, Version: f.ver}
 	f.send(msgAppVersion, msg)
+}
+
+func (f *Frontend) Log(message string) {
+	f.send(msgLog, message)
+}
+
+func (f *Frontend) Stat(message string) {
+	f.send(msgStat, message)
 }
 
 func (f *Frontend) Read(key string) {
