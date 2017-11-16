@@ -67,3 +67,12 @@ func TestEqualTime(t *testing.T) {
 	assert.True(t, EqualTime(src, dst, maxDeltaTime))
 	assert.True(t, EqualTime(dst, src, maxDeltaTime))
 }
+
+func TestStringArrayContains(t *testing.T) {
+	var slice StringArray
+	slice.Set("iso")
+	slice.Set("medo")
+	assert.True(t, slice.Contains("medo"))
+	assert.False(t, slice.Contains("ducan"))
+}
+
