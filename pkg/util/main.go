@@ -150,6 +150,15 @@ func (a *StringArray) String() string {
 	return strings.Join(*a, ",")
 }
 
+func (a *StringArray) Contains(s string) bool {
+	for _, value := range *a {
+		if value == s {
+			return true
+		}
+	}
+	return false
+}
+
 //UnixMilli - unix timestamp u milisekundama, pogodan za js
 func UnixMilli() int64 {
 	return TimeUnixMilli(time.Now())
