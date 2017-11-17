@@ -25,34 +25,36 @@ const (
 )
 
 type Frontend struct {
-	url     string
-	origin  string
-	app		string
-	ver		string
-	ws      *websocket.Conn
-	retry   int
-	jezik   string
-	counter int
-	subs    map[string]bool
-	closed  chan struct{}
-	Output  chan *Envelope
-	input   chan *inMsg
+	url        string
+	origin     string
+	app        string
+	ver        string
+	ws         *websocket.Conn
+	retry      int
+	jezik      string
+	counter    int64
+	subs       map[string]bool
+	closed     chan struct{}
+	Output     chan *Envelope
+	input      chan *inMsg
+	retryStore map[string]*inMsg
 }
 
 func New(url, origin string, lang string, app string, ver string) *Frontend {
 	fmt.Printf("Frontend new, lang=%s.\n",lang)
 	url = url + "?conn_id=" + util.Uuid()[0:4]
 	f := &Frontend{
-		url:    url,
-		origin: origin,
-		app:	app,
-		ver:	ver,
-		retry:  0,
-		jezik:  lang,
-		subs:   make(map[string]bool),
-		closed: make(chan struct{}),
-		Output: make(chan *Envelope, 1024),
-		input:  make(chan *inMsg, 1024),
+		url:        url,
+		origin:     origin,
+		app:        app,
+		ver:        ver,
+		retry:      0,
+		jezik:      lang,
+		subs:       make(map[string]bool),
+		closed:     make(chan struct{}),
+		Output:     make(chan *Envelope, 1024),
+		input:      make(chan *inMsg, 1024),
+		retryStore: make(map[string]*inMsg),
 	}
 	go f.loop()
 	return f
@@ -196,6 +198,20 @@ again:
 				//close(f.Output)
 				return
 			}
+			if _, ok := f.retryStore[m.Id]; ok {
+				if m.Status != "0" { //poruka je failala a zatrazen je retry
+					fmt.Println("Msg failed, will retry.")
+					delay := time.Duration(math.Pow(2, math.Min(float64(f.retry),13)))
+					f.retry++
+					go func(d time.Duration, msgId string) {
+						time.Sleep(d*time.Millisecond) //sleepamo u goroutini da ne blokiramo
+						f.input <- f.retryStore[msgId]
+					} (delay, m.Id)
+					continue //ne saljemo poruku na output ako je failala
+				}
+				f.retry = 0 //uspjesno obradjena, resetiramo retry...
+				delete(f.retryStore, m.Id) //...i brisem poruku iz storea
+			}
 			f.Output <- m
 		case <-time.After(50 * time.Second):
 			f.Ping()
@@ -216,16 +232,16 @@ func (f *Frontend) Unsubscribe(key string) {
 }
 
 func (f *Frontend) Ping() {
-	f.send(msgPing, nil)
+	f.send(msgPing, nil, false)
 }
 
-func (f *Frontend) Jezik(jezik string) int {
+func (f *Frontend) Jezik(jezik string) int64 {
 	f.jezik = jezik
 	msg := &struct {
 		Jezik string `json:"jezik"`
 	}{Jezik: jezik}
 	counter := f.counter //treba nam da bi znali cekati odgovor na ovu poruku
-	f.send(msgJezik, msg)
+	f.send(msgJezik, msg, true)
 	return counter
 }
 
@@ -234,25 +250,25 @@ func (f *Frontend) AppVersion() {
 		App string  `json:"app"`
 		Version string `json:"version"`
 	}{App: f.app, Version: f.ver}
-	f.send(msgAppVersion, msg)
+	f.send(msgAppVersion, msg, true)
 }
 
 func (f *Frontend) Log(message interface{}) {
-	f.send(msgLog, message)
+	f.send(msgLog, message, false)
 }
 
 func (f *Frontend) Stat(event string) {
 	msg := &struct {
 		Event string  `json:"event"`
 	}{Event: event}
-	f.send(msgStat, msg)
+	f.send(msgStat, msg, false)
 }
 
 func (f *Frontend) Read(key string) {
 	msg := &struct {
 		Type string `json:"type"`
 	}{Type: key}
-	f.send(msgRead, msg)
+	f.send(msgRead, msg, false)
 }
 
 func (f *Frontend) sendSubs() {
@@ -264,10 +280,10 @@ func (f *Frontend) sendSubs() {
 			msg.Subs = append(msg.Subs, k)
 		}
 	}
-	f.send(msgSubscribe, msg)
+	f.send(msgSubscribe, msg, false)
 }
 
-func (f *Frontend) send(typ string, o interface{}) error {
+func (f *Frontend) send(typ string, o interface{}, retry bool) error {
 	f.counter++
 	i := &inMsg{
 		Type: typ,
@@ -280,13 +296,16 @@ func (f *Frontend) send(typ string, o interface{}) error {
 		}
 		i.Body = string(buf)
 	}
+	if retry {
+		f.retryStore[fmt.Sprintf("%d",f.counter)]=i
+	}
 	f.input <- i
 	return nil
 }
 
 type inMsg struct {
 	Type string
-	No   int
+	No   int64
 	Body string
 }
 
