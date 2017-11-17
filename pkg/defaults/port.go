@@ -20,6 +20,7 @@ const (
 	PortNsqToMongo                = "8190"
 	PortNsqToWs                   = "8210"
 	PortBackendApi                = "8220"
+	PortBackendApiSaga            = "8221"
 	PortNsqNotifier               = "8230"
 	PortNsqToCloudwatch           = "8240"
 	PortNsqToGraphite             = "8250"
