@@ -237,12 +237,15 @@ func (f *Frontend) AppVersion() {
 	f.send(msgAppVersion, msg)
 }
 
-func (f *Frontend) Log(message string) {
+func (f *Frontend) Log(message interface{}) {
 	f.send(msgLog, message)
 }
 
-func (f *Frontend) Stat(message string) {
-	f.send(msgStat, message)
+func (f *Frontend) Stat(event string) {
+	msg := &struct {
+		Event string  `json:"event"`
+	}{Event: event}
+	f.send(msgStat, msg)
 }
 
 func (f *Frontend) Read(key string) {
