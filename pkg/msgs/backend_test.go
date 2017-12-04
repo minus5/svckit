@@ -170,6 +170,8 @@ func TestAppVersion(t *testing.T) {
 
 var listiciMessage string = `{"_id":"00395309-4D54-4A4F-9975-4D7E6EC35C1E","broj":"999-01743696","dobitak":0,"eventualni_dobitak":2308.69,"igrac_id":"81cf2cc561fff9099192f01ece5be4d149772eab","kontrolni_broj":"RV1ZZ","listic_id":865670203,"loto":{"broj":"G2344","broj_izvlacenih":20,"broj_kuglica":80,"dobitni_brojevi":[],"kolo":532344,"loto_tip_id":100,"naziv":"GRČKI KINO LOTO 20/80","tecajevi":[3.75,15,65,275,1350,6500,25000,125000],"vrijeme":"16.12.2015 11:35"},"loto_brojevi":[16,47,57,61,79],"loto_kombinacije":[5],"mt":0.1,"novi":1,"poredak":"1","porez":256.31,"porez_tip":2,"status":0,"status_updated_at":null,"tecaj":1350,"tip":2,"ts":6304298028,"ulog":1.9,"vrijeme":"16.12.2015 11:07","vrsta_uplate":"internet"}`
 
+var listiciMessageObrisan string = `{"_id":"00395309-4D54-4A4F-9975-4D7E6EC35C1E","broj":"999-01743696","dobitak":0,"eventualni_dobitak":2308.69,"igrac_id":"81cf2cc561fff9099192f01ece5be4d149772eab","kontrolni_broj":"RV1ZZ","listic_id":865670203,"loto":{"broj":"G2344","broj_izvlacenih":20,"broj_kuglica":80,"dobitni_brojevi":[],"kolo":532344,"loto_tip_id":100,"naziv":"GRČKI KINO LOTO 20/80","tecajevi":[3.75,15,65,275,1350,6500,25000,125000],"vrijeme":"16.12.2015 11:35"},"loto_brojevi":[16,47,57,61,79],"loto_kombinacije":[5],"mt":0.1,"novi":1,"poredak":"1","porez":256.31,"porez_tip":2,"status":0,"status_updated_at":null,"tecaj":1350,"tip":2,"ts":6304298028,"ulog":1.9,"vrijeme":"16.12.2015 11:07","vrsta_uplate":"internet","obrisan":true}`
+
 func TestListiciNonBackend(t *testing.T) {
 	msg := NewBackendFromTopic([]byte(listiciMessage), "listici.dopuna")
 	assert.Equal(t, "listici", msg.Type)
@@ -190,6 +192,25 @@ func TestListiciBackend(t *testing.T) {
 
 	//msg.SetDc("ec2")
 	//t.Logf("packed: %s", msg.Pack())
+}
+
+func TestListiciObrisan(t *testing.T) {
+	msg := NewBackendFromTopic([]byte(listiciMessageObrisan), "listici.dopuna")
+	assert.Equal(t, "listici", msg.Type)
+	assert.Equal(t, "81cf2cc561fff9099192f01ece5be4d149772eab", msg.IgracId)
+	assert.Equal(t, "00395309-4D54-4A4F-9975-4D7E6EC35C1E", msg.Id)
+	assert.True(t, msg.IsDel)
+	assert.Equal(t, string(msg.Body), listiciMessageObrisan)
+}
+
+func TestListiciBackendObrisan(t *testing.T) {
+	header := `{"type":"listici","id":"neki","igrac_id":"drugi"}`
+	msg := NewBackendFromTopic([]byte(header+"\n"+listiciMessageObrisan), "listici.dopuna")
+	assert.Equal(t, "listici", msg.Type)
+	assert.Equal(t, "drugi", msg.IgracId)
+	assert.Equal(t, "neki", msg.Id)
+	assert.True(t, msg.IsDel)
+	assert.Equal(t, string(msg.Body), listiciMessageObrisan)
 }
 
 func TestSetDc(t *testing.T) {

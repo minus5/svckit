@@ -79,7 +79,8 @@ func NewBackendOrSimple(buf []byte, topic string) *Backend {
 }
 
 func NewBackendFromTopic(buf []byte, topic string) *Backend {
-	if !hasHeader(buf) {
+	hh := hasHeader(buf)
+	if !hh {
 		switch topic {
 		case IgraciTopic:
 			//igraci su specificni jer u igrac_id imaju int, a ne string kao svi drugi
@@ -104,6 +105,13 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 	}
 	switch topic {
 	case "listici.novi", "listici.promjene", "listici.dopuna", "listici":
+		if hh && !m.IsDel {
+			d := struct{ Obrisan bool }{}
+			json.Unmarshal(m.Body, &d)
+			if d.Obrisan {
+				m.IsDel = true
+			}
+		}
 		m.Type = "listici"
 	}
 	return m
@@ -238,6 +246,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		Version     string `json:"version"`
 		MessageType string `json:"message_type,omitempty"`
 		SrcMsgID    string `json:"src_msg_id,omitempty"`
+		Obrisan     bool   `json:"obrisan"`
 		NSQReqRspEnvelope
 	}{
 		No:      -1,
@@ -277,7 +286,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		IgracId:           header.IgracId,
 		Id:                header.Id,
 		No:                header.No,
-		IsDel:             header.DocAction == "del" || header.Action == "del" || header.IsDel,
+		IsDel:             header.DocAction == "del" || header.Action == "del" || header.IsDel || header.Obrisan,
 		From:              header.From,
 		To:                header.To,
 		Ts:                header.Ts,
