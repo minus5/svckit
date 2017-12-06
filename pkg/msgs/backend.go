@@ -475,7 +475,7 @@ func newTeletextBackend(buf []byte) *Backend {
 		return nil
 	}
 	msgType := fmt.Sprintf("%s/%d/%d", TeletextTopic, msg.Page, msg.SubPage)
-	log.S("msgType", msgType).Info("new teletext backend")
+	//log.S("msgType", msgType).Info("new teletext backend")
 	return &Backend{
 		Type:    msgType,
 		Ts:      msg.Ts,
