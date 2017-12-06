@@ -4,6 +4,7 @@ package mongo
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -141,8 +142,8 @@ func (dbs *Mongo) stopServer(kill bool) {
 		//err = dbs.server.Process.Signal(os.Interrupt)
 		err = dbs.shutdownServer()
 	}
-	if err != nil {
-		log.Println(err)
+	if err != nil && err != io.EOF {
+		log.Printf("%s %T", err, err)
 	}
 	// Wait for mongo proces to exit
 	<-dbs.serverExit
