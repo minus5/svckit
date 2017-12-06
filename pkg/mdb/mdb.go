@@ -410,6 +410,16 @@ func (db *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 	return err
 }
 
+func (db *Mdb) Exists(col string, query interface{}) (bool, error) {
+	exists := false
+	err := db.Use(col, "exists", func(c *mgo.Collection) error {
+		count, err := c.Find(query).Count()
+		exists = count > 0
+		return err
+	})
+	return exists, err
+}
+
 func (db *Mdb) RemoveId(col string, id interface{}) error {
 	if db.cache != nil {
 		db.cache.remove(col, id)
