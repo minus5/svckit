@@ -17,6 +17,7 @@ type PushNot struct {
 	DeviceType	int
 	Tip			int
 	Tekst		string
+	Lang		string
 	Listic		*PushNotListic
 }
 
