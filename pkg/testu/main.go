@@ -79,10 +79,22 @@ func Exists(name string) bool {
 	return true
 }
 
+// ReadFixture ucitava file
 func ReadFixture(t *testing.T, name string) []byte {
 	buf, err := ioutil.ReadFile(fmt.Sprintf("%s", name))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	return buf
+}
+
+// ReadFixtureJSON ucitava JSON file
+func ReadFixtureJSON(t *testing.T, val interface{}, name string) {
+	buf := ReadFixture(t, name)
+	if !assert.NotEmpty(t, buf) {
+		t.FailNow()
+	}
+	if !assert.NoError(t, json.Unmarshal(buf, val)) {
+		t.FailNow()
+	}
 }
 
 func SaveFixture(name string, buf []byte) {
