@@ -26,7 +26,6 @@ const (
 	PorukeTopic      = "poruke"
 	TransakcijeTopic = "transakcije"
 	StatsTopic       = "stats"
-	TeletextTopic    = "teletext"
 )
 
 const (
@@ -93,9 +92,6 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 		case TransakcijeTopic:
 			//transakcije imaju id int
 			return newTransakcijeBackend(buf)
-		case TeletextTopic:
-			// handlanje teletexta
-			return newTeletextBackend(buf)
 		}
 	}
 	if topic == StatsTopic {
@@ -456,29 +452,6 @@ func newTransakcijeBackend(buf []byte) *Backend {
 		Id:      msg.Id,
 		Ts:      msg.Ts,
 		IgracId: msg.IgracId,
-		Body:    buf,
-		RawBody: buf,
-	}
-}
-
-func newTeletextBackend(buf []byte) *Backend {
-	var msg struct {
-		CreatedAt string `json:"created_at"`
-		ID        int    `json:"id"`
-		Page      int    `json:"page"`
-		SubPage   int    `json:"sub_page"`
-		Text      string `json:"text"`
-		Ts        int    `json:"ts"`
-	}
-	if err := json.Unmarshal(buf, &msg); err != nil {
-		log.Printf("[ERROR] unmarshal error %s %s", err, buf)
-		return nil
-	}
-	msgType := fmt.Sprintf("%s/%d/%d", TeletextTopic, msg.Page, msg.SubPage)
-	//log.S("msgType", msgType).Info("new teletext backend")
-	return &Backend{
-		Type:    msgType,
-		Ts:      msg.Ts,
 		Body:    buf,
 		RawBody: buf,
 	}
