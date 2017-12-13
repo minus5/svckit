@@ -9,16 +9,16 @@ const (
 
 // Poruka za slanje na push notifikacije
 type PushNot struct {
-	Id			int `json:"push_not_id"`
-	GcmId		string
-	AppleId		string
-	FcmId		string
-	FcmTopic	string
-	DeviceType	int
-	Tip			int
-	Tekst		string
-	Lang		string
-	Listic		*PushNotListic
+	Id         int `json:"push_not_id"`
+	GcmId      string         //obsolete
+	AppleId    string         //obsolete
+	FcmId      string         //token za identifikaciju uredjaja
+	FcmTopic   string         //obsolete
+	DeviceType int            //0 - android, 1 - ios, 2 - web
+	Tip        int            //1 - privatna, 2 - broadcast, 3 - listic
+	Tekst      string         //text poruke (za tip=1 ili tip=2)
+	Lang       string         //jezik igraca: en ili hr
+	Listic     *PushNotListic //podaci o listicu ako je tip=3
 }
 
 // Podaci listica za slanje na push notifikacije
