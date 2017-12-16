@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
@@ -17,10 +18,11 @@ import (
 )
 
 const (
-	DefaultMaxInFlight     = 256
-	LookupdHTTPServiceName = "nsqlookupd-http"
-	NsqdTCPServiceName     = "nsqd-tcp"
-	EnvNsqd                = "SVCKIT_NSQD"
+	DefaultMaxInFlight      = 256
+	LookupdHTTPServiceName  = "nsqlookupd-http"
+	NsqdTCPServiceName      = "nsqd-tcp"
+	EnvNsqd                 = "SVCKIT_NSQD"
+	DefaultMsgTouchInterval = time.Second * 30
 )
 
 var (
@@ -31,6 +33,15 @@ var (
 	defaults *options
 	initMu   sync.Mutex
 )
+
+func getDefaults() *options {
+	initMu.Lock()
+	defer initMu.Unlock()
+	if defaults == nil {
+		initDefaults()
+	}
+	return defaults
+}
 
 func Set(opts ...func(*options)) {
 	initMu.Lock()
@@ -44,7 +55,7 @@ func Set(opts ...func(*options)) {
 func initDefaults() {
 	defaults = &options{
 		maxInFlight: DefaultMaxInFlight,
-		channel:     fmt.Sprintf("%s-%s", env.AppName(), env.NodeName()),
+		channel:     fmt.Sprintf("%s-%s", env.AppName(), env.InstanceId()),
 		nsqdTCPAddr: "127.0.0.1:4150",
 		lookupds:    dcy.Addresses{dcy.Address{Address: "127.0.0.1", Port: 4161}},
 		logLevel:    gonsq.LogLevelWarning,
@@ -82,9 +93,30 @@ func ChannelAppName() {
 // ChannelEphemeral sets default channel name to app name suffixed with node name and #ephemeral.
 // Default is app name suffixed with node name.
 func ChannelEphemeral() {
-	Set(Channel(fmt.Sprintf("%s-%s#ephemeral", env.AppName(), env.NodeName())))
+	Set(Channel(fmt.Sprintf("%s-%s#ephemeral", env.AppName(), env.InstanceId())))
 }
 
 func DefaultChannel(c string) {
 	Set(Channel(c))
+}
+
+// Run the function work every duration
+// Returns stop chan close which client needs to close.
+func every(duration time.Duration, work func()) chan struct{} {
+	stop := make(chan struct{})
+
+	go func() {
+		ticker := time.NewTicker(duration)
+		for {
+			select {
+			case <-ticker.C:
+				work()
+			case <-stop:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	return stop
 }

@@ -2,11 +2,12 @@ package leader
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/signal"
-	"sync"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -111,26 +112,29 @@ func New(worker func(<-chan struct{}), opts ...func(*options)) error {
 			// ako sam postao leader
 			if leaderShipLost != nil {
 				logger(o).Debug("leadership acquired")
-				// cekam na signale
+
+				stopWorker := make(chan struct{})
+				// cekam signale
 				go func() {
 					usr1 := signal.Usr1()
 					for {
 						select {
 						case <-usr1:
 							logger(o).Debug("usr1 signal received")
-							leader.Unlock()
+							close(stopWorker)
 							return
 						case <-interupt:
-							leader.Unlock()
+							close(stopWorker)
 							return
 						case <-leaderShipLost:
+							close(stopWorker)
 							return
 						}
 					}
 				}()
 				// zovem workera
-				worker(leaderShipLost)
-				leader.Unlock() //za slucaj da je work zavrsio sam od sebe
+				worker(stopWorker)
+				leader.Unlock() // nakon sto worker zavrsi
 			}
 		}
 	}

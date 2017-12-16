@@ -30,3 +30,7 @@ func newMessage(m *gonsq.Message) *Message {
 func (m *Message) RequeueWithoutBackoff(delay time.Duration) {
 	m.nsqm.RequeueWithoutBackoff(delay)
 }
+
+func (m *Message) Touch() {
+	m.nsqm.Touch()
+}

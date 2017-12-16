@@ -20,7 +20,8 @@ type Envelope struct {
 	// connection between request and response
 	CorrelationId string `json:"c,omitempty"`
 	// unix timestamp when message expires, after that should be dropped
-	ExpiresAt int64 `json:"e,omitempty"`
+	ExpiresAt int64  `json:"e,omitempty"`
+	Error     string `json:"error,omitempty"`
 	// message body
 	Body []byte `json:"-"`
 }
@@ -55,10 +56,13 @@ func (m *Envelope) ParseBody(o interface{}) error {
 }
 
 // Reply creates reply Envelope from request Envelope.
-func (m *Envelope) Reply(o interface{}) (*Envelope, error) {
+func (m *Envelope) Reply(o interface{}, err error) (*Envelope, error) {
 	e := &Envelope{
 		Type:          strings.Replace(m.Type, ".req", ".rsp", 1),
 		CorrelationId: m.CorrelationId,
+	}
+	if err != nil {
+		e.Error = err.Error()
 	}
 	if o != nil {
 		buf, err := json.Marshal(o)

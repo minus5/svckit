@@ -31,7 +31,9 @@ func (n *nsqLogger) Output(calldepth int, s string) error {
 		return nil
 	}
 	if strings.HasPrefix(s, "WRN") {
-		a.Info(s)
+		if !strings.Contains(s, "there are 0 connections left alive") {
+			a.Info(s)
+		}
 		return nil
 	}
 	if strings.HasPrefix(s, "ERR") {
@@ -51,6 +53,16 @@ type options struct {
 	logger      *nsqLogger
 	logLevel    gonsq.LogLevel
 	lookupds    dcy.Addresses
+}
+
+func (o *options) clone() *options {
+	o2 := &options{}
+	*o2 = *o
+	return o2
+}
+
+func (o *options) set(opts ...func(*options)) {
+	o.apply(opts...)
 }
 
 func (c *options) apply(opts ...func(*options)) *options {

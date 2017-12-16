@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log/syslog"
 	"os"
+
 	"github.com/minus5/svckit/env"
 
 	golog "log"
@@ -169,6 +170,10 @@ func S(key string, val string) *Agregator {
 
 func J(key string, val []byte) *Agregator {
 	return newAgregator(3).J(key, val)
+}
+
+func B(key string, val bool) *Agregator {
+	return newAgregator(3).B(key, val)
 }
 
 func Jc(key string, val []byte) *Agregator {

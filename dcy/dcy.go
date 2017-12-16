@@ -41,12 +41,10 @@ var (
 	cache       = map[string]Addresses{}
 	subscribers = map[string][]func(Addresses){}
 
-	domain        string
-	dc            string
-	nodeName      string
-	advertiseAddr string
-	bindAddr      string
-	consulAddr    = localConsulAdr
+	domain     string
+	dc         string
+	nodeName   string
+	consulAddr = localConsulAdr
 )
 
 // Address is service address returned from Consul.
@@ -140,8 +138,6 @@ func noConsulTestMode() {
 	domain = "sd"
 	dc = "dev"
 	nodeName = "node01"
-	bindAddr = "127.0.0.1"
-	advertiseAddr = "127.0.0.1"
 	cache["test1"] = []Address{
 		{"127.0.0.1", 12345},
 		{"127.0.0.1", 12348},
@@ -380,18 +376,27 @@ func self() error {
 	if err != nil {
 		return err
 	}
-	c := s["Config"]
-	domain = c["Domain"].(string)
-	dc = c["Datacenter"].(string)
-	nodeName = c["NodeName"].(string)
-	advertiseAddr = c["AdvertiseAddr"].(string)
-	bindAddr = c["BindAddr"].(string)
+	cfg := s["Config"]
+	version := cfg["Version"].(string)
+	dc = cfg["Datacenter"].(string)
+	nodeName = cfg["NodeName"].(string)
+	if strings.HasPrefix(version, "0.") {
+		domain = cfg["Domain"].(string)
+	} else {
+		if dcfg := s["DebugConfig"]; dcfg != nil {
+			domain = dcfg["DNSDomain"].(string)
+		}
+	}
 	return nil
 }
 
 // Call consul LockKey api function.
 func LockKey(key string) (*api.Lock, error) {
-	return consul.LockKey(key)
+	opts := &api.LockOptions{
+		Key:          key,
+		LockWaitTime: 5 * time.Second,
+	}
+	return consul.LockOpts(opts)
 }
 
 // NodeName returns Node name as defined in Consul.

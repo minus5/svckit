@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/user"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -64,4 +66,38 @@ func SetNodeName(name string) {
 // Hack to know that I'm in running in tests http://stackoverflow.com/a/36666114
 func InTest() bool {
 	return flag.Lookup("test.v") != nil
+}
+
+func HomeDir() string {
+	usr, _ := user.Current()
+	return usr.HomeDir
+}
+
+func Username() string {
+	usr, _ := user.Current()
+	return usr.Username
+}
+
+func ExpandPath(path string) string {
+	if strings.HasPrefix(path, "~") {
+		return strings.Replace(path, "~", HomeDir(), 1)
+	}
+	return path
+}
+
+func BinDir() string {
+	ex, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	exPath := filepath.Dir(ex)
+	return exPath
+}
+
+func InstanceId() string {
+	env, ok := os.LookupEnv("NOMAD_ALLOC_INDEX")
+	if !ok {
+		return NodeName()
+	}
+	return env
 }

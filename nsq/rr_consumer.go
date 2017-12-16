@@ -1,11 +1,15 @@
 package nsq
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 )
 
@@ -16,50 +20,74 @@ var (
 // RrConsumer request reponse consumer.
 // Implements consumer side of the request response communication over nsq.
 type RrConsumer struct {
-	topic     string
-	sub       *Consumer
-	producers map[string]*Producer
+	topic        string
+	sub          *Consumer
+	producers    map[string]*Producer
+	requeueError error // set this error to requeue only on this
+	// if nil requeues on all errors
 	sync.Mutex
 }
 
 // RrSub creates RrConsumer
 // topic   - nsq topic where reuqest arrive
 // handler - gets message type and body and creates response (or error)
-func RrSub(topic string, handler func(string, []byte) (interface{}, error)) *RrConsumer {
+func RrSub(topic string, handler func(string, []byte) (interface{}, error), opts ...func(*RrConsumer)) *RrConsumer {
 	s := &RrConsumer{
 		topic:     topic,
 		producers: make(map[string]*Producer),
 	}
+	s.apply(opts...)
 	h := func(m *Message) error {
+		// zapakiraj poruku u envelope
 		eReq, err := NewEnvelope(m.Body)
 		if err != nil {
 			return err
 		}
+		// provjeri da li je expired
 		if eReq.Expired() {
 			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Info("expired")
 			return nil
 		}
-		rsp, err := handler(eReq.Type, eReq.Body)
-		if err != nil {
+		// radi request
+		rsp, handlerErr := handler(eReq.Type, eReq.Body)
+		// ako je puklo vrati poruku u nsq
+		if handlerErr != nil && (s.requeueError == nil || handlerErr == s.requeueError) {
 			m.RequeueWithoutBackoff(RequeueDelay)
-			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Error(err)
+			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Error(handlerErr)
 			return nil
 		}
+		// treba li odgovoriti
 		if eReq.ReplyTo == "" {
 			return nil
 		}
-		eRsp, err := eReq.Reply(rsp)
+		// odgovori
+		eRsp, err := eReq.Reply(rsp, handlerErr)
 		if err != nil {
+			log.Error(err)
 			return err
 		}
 		pub := s.pub(eReq.ReplyTo)
 		if err := pub.Publish(eRsp.Bytes()); err != nil {
+			log.Error(err)
 			return err
 		}
 		return nil
 	}
-	s.sub = Sub(topic, h)
+	s.sub = Sub(topic, h, Channel(env.AppName()))
 	return s
+}
+
+// apply calls all functions to setup options
+func (s *RrConsumer) apply(opts ...func(*RrConsumer)) {
+	for _, fn := range opts {
+		fn(s)
+	}
+}
+
+func RequeueError(err error) func(*RrConsumer) {
+	return func(s *RrConsumer) {
+		s.requeueError = err
+	}
 }
 
 // RrAsyncSub creates RrConsumer in async mode
@@ -125,4 +153,35 @@ func (s *RrConsumer) Close() {
 		return
 	}
 	s.sub.Close()
+}
+
+// StartClosing will initiate a graceful stop of the Consumer (permanent)
+// Receive on returned chan to block until this process completes
+func (s *RrConsumer) StartClosing() chan int {
+	if s.sub == nil {
+		return nil
+	}
+	return s.sub.StartClosing()
+}
+
+type Server interface {
+	Serve(req interface{}) (interface{}, error)
+}
+
+func NewRrServer(topic string,
+	srv Server,
+	typeFor func(string) reflect.Type,
+	requeueError error) *RrConsumer {
+	handler := func(typ string, body []byte) (interface{}, error) {
+		t := typeFor(typ)
+		req := reflect.New(t).Interface()
+		if err := json.Unmarshal(body, req); err != nil {
+			return nil, err
+		}
+		return srv.Serve(req)
+	}
+	if requeueError == nil {
+		requeueError = errors.New("newer")
+	}
+	return RrSub(topic, handler, RequeueError(requeueError))
 }

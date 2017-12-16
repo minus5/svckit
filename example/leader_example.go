@@ -3,9 +3,10 @@
 package main
 
 import (
+	"time"
+
 	"github.com/minus5/svckit/leader"
 	"github.com/minus5/svckit/log"
-	"time"
 )
 
 func main() {
@@ -20,8 +21,10 @@ func worker(stop <-chan struct{}) {
 			log.Debug("not e leader any more")
 			return
 		default:
-			log.I("i", i).Debug("tick")
-			time.Sleep(1e9)
+			for j := 1; j < 10; j++ {
+				log.I("i", i).I("j", j).Debug("tick")
+				time.Sleep(1e9)
+			}
 			i++
 		}
 	}

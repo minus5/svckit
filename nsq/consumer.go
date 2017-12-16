@@ -2,7 +2,6 @@ package nsq
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/minus5/svckit/dcy"
@@ -13,7 +12,6 @@ import (
 
 type Consumer struct {
 	nsqConsumer *gonsq.Consumer
-	onceClose   sync.Once
 	logger      func() *log.Agregator
 	lookups     dcy.Addresses
 }
@@ -23,6 +21,10 @@ type nsqHandler struct {
 }
 
 func (h *nsqHandler) HandleMessage(m *gonsq.Message) error {
+	// javi periodicki nsqd-u da je procesiranje jos u tijeku
+	stop := every(DefaultMsgTouchInterval, m.Touch)
+	defer close(stop)
+	// zovi handler
 	return h.fn(newMessage(m))
 }
 
@@ -30,7 +32,7 @@ func MustNewConsumer(topic string, handler func(*Message) error,
 	opts ...func(*options)) *Consumer {
 	c, err := NewConsumer(topic, handler, opts...)
 	if err != nil {
-		log.Fatal(err)
+		log.S("topic", topic).Fatal(err)
 	}
 
 	return c
@@ -38,34 +40,36 @@ func MustNewConsumer(topic string, handler func(*Message) error,
 
 func NewConsumer(topic string, handler func(*Message) error,
 	opts ...func(*options)) (*Consumer, error) {
-	Set(opts...)
+
+	o := getDefaults().clone()
+	o.apply(opts...)
 
 	cfg := gonsq.NewConfig()
-	cfg.MaxInFlight = defaults.maxInFlight
+	cfg.MaxInFlight = o.maxInFlight
 	cfg.LookupdPollInterval = 10 * time.Second
 
-	c, err := gonsq.NewConsumer(topic, defaults.channel, cfg)
+	c, err := gonsq.NewConsumer(topic, o.channel, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	c.SetLogger(defaults.logger, defaults.logLevel)
+	c.SetLogger(o.logger, o.logLevel)
 	c.AddConcurrentHandlers(&nsqHandler{fn: handler}, cfg.MaxInFlight)
 
-	err = c.ConnectToNSQLookupds(defaults.lookupds.String())
+	err = c.ConnectToNSQLookupds(o.lookupds.String())
 	if err != nil {
 		return nil, err
 	}
 
 	co := &Consumer{
-		lookups:     defaults.lookupds,
+		lookups:     o.lookupds,
 		nsqConsumer: c,
 		logger: func() *log.Agregator {
-			return logger().S("topic", topic).S("channel", defaults.channel)
+			return logger().S("topic", topic).S("channel", o.channel)
 		},
 	}
 
-	co.logger().I("maxInFlight", defaults.maxInFlight).Info("starting consumer")
+	co.logger().I("maxInFlight", o.maxInFlight).Debug("starting consumer")
 	dcy.Subscribe(LookupdHTTPServiceName, co.onLookupChanges)
 	return co, nil
 }
@@ -88,10 +92,15 @@ func (c *Consumer) onLookupChanges(as dcy.Addresses) {
 }
 
 func (c *Consumer) Close() {
-	c.onceClose.Do(func() {
+	dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
+	c.nsqConsumer.Stop()
+	<-c.nsqConsumer.StopChan
+}
 
-		dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
-		c.nsqConsumer.Stop()
-		<-c.nsqConsumer.StopChan
-	})
+// StartClosing will initiate a graceful stop of the Consumer (permanent)
+// Receive on returned chan to block until this process completes
+func (c *Consumer) StartClosing() chan int {
+	dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
+	c.nsqConsumer.Stop()
+	return c.nsqConsumer.StopChan
 }

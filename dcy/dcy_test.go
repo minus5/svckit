@@ -32,8 +32,6 @@ func TestConsulSelf(t *testing.T) {
 	assert.Equal(t, dc, "dev")
 	assert.Equal(t, domain, "sd")
 	assert.Equal(t, nodeName, "node01")
-	assert.Equal(t, advertiseAddr, "127.0.0.1")
-	assert.Equal(t, bindAddr, "127.0.0.1")
 }
 
 func TestServices(t *testing.T) {

@@ -30,7 +30,7 @@ func main() {
 				req := Msg{Id: no}
 				rsp := &Msg{}
 				// make request and wait for response
-				err := pub.ReqRsp("nsq_rr.req", "req", req, rsp, sig, 0)
+				err := pub.ReqRsp("nsq_rr.req", "req", req, rsp, sig, 0, nil)
 				if err != nil {
 					log.I("req", no).I("rsp", rsp.Id).Error(err)
 				} else {
