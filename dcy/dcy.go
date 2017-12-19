@@ -111,6 +111,9 @@ func init() {
 	if e, ok := os.LookupEnv(EnvConsul); ok && e != "" {
 		consulAddr = e
 	}
+	if consulAddr == "--" {
+		return
+	}
 	if consulAddr == "-" || (env.InTest() && consulAddr == localConsulAdr) {
 		noConsulTestMode()
 		return
@@ -195,6 +198,14 @@ func connect() error {
 		}
 	}
 	return nil
+}
+
+func ConnectTo(addr string) error {
+	if consul != nil {
+		return nil
+	}
+	consulAddr = addr
+	return signal.WithExponentialBackoff(connect)
 }
 
 func serviceName(fqdn, domain string) (string, string) {
@@ -340,10 +351,31 @@ func Services(name string) (Addresses, error) {
 	return srv(sn, dc)
 }
 
+// func ServicesIn(dc) ([]string, k) {
+// 	m, _, err := consul.Catalog().Services(&api.QueryOptions{Datacenter: dc})
+// 	if err != nil {
+// 		return nil, error
+// 	}
+// 	var s []string
+// 	for k, v := range m {
+// 		s = append(s, k)
+// 	}
+// 	return s
+// }
+
 // Service will find one service in Consul cluster.
 // Will randomly choose one if there are multiple register in Consul.
 func Service(name string) (Address, error) {
 	srvs, err := Services(name)
+	if err != nil {
+		return Address{}, err
+	}
+	srv := srvs[rand.Intn(len(srvs))]
+	return srv, nil
+}
+
+func ServiceInDc(name, dc string) (Address, error) {
+	srvs, err := srv(name, dc)
 	if err != nil {
 		return Address{}, err
 	}
