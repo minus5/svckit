@@ -221,6 +221,7 @@ func (util *TestMSSQLUtility) ObrisiListice(t *testing.T) {
 	err := util.RunStoredProcedure(t, "unit_tests.obrisi_listice")
 	assert.NoError(t, err)
 	util.TestDbExec(t, fmt.Sprintf("update igraci.igraci set raspolozivo = 100 where remember_token = '%s'", TestIgracGuid))
+	util.TruncateTable(t, "dbo.SlipEvents")
 }
 
 // AssertRecordsCount prvjerava da li broj redaka u tablici odogovrara ocekivanom
