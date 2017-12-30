@@ -23,6 +23,7 @@ const (
 	TypePromijeniPodatke   = "racun/promijeni_osobne_podatke"
 	TypeAktivirajEmail     = "racun/aktiviraj_email"
 	TypeProvjeraUplate     = "racun/provjera_uplate"
+	TypeExtraPodaci        = "racun/extra_podaci"
 	TypeSamoogranicenjeSet = "samoogranicenje/set"
 	TypeSamoogranicenjeDel = "samoogranicenje/del"
 	TypeTransakcije        = "transakcije"
