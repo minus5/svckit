@@ -65,11 +65,15 @@ func (m *Envelope) Reply(o interface{}, err error) (*Envelope, error) {
 		e.Error = err.Error()
 	}
 	if o != nil {
-		buf, err := json.Marshal(o)
-		if err != nil {
-			return nil, err
+		if buf, ok := o.([]byte); ok {
+			e.Body = buf
+		} else {
+			buf, err := json.Marshal(o)
+			if err != nil {
+				return nil, err
+			}
+			e.Body = buf
 		}
-		e.Body = buf
 	}
 	return e, nil
 }

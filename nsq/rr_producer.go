@@ -147,74 +147,119 @@ type ErrorsMapping struct {
 // rsp   - stucture to unpuck response into
 // sig   - timout singal to signal stop waiting for response
 // ttl   - time to live of message for envelope
-// errorParser - aplikacijsko specifican parser stringa greske u type
+// em    - error mapping, mapping to application specific messages
 func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{}, sig chan struct{}, ttl time.Duration, em *ErrorsMapping) error {
-	if em == nil {
-		em = &ErrorsMapping{
+	if typ == "" {
+		typ = typeToString(req)
+	}
+	p := ReqRspBaseParams{
+		Topic: topic,
+		Typ:   typ,
+		Ttl:   ttl,
+		Sig:   sig,
+		Em:    em,
+	}
+	p.defaults()
+	reqBuf, err := json.Marshal(req)
+	if err != nil {
+		return p.Fatal(err)
+	}
+	p.Req = reqBuf
+	p.correlationId = s.corr.NewCorrelationID(topic, typ, req)
+	rspBuf, err := s.ReqRspBase(p)
+	if err != nil {
+		return err
+	}
+	if rsp != nil && len(rspBuf) > 0 {
+		if err := json.Unmarshal(rspBuf, rsp); err != nil {
+			return p.Fatal(err)
+		}
+	}
+	return nil
+}
+
+type ReqRspBaseParams struct {
+	Topic         string
+	Typ           string
+	Req           []byte
+	Ttl           time.Duration
+	Sig           chan struct{}
+	Em            *ErrorsMapping
+	correlationId string
+}
+
+func (p *ReqRspBaseParams) defaults() {
+	if p.Ttl <= 0 {
+		p.Ttl = DefaultTimeout
+	}
+	if p.Em == nil {
+		p.Em = &ErrorsMapping{
 			Parser:     defaultErrorParser,
 			ErrStopped: ErrStopped,
 			ErrTimeout: ErrTimeout,
 		}
 	}
-	if typ == "" {
-		typ = typeToString(req)
+}
+
+func (p *ReqRspBaseParams) Fatal(err error) error {
+	if p.Em.ErrFatal != nil {
+		return p.Em.ErrFatal
 	}
-	if ttl < 0 {
-		return em.ErrTimeout
+	return err
+}
+
+func (p *ReqRspBaseParams) Timeout() error {
+	if p.Em.ErrTimeout != nil {
+		return p.Em.ErrTimeout
 	}
-	if ttl == 0 {
-		ttl = DefaultTimeout
+	return ErrTimeout
+}
+
+func (p *ReqRspBaseParams) Stopped() error {
+	if p.Em.ErrStopped != nil {
+		return p.Em.ErrStopped
 	}
-	buf, err := json.Marshal(req)
-	if err != nil {
-		if em.ErrFatal != nil {
-			log.Error(err)
-			return em.ErrFatal
-		}
-		return err
+	return ErrStopped
+}
+
+func (p *ReqRspBaseParams) Error(text string) error {
+	if p.Em.Parser != nil {
+		return p.Em.Parser(text)
 	}
-	correlationId := s.corr.NewCorrelationID(topic, typ, req)
+	return defaultErrorParser(text)
+}
+
+func (s *RrProducer) ReqRspBase(p ReqRspBaseParams) ([]byte, error) {
+	p.defaults()
+	if p.correlationId == "" {
+		p.correlationId = s.NewCorrelationID("", "", nil)
+	}
+
 	eReq := &Envelope{
-		Type:          typ,
+		Type:          p.Typ,
 		ReplyTo:       s.topic,
-		CorrelationId: correlationId,
-		Body:          buf,
-	}
-	if ttl > 0 {
-		eReq.ExpiresAt = time.Now().Add(ttl).Unix()
+		CorrelationId: p.correlationId,
+		Body:          p.Req,
+		ExpiresAt:     time.Now().Add(p.Ttl).Unix(),
 	}
 	c := make(chan *Envelope)
-	s.add(correlationId, c)
+	s.add(p.correlationId, c)
 
-	p := s.pub(topic)
-	if err := p.Publish(eReq.Bytes()); err != nil {
-		if em.ErrFatal != nil {
-			log.Error(err)
-			return em.ErrFatal
-		}
-		return err
+	if err := s.pub(p.Topic).Publish(eReq.Bytes()); err != nil {
+		return nil, p.Fatal(err)
 	}
 
 	select {
 	case re := <-c:
-		if rsp != nil && len(re.Body) > 0 {
-			if err := json.Unmarshal(re.Body, rsp); err != nil {
-				if em.ErrFatal != nil {
-					log.Error(err)
-					return em.ErrFatal
-				}
-				return err
-			}
-		}
-		return em.Parser(re.Error)
-	case <-time.After(ttl):
-		s.timeout(correlationId)
-		return em.ErrTimeout
-	case <-sig:
-		s.timeout(correlationId)
-		return em.ErrStopped
+		return re.Body, p.Error(re.Error)
+	case <-time.After(p.Ttl):
+		s.timeout(p.correlationId)
+		return nil, p.Timeout()
+	case <-p.Sig:
+		s.timeout(p.correlationId)
+		return nil, p.Stopped()
 	}
-	return nil
+	return nil, nil
 }
 
 // NewCorrelationID creates unique correlationID as request identifier
