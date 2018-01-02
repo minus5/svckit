@@ -150,3 +150,16 @@ func TestSubscribe(t *testing.T) {
 	assert.Len(t, subscribers["svc"], 1)
 
 }
+
+func TestNomad(t *testing.T) {
+	t.Skip("pokretao na produkciji")
+	s, err := Service("nsq_to_cloudwatch")
+	assert.NoError(t, err)
+	assert.Equal(t, 10600, s.Port)
+	//t.Log(s)
+
+	s, err = Service("nsq-to_cloudwatch")
+	assert.NoError(t, err)
+	assert.Equal(t, 10600, s.Port)
+	//t.Log(s)
+}
