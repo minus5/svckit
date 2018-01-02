@@ -320,7 +320,7 @@ func query(name string, dc string) (Addresses, error) {
 	}
 	srvs := parseConsulServiceEntries(ses)
 	if len(srvs) == 0 {
-		return nil, fmt.Errorf(fmt.Sprintf("service %s not found in consul %s", name, consulAddr))
+		return nil, fmt.Errorf("service %s not found in consul %s", name, consulAddr)
 	}
 	updateCache(name, dc, srvs)
 	go func() {
@@ -339,6 +339,12 @@ func srv(name string, dc string) (Addresses, error) {
 	}
 	// log.Printf("cache miss for %s %v", name, srvs)
 	srvs, err := query(name, dc)
+	if err == nil {
+		return srvs, nil
+	}
+
+	nameNomad := strings.Replace(name, "_", "-", -1)
+	srvs, err = query(nameNomad, dc)
 	if err != nil {
 		return nil, err
 	}
