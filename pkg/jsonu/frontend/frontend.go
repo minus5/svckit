@@ -38,6 +38,7 @@ type Frontend struct {
 	Output     chan *Envelope
 	input      chan *inMsg
 	retryStore map[string]*inMsg
+	retryCount map[string]int
 }
 
 func New(url, origin string, lang string, app string, ver string) *Frontend {
@@ -55,6 +56,7 @@ func New(url, origin string, lang string, app string, ver string) *Frontend {
 		Output:     make(chan *Envelope, 1024),
 		input:      make(chan *inMsg, 1024),
 		retryStore: make(map[string]*inMsg),
+		retryCount: make(map[string]int),
 	}
 	go f.loop()
 	return f
@@ -200,16 +202,20 @@ again:
 			}
 			if _, ok := f.retryStore[m.Id]; ok {
 				if m.Status != "0" { //poruka je failala a zatrazen je retry
-					fmt.Println("Msg failed, will retry.")
-					delay := time.Duration(math.Pow(2, math.Min(float64(f.retry),13)))
-					f.retry++
-					go func(d time.Duration, msgId string) {
-						time.Sleep(d*time.Millisecond) //sleepamo u goroutini da ne blokiramo
-						f.input <- f.retryStore[msgId]
-					} (delay, m.Id)
-					continue //ne saljemo poruku na output ako je failala
+					if f.retryCount[m.Id] < 5 {
+						fmt.Printf("Msg %s failed, will retry.\n", m.Id)
+						delay := time.Duration(math.Pow(2, math.Min(float64(f.retryCount[m.Id]), 13)))
+						f.retryCount[m.Id]=f.retryCount[m.Id]+1
+						go func(d time.Duration, msgId string) {
+							time.Sleep(d * time.Millisecond) //sleepamo u goroutini da ne blokiramo
+							f.input <- f.retryStore[msgId]
+						}(delay, m.Id)
+						continue //ne saljemo poruku na output ako je failala
+					} else {
+						fmt.Printf("Msg %s retried %d times, giving up.\n", m.Id, f.retryCount[m.Id])
+					}
 				}
-				f.retry = 0 //uspjesno obradjena, resetiramo retry...
+				delete(f.retryCount,m.Id) //uspjesno obradjena ili odustajem, brisem retry...
 				delete(f.retryStore, m.Id) //...i brisem poruku iz storea
 			}
 			f.Output <- m
@@ -268,7 +274,7 @@ func (f *Frontend) Read(key string) {
 	msg := &struct {
 		Type string `json:"type"`
 	}{Type: key}
-	f.send(msgRead, msg, false)
+	f.send(msgRead, msg, true)
 }
 
 func (f *Frontend) sendSubs() {
@@ -298,6 +304,7 @@ func (f *Frontend) send(typ string, o interface{}, retry bool) error {
 	}
 	if retry {
 		f.retryStore[fmt.Sprintf("%d",f.counter)]=i
+		f.retryCount[fmt.Sprintf("%d",f.counter)]=0
 	}
 	f.input <- i
 	return nil
