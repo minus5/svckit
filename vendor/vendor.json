@@ -9,6 +9,12 @@
 			"revisionTime": "2016-03-20T18:21:10Z"
 		},
 		{
+			"checksumSHA1": "tUZmNMotCGdra/Ep3fB3H1nc4Uw=",
+			"path": "github.com/armon/go-metrics",
+			"revision": "7aa49fde808223f8dadfdbfd3a20ff6c19e5f9ec",
+			"revisionTime": "2017-11-17T18:41:20Z"
+		},
+		{
 			"checksumSHA1": "hTThB1Cw2ue02RD5Oig4eu1Dkzk=",
 			"path": "github.com/cenkalti/backoff",
 			"revision": "309aa717adbf351e92864cbedf9cca0b769a4b5a",
@@ -45,16 +51,22 @@
 			"revisionTime": "2017-04-27T04:12:50Z"
 		},
 		{
-			"checksumSHA1": "bmg4kBp5Lyw7itBV3S8ElfkjmYY=",
+			"checksumSHA1": "B7N8ClCrkhPc4G13oY4NxXZPm90=",
 			"path": "github.com/hashicorp/consul/api",
-			"revision": "783a405d781ffc5edaf2d6b5eff41e22df96644f",
-			"revisionTime": "2017-11-11T02:15:02Z"
+			"revision": "20c6a5f76b446a93c430e3aaae6be1b16cebdfde",
+			"revisionTime": "2018-01-20T00:38:48Z"
 		},
 		{
-			"checksumSHA1": "Uzyon2091lmwacNsl1hCytjhHtg=",
+			"checksumSHA1": "YAq1rqZIp+M74Q+jMBQkkMKm3VM=",
 			"path": "github.com/hashicorp/go-cleanhttp",
-			"revision": "ad28ea4487f05916463e2423a55166280e8254b5",
-			"revisionTime": "2016-04-07T17:41:26Z"
+			"revision": "d5fe4b57a186c716b0e00b8c301cbd9b4182694d",
+			"revisionTime": "2017-12-18T14:54:08Z"
+		},
+		{
+			"checksumSHA1": "Cas2nprG6pWzf05A2F/OlnjUu2Y=",
+			"path": "github.com/hashicorp/go-immutable-radix",
+			"revision": "59b67882ec612f43b9d4c4fd97cebd507be4b3ee",
+			"revisionTime": "2018-01-16T18:04:02Z"
 		},
 		{
 			"checksumSHA1": "A1PcINvF3UiwHRKn8UcgARgvGRs=",
@@ -63,10 +75,16 @@
 			"revisionTime": "2016-05-03T14:34:40Z"
 		},
 		{
-			"checksumSHA1": "E3Xcanc9ouQwL+CZGOUyA/+giLg=",
+			"checksumSHA1": "9hffs0bAIU6CquiRhKQdzjHnKt0=",
+			"path": "github.com/hashicorp/golang-lru/simplelru",
+			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
+			"revisionTime": "2016-08-13T22:13:03Z"
+		},
+		{
+			"checksumSHA1": "0PeWsO2aI+2PgVYlYlDPKfzCLEQ=",
 			"path": "github.com/hashicorp/serf/coordinate",
-			"revision": "9432bc08aa8d486e497e27f84878ebbe8c1eab66",
-			"revisionTime": "2016-08-16T23:01:54Z"
+			"revision": "b6017ae61f4420ed0c02d5eeeb9ff3fc02953f14",
+			"revisionTime": "2018-01-19T22:43:00Z"
 		},
 		{
 			"checksumSHA1": "V/quM7+em2ByJbWBLOsEwnY3j/Q=",
