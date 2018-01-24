@@ -305,12 +305,11 @@ func (db *Mdb) Ping() bool {
 }
 
 func (db *Mdb) loop() {
-	for {
-		select {
-		case <-time.Tick(db.checkPointIn):
-			db.checkpoint()
-		}
+	t := time.NewTicker(db.checkPointIn)
+	for range t.C {
+		db.checkpoint()
 	}
+	//t.Stop()
 }
 
 func (db *Mdb) checkpoint() {
