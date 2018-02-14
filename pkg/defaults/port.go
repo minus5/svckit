@@ -47,4 +47,5 @@ const (
 	PortGames                     = "8440"
 	PortVideo                     = "8450"
 	PortGamesConnector            = "8460"
+	PortCrasher                   = "8470"
 )
