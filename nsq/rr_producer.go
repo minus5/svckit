@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/pkg/errors"
@@ -48,7 +47,7 @@ type RrProducerCorrelation interface {
 // - opts are functions to set additional options
 func RrPub(topic string, opts ...func(*RrProducer)) *RrProducer {
 	if topic == "" {
-		topic = fmt.Sprintf("z...rsp.%s.%s", env.AppName(), dcy.NodeName())
+		topic = fmt.Sprintf("z...rsp.%s.%s", env.AppName(), env.InstanceId())
 	}
 	if s, ok := rrProducers[topic]; ok {
 		return s
