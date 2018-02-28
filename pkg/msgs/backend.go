@@ -378,7 +378,7 @@ func (b *Backend) pack() []byte {
 	var err error
 	b.RawHeader, err = json.Marshal(b)
 	if err != nil {
-		log.Printf("[ERROR] %s", err)
+		log.Printf("[ERROR] %s ", err)
 	}
 	b.IgracId = igracId
 	b.No = no
