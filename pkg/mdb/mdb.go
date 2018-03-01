@@ -228,6 +228,12 @@ func Name(n string) func(db *Mdb) {
 	}
 }
 
+func SetPoolLimit(limit int) func(db *Mdb) {
+	return func(db *Mdb) {
+		db.session.SetPoolLimit(limit)
+	}
+}
+
 // CacheRoot sets disk cache root directory
 func CacheRoot(d string) func(db *Mdb) {
 	return func(db *Mdb) {

@@ -57,10 +57,12 @@ type seekResult struct {
 // Seek returns all files of a type newer than fromTs
 func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser, time.Time, interface{}) error) error {
 	return fs.db.UseFs(fs.name, fs.name+"_seek", func(g *mgo.GridFS) error {
-		i := g.Find(bson.M{"filename": typ, "uploadDate": bson.M{"$gt": fromTs}}).
-			Sort("uploadDate").Iter()
+		q := bson.M{"filename": typ}
+		if !fromTs.IsZero() {
+			q["uploadDate"] = bson.M{"$gt": fromTs}
+		}
+		i := g.Find(q).Sort("uploadDate").Iter()
 		r := seekResult{}
-		defer i.Close()
 		for i.Next(&r) {
 			f, err := g.OpenId(r.Id)
 			if err != nil {
@@ -70,7 +72,7 @@ func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser, time.Time
 				return err
 			}
 		}
-		return nil
+		return i.Close()
 	})
 }
 
@@ -78,12 +80,11 @@ func (fs *Fs) Seek(typ string, fromTs time.Time, h func(io.ReadCloser, time.Time
 func (fs *Fs) SeekRange(typ string, fromTs time.Time, toTs time.Time, h func(io.ReadCloser, time.Time, interface{}) error) error {
 	return fs.db.UseFs(fs.name, fs.name+"_seek", func(g *mgo.GridFS) error {
 		i := g.Find(bson.M{"filename": typ,
-							"$and": []interface{}{
-								bson.M{"uploadDate": bson.M{"$gt": fromTs}},
-								bson.M{"uploadDate": bson.M{"$lt": toTs}},
-		}}).Sort("uploadDate").Iter()
+			"$and": []interface{}{
+				bson.M{"uploadDate": bson.M{"$gt": fromTs}},
+				bson.M{"uploadDate": bson.M{"$lt": toTs}},
+			}}).Sort("uploadDate").Iter()
 		r := seekResult{}
-		defer i.Close()
 		for i.Next(&r) {
 			f, err := g.OpenId(r.Id)
 			if err != nil {
@@ -93,7 +94,7 @@ func (fs *Fs) SeekRange(typ string, fromTs time.Time, toTs time.Time, h func(io.
 				return err
 			}
 		}
-		return nil
+		return i.Close()
 	})
 }
 
@@ -150,7 +151,6 @@ func (fs *Fs) Compact(typ string) error {
 		}
 		idx := 0
 		i := q.Iter()
-		defer i.Close()
 		for i.Next(&r) {
 			idx++
 			if idx >= cnt-1 {
@@ -160,7 +160,7 @@ func (fs *Fs) Compact(typ string) error {
 				return err
 			}
 		}
-		return nil
+		return i.Close()
 	})
 }
 
