@@ -171,6 +171,13 @@ func (fs *Fs) Remove(typ string) error {
 	})
 }
 
+// Remove deletes all files of a type
+func (fs *Fs) RemoveId(id interface{}) error {
+	return fs.db.UseFs(fs.name, fs.name+"_remove", func(g *mgo.GridFS) error {
+		return g.RemoveId(id)
+	})
+}
+
 func (fs *Fs) createIndexes() error {
 	return fs.db.Use(fs.name+".files", fs.name+"_indexes", func(c *mgo.Collection) error {
 		if err := c.EnsureIndex(mgo.Index{
