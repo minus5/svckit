@@ -34,6 +34,11 @@ func (r SportradarIdResponse) ToJson() []byte {
 	return buf
 }
 
+func (r LigaInfoRequest) ToJson() []byte {
+	buf, _ := json.Marshal(r)
+	return buf
+}
+
 func (r LigaInfoResponse) ToJson() []byte {
 	buf, _ := json.Marshal(r)
 	return buf
@@ -41,6 +46,15 @@ func (r LigaInfoResponse) ToJson() []byte {
 
 func SportradarRspFromJson(b []byte) (*SportradarIdResponse, error) {
 	rsp := &SportradarIdResponse{}
+	err := json.Unmarshal(b, rsp)
+	if err != nil {
+		return nil, err
+	}
+	return rsp, nil
+}
+
+func LigaInfoRspFromJson(b []byte) (*LigaInfoResponse, error) {
+	rsp := &LigaInfoResponse{}
 	err := json.Unmarshal(b, rsp)
 	if err != nil {
 		return nil, err
