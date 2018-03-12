@@ -2,6 +2,7 @@ package qcheck
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -67,4 +68,35 @@ func TestFull(t *testing.T) {
 		}
 	}
 	ticker.Stop()
+}
+
+func TestCloseBezPoruka(t *testing.T) {
+	goRoutineStart := runtime.NumGoroutine()
+	qc := New2(100, 2*time.Second)
+	assert.NotNil(t, qc)
+	assert.Equal(t, 0, qc.Count())
+	assert.False(t, qc.Any())
+	qc.Close()
+	assert.Equal(t, 0, runtime.NumGoroutine()-goRoutineStart)
+}
+
+func TestCloseSPorukama(t *testing.T) {
+	goRoutineStart := runtime.NumGoroutine()
+
+	qc := New2(100, 2*time.Second)
+	assert.NotNil(t, qc)
+	assert.Equal(t, 0, qc.Count())
+	assert.False(t, qc.Any())
+	// Napuni sve poruke
+	ticker := time.NewTicker(time.Millisecond)
+	for range ticker.C {
+		if err := qc.Push(); nil != err {
+			break
+		}
+	}
+	ticker.Stop()
+	assert.Equal(t, 101, qc.Count())
+	assert.True(t, qc.Full())
+	qc.Close()
+	assert.Equal(t, 0, runtime.NumGoroutine()-goRoutineStart)
 }
