@@ -50,5 +50,6 @@ const (
 	PortCrasher                   = "8470"
 	PortLogger                    = "8480"
 	PortLoggerStatsd              = "8481"
+	PortLoggerSyslog              = "8482"
 	PortGrafanaToGit              = "8490"
 )
