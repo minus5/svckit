@@ -1,6 +1,8 @@
 package msgs
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type SportradarIdRequest struct {
 	Id      int    `json:"id"`
@@ -15,8 +17,10 @@ type LigaInfoRequest struct {
 }
 
 type LigaInfoResponse struct {
-	LigaId    int    `json:"ligaId"`
-	LigaNaziv string `json:"ligaNaziv"`
+	LigaId         int     `json:"ligaId"`
+	LigaNaziv      string  `json:"ligaNaziv"`
+	LigaGrupaId    *int    `json:"ligaGrupaId"`
+	LigaGrupaNaziv *string `json:"ligaGrupaNaziv"`
 }
 
 type SportradarIdResponse struct {
