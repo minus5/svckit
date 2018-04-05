@@ -50,4 +50,6 @@ const (
 	PortCrasher                   = "8470"
 	PortTecajna2                  = "8480"
 	PortT2Api                     = "8490"
+	PortT2ApiPprof                = "8491"
+	PortT2ApiClient               = "8492"
 )
