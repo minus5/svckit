@@ -1,41 +1,44 @@
-/* package saga definira jednostavan saga orkestrator
-Sto je saga: https://www.youtube.com/watch?v=0UTOLRTwOX0
-*/
+// Package saga defines simple saga orcestrator
+// - What is saga: https://www.youtube.com/watch?v=0UTOLRTwOX0
 package saga
 
+// Saga contains all steps saga must perform
 type Saga struct {
-	steps        []Step
-	compensating []Step
-	notify       FStep
-	cleanup      []FStep
+	steps        []Step  // forward steps, executed first
+	notify       FStep   // notifications step, executed after forward steps
+	compensating []Step  // compensating steps, added when forward step fails, executed after steps and notify
+	cleanup      []FStep // cleanup steps, always executed last
 }
 
-// Step definira metofde koje ima korak u sagi
-// error u Do ili Compensate zaustavlja sagu i vraca taj error iz saga.Do
+// Step defines step interface for forward / cleanup steps
+//
+// NOTE: error returned from Do or Compensate stops saga execution
 type Step interface {
-	Do() error         // izvrsi forward akcije
-	Compensate() error // izvrsi compensate/cancel/storno
-	Finished() bool    // je li Do metoda odradjena
-	Successful() bool  // Do je bio uspjesan
-	Failed() bool      // Do je zavrsio ali neuspjesno
-	Aborted() bool     // Do nije zavrsio, recimo timeout
-	Compensated() bool // Compensate je uspjesno zavrsio
+	Do() error         // Do executes forward step
+	Finished() bool    // Finished returns true when Do is finished
+	Successful() bool  // Successful returns true when Do was successful
+	Failed() bool      // Failed returns true Do failed
+	Compensate() error // Compensate executes compensate step (when Do failed)
+	Compensated() bool // Compensate returns true when succesful
 }
 
-// FStep Forward only Step
-// Korak koji moze ici samo prema naprijed, nema Compensate dijela
+// FStep is forward only step, no compensate option
+//
+// NOTE: used as notify or cleanup step
 type FStep interface {
-	Do(bool) error  // Izvrsi forward akciju, bool parametar uspjesnost sage
-	Finished() bool // je li Do metoda odradjena
+	Do(bool) error  // Do executes forward step, bool param is saga success flag
+	Finished() bool // Finished returns true when Do is finished
 }
 
-// New krira novu sagu
-//     steps   - koraci koje treba izvrsiti
-//     notify  - poziva se kada znamo rezultat sage, je li uspjesan ili neuspjesan zavrsetak
-//               zove se prije compensate koraka i prije cleanup
-//               cim znamo koji je rezultat
-//     cleanup - koraci koje izvrsavamo uvijek na kraju
-//               bilo da je rezultat sage uspjesan ili ne
+// New creates new saga
+// - steps   - forward steps to execute
+// - notify  - notify step executed when result of forward steps
+//             is known regardless of success or fail, executed
+//             before compensate and cleanup steps
+// - cleanup - steps always executed at the end of saga
+//             regardless of success or fail
+//
+// NOTE: error in any step stops execution
 func New(steps []Step, notify FStep, cleanup []FStep) *Saga {
 	return &Saga{
 		steps:        steps,
@@ -45,9 +48,9 @@ func New(steps []Step, notify FStep, cleanup []FStep) *Saga {
 	}
 }
 
-// Do vraca nil ako je saga dogurala do kraja
-// error ako smo se negdje po putu raspali
-// client-ova je odgovornost odluciti po tipu greske da li sagu ponovo pokrenuti
+// Do executes saga, this should be called to start saga execution
+// - any error returned stops saga execution
+// - it is callers responsibility to decide what to do in case of error returned
 func (s *Saga) Do() error {
 	success, err := s.doForward()
 	if err != nil {
@@ -69,12 +72,14 @@ func (s *Saga) Do() error {
 	return nil
 }
 
-// doForward izvrsava Do za svaki korak
-// Vraca:
-//       success - ako su svi koraci bili uspjesni
-//       error   - ako je neki od koraka zavriso greskom
-// Priprema listu compensating koraka,
-// one koje treba kompnezirati u slucaju neuspjesnog zavrsetka.
+// doForward executes forward steps by executing Do for each step
+// adds compensating steps in case execution fails
+//
+// Returns:
+// - success - status of forward step execution
+// - error   - when step fails with error
+//
+// NOTE: compensating steps are added only when step Do is not failed
 func (s *Saga) doForward() (bool, error) {
 	success := true
 	for _, step := range s.steps {
@@ -84,7 +89,7 @@ func (s *Saga) doForward() (bool, error) {
 			}
 		}
 		if !step.Failed() { // ako je aborted ili successful
-			s.addCompensating(step)
+			s.compensating = append(s.compensating, step)
 		}
 		if !step.Successful() { // ako je aborted ili failed
 			success = false
@@ -94,12 +99,13 @@ func (s *Saga) doForward() (bool, error) {
 	return success, nil
 }
 
-func (s *Saga) addCompensating(step Step) {
-	s.compensating = append(s.compensating, step)
-}
-
-// doCompensating poziva Compensate za svaki zapoceti korak
-// Vraca error ako neki od koraka nije uspjesan.
+// doCompensating executes Compensate for each succesful step
+// in reverse order
+//
+// Returns error when Compensate fails
+//
+// NOTE: this is executed only when forward step
+// Succesful returns false
 func (s *Saga) doCompensating() error {
 	for i := len(s.compensating) - 1; i >= 0; i-- {
 		step := s.compensating[i]
@@ -114,8 +120,9 @@ func (s *Saga) doCompensating() error {
 	return nil
 }
 
-// doCleanup poizva Do za cleanup korake
-// Vraca error ako neki od koraka nije uspjesan.
+// doCleanup executes all cleanup steps
+//
+// Returns error when cleanup Do fails
 func (s *Saga) doCleanup(success bool) error {
 	for _, step := range s.cleanup {
 		if step.Finished() {
