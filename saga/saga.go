@@ -15,19 +15,16 @@ type Saga struct {
 // NOTE: error returned from Do or Compensate stops saga execution
 type Step interface {
 	Do() error         // Do executes forward step
-	Finished() bool    // Finished returns true when Do is finished
 	Successful() bool  // Successful returns true when Do was successful
 	Failed() bool      // Failed returns true Do failed
 	Compensate() error // Compensate executes compensate step (when Do failed)
-	Compensated() bool // Compensate returns true when succesful
 }
 
 // FStep is forward only step, no compensate option
 //
 // NOTE: used as notify or cleanup step
 type FStep interface {
-	Do(bool) error  // Do executes forward step, bool param is saga success flag
-	Finished() bool // Finished returns true when Do is finished
+	Do(bool) error // Do executes forward step, bool param is saga success flag
 }
 
 // New creates new saga
@@ -56,10 +53,8 @@ func (s *Saga) Do() error {
 	if err != nil {
 		return err
 	}
-	if !s.notify.Finished() {
-		if err := s.notify.Do(success); err != nil {
-			return err
-		}
+	if err := s.notify.Do(success); err != nil {
+		return err
 	}
 	if !success {
 		if err := s.doCompensating(); err != nil {
@@ -83,10 +78,8 @@ func (s *Saga) Do() error {
 func (s *Saga) doForward() (bool, error) {
 	success := true
 	for _, step := range s.steps {
-		if !step.Finished() {
-			if err := step.Do(); err != nil {
-				return false, err
-			}
+		if err := step.Do(); err != nil {
+			return false, err
 		}
 		if !step.Failed() { // ako je aborted ili successful
 			s.compensating = append(s.compensating, step)
@@ -109,9 +102,6 @@ func (s *Saga) doForward() (bool, error) {
 func (s *Saga) doCompensating() error {
 	for i := len(s.compensating) - 1; i >= 0; i-- {
 		step := s.compensating[i]
-		if step.Compensated() {
-			continue
-		}
 		err := step.Compensate()
 		if err != nil {
 			return err
@@ -125,9 +115,6 @@ func (s *Saga) doCompensating() error {
 // Returns error when cleanup Do fails
 func (s *Saga) doCleanup(success bool) error {
 	for _, step := range s.cleanup {
-		if step.Finished() {
-			continue
-		}
 		if err := step.Do(success); err != nil {
 			return err
 		}
