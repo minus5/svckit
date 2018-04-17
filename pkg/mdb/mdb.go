@@ -14,8 +14,9 @@ import (
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 // ErrNotFound raised when record is not found in db

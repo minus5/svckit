@@ -4,8 +4,8 @@ import (
 	"io"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 /*Fs defines operations for working with append only compactable file system.
