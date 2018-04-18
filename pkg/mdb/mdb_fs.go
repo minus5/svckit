@@ -153,7 +153,7 @@ func (fs *Fs) Compact(typ string) error {
 		i := q.Iter()
 		for i.Next(&r) {
 			idx++
-			if idx >= cnt-1 {
+			if idx >= cnt {
 				break
 			}
 			if err := g.RemoveId(r.Id); err != nil {
