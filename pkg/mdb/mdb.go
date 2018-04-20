@@ -352,6 +352,18 @@ func (db *Mdb) Use2(col string, handler func(*mgo.Collection) error) error {
 	return db.Use(col, col, handler)
 }
 
+func (db *Mdb) UseSafe(col string, metricKey string, handler func(*mgo.Collection) error) error {
+	s := db.session.Copy()
+	defer s.Close()
+	s.SetSafe(&mgo.Safe{WMode: "majority"})
+	c := s.DB(db.name).C(col)
+	var err error
+	metric.Timing("db."+metricKey, func() {
+		err = handler(c)
+	})
+	return err
+}
+
 // Use2 same as Use but withiout metriceKey
 // metricKey is set to collection name (col)
 func (db *Mdb) UseWithoutTimeout(col string, handler func(*mgo.Collection) error) error {
