@@ -16,12 +16,12 @@ type Sequence struct {
 	sync.Mutex
 	db        *Mdb
 	key       string
-	next      uint64
-	leased    uint64
-	bandwidth uint64
+	next      int
+	leased    int
+	bandwidth int
 }
 
-func (db *Mdb) GetSequence(key string, bandwidth uint64) (*Sequence, error) {
+func (db *Mdb) GetSequence(key string, bandwidth int) (*Sequence, error) {
 	seq := &Sequence{
 		db:        db,
 		key:       key,
@@ -35,7 +35,7 @@ func (db *Mdb) GetSequence(key string, bandwidth uint64) (*Sequence, error) {
 
 // Next would return the next integer in the sequence, updating the lease by running a transaction
 // if needed.
-func (seq *Sequence) Next() (uint64, error) {
+func (seq *Sequence) Next() (int, error) {
 	seq.Lock()
 	defer seq.Unlock()
 
@@ -63,7 +63,7 @@ func (seq *Sequence) Release() error {
 
 type mgoSequence struct {
 	Id     string `bson:"_id"`
-	Leased uint64
+	Leased int
 }
 
 func (seq *Sequence) updateLease() error {
@@ -95,7 +95,7 @@ func (seq *Sequence) updateLease() error {
 	return nil
 }
 
-func (seq *Sequence) update(leased uint64) error {
+func (seq *Sequence) update(leased int) error {
 	return seq.db.UseSafe(colSequences, metricKey, func(col *mgo.Collection) error {
 		current := &mgoSequence{Id: seq.key, Leased: seq.leased}
 		pending := &mgoSequence{Id: seq.key, Leased: leased}
@@ -103,8 +103,8 @@ func (seq *Sequence) update(leased uint64) error {
 	})
 }
 
-func (seq *Sequence) find() (uint64, error) {
-	var leased uint64
+func (seq *Sequence) find() (int, error) {
+	var leased int
 	err := seq.db.UseSafe(colSequences, metricKey, func(col *mgo.Collection) error {
 		ms := &mgoSequence{Id: seq.key}
 		err := col.FindId(seq.key).One(ms)
@@ -117,7 +117,7 @@ func (seq *Sequence) find() (uint64, error) {
 	return leased, err
 }
 
-func (seq *Sequence) create(leased uint64) error {
+func (seq *Sequence) create(leased int) error {
 	return seq.db.UseSafe(colSequences, metricKey, func(col *mgo.Collection) error {
 		ms := &mgoSequence{Id: seq.key, Leased: leased}
 		return col.Insert(ms)

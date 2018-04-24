@@ -18,13 +18,13 @@ func TestSequence(t *testing.T) {
 	next := func(expected int) {
 		i, err := s.Next()
 		assert.Nil(t, err)
-		assert.Equal(t, uint64(expected), i)
+		assert.Equal(t, int(expected), i)
 	}
 
 	find := func(expected int) {
 		i, err := s.find()
 		assert.Nil(t, err)
-		assert.Equal(t, uint64(expected), i)
+		assert.Equal(t, int(expected), i)
 	}
 
 	find(4)
@@ -45,7 +45,7 @@ func TestSequence(t *testing.T) {
 	assert.Nil(t, err)
 	i, err := s1.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(12), i)
+	assert.Equal(t, int(12), i)
 
 	find(14)
 	next(9)
@@ -56,13 +56,13 @@ func TestSequence(t *testing.T) {
 
 	i, err = s1.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(13), i)
-	assert.Equal(t, uint64(14), s1.leased)
+	assert.Equal(t, int(13), i)
+	assert.Equal(t, int(14), s1.leased)
 
 	i, err = s1.Next()
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(14), i)
-	assert.Equal(t, uint64(16), s1.leased)
+	assert.Equal(t, int(14), i)
+	assert.Equal(t, int(16), s1.leased)
 
 	err = s1.Release()
 	assert.Nil(t, err)
