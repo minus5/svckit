@@ -87,6 +87,13 @@
 			"revisionTime": "2018-01-19T22:43:00Z"
 		},
 		{
+			"checksumSHA1": "Dv/r18XnDOwNUzx6cmUpdiVI+YY=",
+			"path": "github.com/minus5/go-statsd",
+			"revision": "33892a770966fb509638a836ca16341fbe96e2ab",
+			"revisionTime": "2018-04-26T08:23:01Z",
+			"tree": true
+		},
+		{
 			"checksumSHA1": "V/quM7+em2ByJbWBLOsEwnY3j/Q=",
 			"path": "github.com/mitchellh/go-homedir",
 			"revision": "b8bc1bf767474819792c23f32d8286a45736f1c6",
