@@ -2,6 +2,7 @@ package statsd
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -58,13 +59,15 @@ again:
 //   Dial("my_app")
 //   Dial("my_appp", "127.0.0.1:8125")
 func Dial(opts ...string) error {
-	prefix := fmt.Sprintf("%s.%s", env.AppName(), env.NodeName())
+	prefix := fmt.Sprintf("%s.%s", env.AppName(), env.InstanceId())
 	addr := ""
 	if len(opts) > 0 {
 		prefix = opts[0]
 	}
 	if len(opts) > 1 {
 		addr = opts[1]
+	} else if os.Getenv("STATSD_LOGGER_ADDRESS") != "" {
+		addr = os.Getenv("STATSD_LOGGER_ADDRESS")
 	} else {
 		// get statsd address from service discovery
 		var a dcy.Address
