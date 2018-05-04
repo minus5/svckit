@@ -3,6 +3,7 @@ package broker
 import (
 	"fmt"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/minus5/svckit/log"
@@ -25,7 +26,11 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	send := func(event, data string) error {
 		defer func() {
 			if r := recover(); r != nil {
+				stackTrace := make([]byte, 20480)
+				stackSize := runtime.Stack(stackTrace, true)
 				log.S("panic", fmt.Sprintf("%v", r)).
+					I("stack_size", stackSize).
+					S("stack_trace", string(stackTrace)).
 					ErrorS("recover from panic")
 			}
 		}()
