@@ -36,20 +36,28 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		}()
 
 		msg := []byte(fmt.Sprintf("event: %s\ndata: %s\n\n", event, data))
-		_, err := w.Write(msg)
+		lwritten, err := w.Write(msg)
 		if err != nil {
 			return err
 		}
-		f.Flush()
+		if lwritten == len(msg) {
+			f.Flush()
+		}
 		return nil
 	}
 
 	sendChan := make(chan *Message, 1024)
 	go func() {
-		for m := range sendChan {
-			err := send(m.Event, string(m.Data))
-			if extraWork != nil {
-				extraWork(m, err)
+		var m *Message
+		for {
+			select {
+			case <-closeCh:
+				return
+			case m = <-sendChan:
+				err := send(m.Event, string(m.Data))
+				if extraWork != nil {
+					extraWork(m, err)
+				}
 			}
 		}
 	}()
