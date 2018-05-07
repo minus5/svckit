@@ -89,6 +89,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			unsubscribe()
 		case <-time.After(20 * time.Second):
 			send("heartbeat", time.Now().Format(time.RFC3339))
+			log.Info("heartbeat send")
 		}
 	}
 }
