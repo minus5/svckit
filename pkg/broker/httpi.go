@@ -54,6 +54,9 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			case <-closeCh:
 				return
 			case m = <-sendChan:
+				if nil == m {
+					return
+				}
 				err := send(m.Event, string(m.Data))
 				if extraWork != nil {
 					extraWork(m, err)
