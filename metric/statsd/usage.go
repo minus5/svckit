@@ -1,4 +1,4 @@
-package statsd2
+package statsd
 
 import (
 	"fmt"
