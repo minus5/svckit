@@ -53,4 +53,5 @@ const (
 	PortLoggerSyslog              = "8482"
 	PortGrafanaToGit              = "8490"
 	PortNsqConfig                 = "8500"
+	PortBonus                     = "8520"
 )
