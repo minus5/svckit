@@ -59,6 +59,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	unsubscribe := func() {
 		go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
 	}
+
 	for {
 		select {
 		case <-closeCh:
@@ -71,7 +72,8 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			select {
 			case sendChan <- m:
 			default:
-				log.Errorf("unable to send message")
+				log.S("event", m.Event).J("data", m.Data).ErrorS("unable to send last 1024 messages")
+				unsubscribe()
 			}
 			if m.Event == "status" && string(m.Data) == "done" {
 				unsubscribe()
