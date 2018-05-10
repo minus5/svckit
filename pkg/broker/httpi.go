@@ -40,7 +40,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		if err != nil {
 			return err
 		}
-		if lwritten == len(msg) {
+		if lwritten > 0 {
 			f.Flush()
 		}
 		return nil
@@ -48,25 +48,16 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 
 	sendChan := make(chan *Message, 1024)
 	go func() {
-		var m *Message
-		for {
-			select {
-			case <-closeCh:
-				return
-			case m = <-sendChan:
-				if nil == m {
-					return
-				}
-				err := send(m.Event, string(m.Data))
-				if extraWork != nil {
-					extraWork(m, err)
-				}
+		for m := range sendChan {
+			err := send(m.Event, string(m.Data))
+			if extraWork != nil {
+				extraWork(m, err)
 			}
 		}
 	}()
 
 	unsubscribe := func() {
-		go b.Unsubscribe(msgsCh)
+		go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
 	}
 	for {
 		select {
