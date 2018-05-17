@@ -26,7 +26,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	send := func(event, data string) error {
 		defer func() {
 			if r := recover(); r != nil {
-				stackTrace := make([]byte, 20480)
+				stackTrace := make([]byte, 10240)
 				stackSize := runtime.Stack(stackTrace, true)
 				log.S("panic", fmt.Sprintf("%v", r)).
 					I("stack_size", stackSize).
@@ -63,23 +63,25 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	for {
 		select {
 		case <-closeCh:
+			log.Info("Client disconnected")
+			unsubscribe()
+		case <-closeSignal:
+			log.Info("Server close")
 			unsubscribe()
 		case m := <-msgsCh:
-			if m == nil { //kanal je closan
-				close(sendChan)
+			if m == nil {
+				close(sendChan) //msgsCh closan, nema sto za slati
 				return
 			}
 			select {
 			case sendChan <- m:
 			default:
-				log.S("event", m.Event).J("data", m.Data).ErrorS("unable to send last 1024 messages")
+				log.I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
 				unsubscribe()
 			}
 			if m.Event == "status" && string(m.Data) == "done" {
 				unsubscribe()
 			}
-		case <-closeSignal:
-			unsubscribe()
 		case <-time.After(20 * time.Second):
 			send("heartbeat", time.Now().Format(time.RFC3339))
 			//log.Info("heartbeat send")
