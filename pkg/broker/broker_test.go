@@ -2,6 +2,7 @@ package broker
 
 import (
 	"log"
+	"runtime"
 	"testing"
 	"time"
 
@@ -142,4 +143,67 @@ func TestTouch(t *testing.T) {
 	assert.Equal(t, "full1diff5diff6", string(buf1))
 	assert.Equal(t, "full1diff5diff6", string(buf2))
 	assert.Equal(t, "full1diff5diff6", string(buf3))
+}
+
+func TestCleanup(t *testing.T) {
+	// Ocisti stare brokere (prethodni testovi)
+	SetTTL(time.Nanosecond)
+	time.Sleep(2 * time.Nanosecond) // Cekaj TTL
+	CleanUpBrokers()
+	assert.Len(t, brokers, 0)
+
+	// Novi TTL da mogu testirati sa subscriberima
+	SetTTL(10 * time.Millisecond)
+	// napuni nekie podatke (kreira brokera)
+	Stream("teststream", "testevent", []byte("1"))
+	b := GetBufferedBroker("teststream") // dohvati brokera
+	assert.NotNil(t, b)
+	assert.Len(t, brokers, 1)
+
+	// Subscribe i citanje prva 2 eventa
+	msgCh := b.Subscribe()
+	assert.Len(t, b.subscribers, 0) // Subscriber nije dodan nije dobio full
+	m := <-msgCh
+	assert.Equal(t, "1", string(m.Data))
+
+	time.Sleep(5 * time.Millisecond) // cekaj pola vremena do expire
+	CleanUpBrokers()
+	assert.Len(t, brokers, 1)       // broker ziv (nije expired)
+	assert.Len(t, b.subscribers, 1) // subscriber dobio sve fullove
+
+	time.Sleep(11 * time.Millisecond) // Cekaj TTL
+	CleanUpBrokers()
+	assert.Len(t, brokers, 0)       // nema brokera
+	assert.Len(t, b.subscribers, 0) // nema subscribera
+
+	m = <-msgCh
+	assert.Nil(t, m) // potvrdi da je closan channel
+}
+
+//
+func TestUnsubscribeBuffered(t *testing.T) {
+	topic := "unsubscribe_test"
+	b := GetBufferedBroker(topic)
+	assert.NotNil(t, b)
+	assert.Len(t, b.subscribers, 0) // nema subscribera
+	gr := runtime.NumGoroutine()    // sacuvaj broj gorutina
+
+	msgChan := b.Subscribe()
+	// nema subscribera jer nema poruka i nije zavrsio subscribe
+	assert.NotNil(t, msgChan)
+	assert.Len(t, b.subscribers, 0)
+	assert.Equal(t, gr+1, runtime.NumGoroutine())
+
+	// unsubscribe prije bilo koje poruke nece napraviti nista
+	b.Unsubscribe(msgChan)
+
+	// Poslana i procitana poruka dodaju subscribera
+	Stream(topic, "testevent", []byte("1"))
+	<-msgChan
+	assert.Len(t, b.subscribers, 1)
+	assert.Equal(t, gr, runtime.NumGoroutine()) // zavrsio subscribe
+
+	// Unsubscribe drugi puta mice subscribera
+	b.Unsubscribe(msgChan)
+	assert.Len(t, b.subscribers, 0)
 }
