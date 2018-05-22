@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/satori/go.uuid"
+
 	"github.com/minus5/svckit/log"
 )
 
@@ -16,19 +18,28 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
 		return
 	}
+	closing := false // flag da zaatvaramo konekciju
 	closeCh := w.(http.CloseNotifier).CloseNotify()
+
 	//header-i potrebni za sse
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	msgsCh := b.Subscribe()
 
+	// dozvoljavamo da client posalje svoj id, sluzi za bug tracking
+	clientID := r.FormValue("clientid")
+	if "" == clientID {
+		clientID = uuid.NewV4().String()
+	}
+
 	send := func(event, data string) error {
 		defer func() {
 			if r := recover(); r != nil {
 				stackTrace := make([]byte, 10240)
 				stackSize := runtime.Stack(stackTrace, true)
-				log.S("panic", fmt.Sprintf("%v", r)).
+				log.S("client_id", clientID).
+					S("panic", fmt.Sprintf("%v", r)).
 					I("stack_size", stackSize).
 					S("stack_trace", string(stackTrace)).
 					ErrorS("recover from panic")
@@ -49,6 +60,9 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	sendChan := make(chan *Message, 1024)
 	go func() {
 		for m := range sendChan {
+			if closing {
+				continue
+			}
 			err := send(m.Event, string(m.Data))
 			if extraWork != nil {
 				extraWork(m, err)
@@ -57,16 +71,17 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	}()
 
 	unsubscribe := func() {
+		closing = true
 		go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
 	}
 
 	for {
 		select {
 		case <-closeCh:
-			log.Info("Client disconnected")
+			log.S("client_id", clientID).Info("Client disconnected")
 			unsubscribe()
 		case <-closeSignal:
-			log.Info("Server close")
+			log.S("client_id", clientID).Info("Server close")
 			unsubscribe()
 		case m := <-msgsCh:
 			if m == nil {
@@ -76,7 +91,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			select {
 			case sendChan <- m:
 			default:
-				log.I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
+				log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
 				unsubscribe()
 			}
 			if m.Event == "status" && string(m.Data) == "done" {
