@@ -28,4 +28,6 @@ const (
 	TypeSamoogranicenjeDel = "samoogranicenje/del"
 	TypeTransakcije        = "transakcije"
 	TypePoruke             = "poruke"
+	TypeUvjetiKoristenja   = "gdpr/uvjeti_koristenja"
+	TypeNewsletter         = "gdpr/newsletter"
 )
