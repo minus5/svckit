@@ -30,4 +30,5 @@ const (
 	TypePoruke             = "poruke"
 	TypeUvjetiKoristenja   = "gdpr/uvjeti_koristenja"
 	TypeNewsletter         = "gdpr/newsletter"
+	TypeSMSPostavke        = "gdpr/sms"
 )

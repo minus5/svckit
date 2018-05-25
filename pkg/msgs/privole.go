@@ -9,3 +9,8 @@ type NewsletterPostavkeReq struct {
 	IgracId string `json:"igrac_id"`
 	Status  int    `json:"status"`
 }
+
+type SMSPostavkeReq struct {
+	IgracId string `json:"igrac_id"`
+	Status  int    `json:"status"`
+}
