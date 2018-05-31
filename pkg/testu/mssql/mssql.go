@@ -220,8 +220,16 @@ func (util *TestMSSQLUtility) ObrisiPonudu(t *testing.T) {
 func (util *TestMSSQLUtility) ObrisiListice(t *testing.T) {
 	err := util.RunStoredProcedure(t, "unit_tests.obrisi_listice")
 	assert.NoError(t, err)
-	util.TestDbExec(t, fmt.Sprintf("update igraci.igraci set raspolozivo = 100 where remember_token = '%s'", TestIgracGuid))
+	util.ResetRaspolozivo(t)
 	util.TruncateTable(t, "dbo.SlipEvents")
+}
+
+func (util *TestMSSQLUtility) ResetRaspolozivo(t *testing.T) {
+	util.TestDbExec(t, fmt.Sprintf("update igraci.igraci set raspolozivo = 100 where remember_token = '%s'", TestIgracGuid))
+}
+
+func (util *TestMSSQLUtility) AssertRaspolozivo(t *testing.T, r float64) {
+	util.AssertRecordsCount(t, 1, "igraci.igraci where remember_token = '%s' and raspolozivo = %f", TestIgracGuid, r)
 }
 
 // AssertRecordsCount prvjerava da li broj redaka u tablici odogovrara ocekivanom

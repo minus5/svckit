@@ -190,7 +190,7 @@ func PP(o interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("pp:\n%s\n", buf)
+	fmt.Printf("%s\n", buf)
 }
 
 // PP prety print object
