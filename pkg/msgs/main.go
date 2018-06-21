@@ -29,7 +29,5 @@ const (
 	TypeTransakcije         = "transakcije"
 	TypePoruke              = "poruke"
 	TypeUvjetiKoristenja    = "gdpr/uvjeti_koristenja"
-	TypeNewsletter          = "gdpr/newsletter"
-	TypeSMSPostavke         = "gdpr/sms"
 	TypePostavkePrivatnosti = "gdpr/postavke_privatnosti"
 )
