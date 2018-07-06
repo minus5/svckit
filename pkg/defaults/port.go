@@ -58,4 +58,6 @@ const (
 	PortT2Api                     = "8540"
 	PortT2ApiPprof                = "8541"
 	PortT2ApiClient               = "8542"
+	PortSbkApi                    = "8550"
+	PortSbkApiPprof               = "8551"
 )
