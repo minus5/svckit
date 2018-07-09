@@ -60,4 +60,5 @@ const (
 	PortT2ApiClient               = "8542"
 	PortSbkApi                    = "8550"
 	PortSbkApiPprof               = "8551"
+	PortSbkApiClient              = "8552"
 )
