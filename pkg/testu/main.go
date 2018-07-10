@@ -126,7 +126,11 @@ func SaveFixture(name string, buf []byte) {
 }
 
 func SaveJSON(name string, o interface{}) {
-	buf, _ := json.MarshalIndent(o, "", "  ")
+	buf, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		log.Printf("%s", err)
+		return
+	}
 	ioutil.WriteFile(name, buf, 0644)
 }
 
