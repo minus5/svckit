@@ -30,5 +30,6 @@ const (
 	TypePoruke              = "poruke"
 	TypeUvjetiKoristenja    = "gdpr/uvjeti_koristenja"
 	TypePostavkePrivatnosti = "gdpr/postavke_privatnosti"
-	TypeAircashBon 					= "aircash/activate_bon"
+	TypeAircashBon          = "aircash/activate_bon"
+	TypeAircashIsplata      = "aircash_isplata/isplati"
 )
