@@ -70,7 +70,7 @@ func AssertSameStrings(t *testing.T, expected string, actual string) {
 	assert.True(t, same)
 }
 
-func JsonDiff(t *testing.T, expected, actual []byte) {
+func JsonDiff(t *testing.T, expected, actual []byte) int {
 	a, err := ioutil.TempFile(os.TempDir(), "actual")
 	if err != nil {
 		log.Fatal(err)
@@ -84,13 +84,22 @@ func JsonDiff(t *testing.T, expected, actual []byte) {
 	defer os.Remove(a.Name())
 	defer os.Remove(e.Name())
 
-	fmt.Printf("json-diff %s %s\n", a.Name(), e.Name())
+	//fmt.Printf("json-diff %s %s\n", a.Name(), e.Name())
 	cmd := exec.Command("json-diff", a.Name(), e.Name())
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logf("diff status %s", err)
 	}
-	fmt.Printf("%s", out)
+	if len(out) == 0 || strings.TrimSpace(string(out)) == "{\n }" {
+		return 0
+	}
+	fmt.Printf("%s\n", out)
+	if len(out) > 0 {
+		ioutil.WriteFile("./actual", actual, 0644)
+		ioutil.WriteFile("./expected", expected, 0644)
+	}
+	//cmd.Wait()
+	return len(out)
 }
 
 // Exists reports whether the named file or directory exists.
