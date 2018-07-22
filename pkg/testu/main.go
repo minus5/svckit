@@ -94,11 +94,10 @@ func JsonDiff(t *testing.T, expected, actual []byte) int {
 		return 0
 	}
 	fmt.Printf("%s\n", out)
-	if len(out) > 0 {
-		ioutil.WriteFile("./actual", actual, 0644)
-		ioutil.WriteFile("./expected", expected, 0644)
-	}
-	//cmd.Wait()
+	// if len(out) > 0 {
+	// 	ioutil.WriteFile("./actual", actual, 0644)
+	// 	ioutil.WriteFile("./expected", expected, 0644)
+	// }
 	return len(out)
 }
 
