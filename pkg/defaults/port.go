@@ -55,4 +55,5 @@ const (
 	PortNsqConfig                 = "8500"
 	PortBonus                     = "8520"
 	PortBetradarUnified           = "8530"
+	PortGoaccess                  = "8540"
 )
