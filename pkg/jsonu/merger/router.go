@@ -7,13 +7,18 @@
 // Inicijalni full se dobija na zahtjev (Dopuna metoda).
 package merger
 
-import "time"
+import (
+	"time"
+
+	"github.com/minus5/svckit/log"
+)
 
 // Router prima poruke za razlicite kanale i prosljedjuje ih
 // fullDiffOrderer-ima na obradu.
 type Router struct {
 	fdos          map[string]*fullDiffOrderer
 	in            chan *msg
+	dump          chan bool
 	Output        chan *OutMsg
 	dopunaHandler func(string, string)
 	queueSize     int
@@ -25,6 +30,7 @@ func New(dopunaHandler func(string, string)) *Router {
 	r := &Router{
 		fdos:          make(map[string]*fullDiffOrderer),
 		in:            make(chan *msg),
+		dump:          make(chan bool),
 		Output:        make(chan *OutMsg, 1024),
 		dopunaHandler: dopunaHandler,
 	}
@@ -59,6 +65,8 @@ func (r *Router) loop() {
 				queueSize += fdo.queueSize()
 			}
 			r.queueSize = queueSize
+		case <-r.dump:
+			r.doDump()
 		}
 	}
 }
@@ -108,6 +116,18 @@ func (r *Router) close() {
 // Add dodaje novu poruku u router.
 func (r *Router) Add(typ string, no int64, body []byte, isDel bool) {
 	r.in <- newMsg(typ, no, body, isDel)
+}
+
+func (r *Router) Dump() {
+	r.dump <- true
+}
+
+func (r *Router) doDump() {
+	for k, v := range r.fdos {
+		log.S("channel", k).
+			S("changedAt", v.changedAt.Format(time.RFC3339)).
+			I("queueSize", v.queueSize()).Info("dump")
+	}
 }
 
 // Close cleanup routera.
