@@ -123,10 +123,14 @@ func (r *Router) Dump() {
 }
 
 func (r *Router) doDump() {
+	log.I("len", len(r.fdos)).Info("fdos")
+	i := 1
 	for k, v := range r.fdos {
 		log.S("channel", k).
+			I("no", i).
 			S("changedAt", v.changedAt.Format(time.RFC3339)).
 			I("queueSize", v.queueSize()).Info("dump")
+		i++
 	}
 }
 
