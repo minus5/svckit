@@ -8,6 +8,7 @@
 package merger
 
 import (
+	"strings"
 	"time"
 
 	"github.com/minus5/svckit/log"
@@ -51,6 +52,7 @@ func (r *Router) handler(m *msg) {
 
 func (r *Router) loop() {
 	stat := time.Tick(10 * time.Second)
+	cleanup := time.Tick(time.Hour)
 	for {
 		select {
 		case m := <-r.in:
@@ -65,6 +67,12 @@ func (r *Router) loop() {
 				queueSize += fdo.queueSize()
 			}
 			r.queueSize = queueSize
+		case <-cleanup:
+			for channel, fdo := range r.fdos {
+				if strings.HasPrefix(channel, "lm_") {
+					fdo.cleanup()
+				}
+			}
 		case fn := <-r.inLoop:
 			fn()
 		}
