@@ -70,7 +70,10 @@ func (r *Router) loop() {
 		case <-cleanup:
 			for channel, fdo := range r.fdos {
 				if strings.HasPrefix(channel, "lm_") {
-					fdo.cleanup()
+					if fdo.expired() {
+						fdo.close()
+						delete(r.fdos, channel)
+					}
 				}
 			}
 		case fn := <-r.inLoop:

@@ -216,8 +216,6 @@ func (o *fullDiffOrderer) inQueue() string {
 	return strings.TrimSpace(q)
 }
 
-func (o *fullDiffOrderer) cleanup() {
-	if o.changedAt.Before(time.Now().Add(-3 * time.Hour)) {
-		o.close()
-	}
+func (o *fullDiffOrderer) expired() bool {
+	return o.changedAt.Before(time.Now().Add(-3 * time.Hour))
 }
