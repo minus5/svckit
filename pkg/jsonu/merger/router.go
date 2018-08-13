@@ -73,6 +73,7 @@ func (r *Router) loop() {
 					if fdo.expired() {
 						fdo.close()
 						delete(r.fdos, channel)
+						log.S("channel", channel).Info("cleanup")
 					}
 				}
 			}
