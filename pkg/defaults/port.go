@@ -57,4 +57,5 @@ const (
 	PortBonus                     = "8520"
 	PortBetradarUnified           = "8530"
 	PortGoaccess                  = "8540"
+	PortStatsd                    = "8550"
 )
