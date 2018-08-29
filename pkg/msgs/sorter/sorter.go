@@ -113,7 +113,7 @@ func (s *Sorter) Reset() {
 }
 
 func (s *Sorter) add(m *Msg) {
-	if m.No <= s.current+1 {
+	if m.No <= s.current+1 || s.current == 0 {
 		s.out(m)
 		return
 	}
@@ -140,8 +140,11 @@ again:
 }
 
 func (s *Sorter) out(m *Msg) {
-	if m.No > s.current {
+	if m.No > s.current || m.No == 0 {
 		s.current = m.No
+		if s.current == 0 {
+			s.queue = make(map[int]*Msg)
+		}
 	}
 	s.Output <- m
 }

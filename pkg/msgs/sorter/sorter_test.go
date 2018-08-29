@@ -56,19 +56,18 @@ func TestFixDrugiPurgeSeNijeDogodio(t *testing.T) {
 
 	s.Push(&Msg{No: 1})
 	s.Push(&Msg{No: 2})
-	s.Push(&Msg{No: 0})
 	s.Push(&Msg{No: 5})
 	s.Push(&Msg{No: 6})
 	s.Push(&Msg{No: 9})
 
 	time.Sleep(10 * time.Millisecond)
 	assert.Equal(t, 2, s.current)
-	assert.Equal(t, []int{1, 2, 0}, out)
+	assert.Equal(t, []int{1, 2}, out)
 
 	// prvi purge
 	time.Sleep(200 * time.Millisecond)
 	assert.Equal(t, 9, s.current)
-	assert.Equal(t, []int{1, 2, 0, 5, 6, 9}, out)
+	assert.Equal(t, []int{1, 2, 5, 6, 9}, out)
 	//fmt.Printf("%#v\n", out)
 
 	// drugi purge
@@ -76,14 +75,49 @@ func TestFixDrugiPurgeSeNijeDogodio(t *testing.T) {
 	s.Push(&Msg{No: 12})
 	time.Sleep(200 * time.Millisecond)
 	assert.Equal(t, 12, s.current)
-	assert.Equal(t, []int{1, 2, 0, 5, 6, 9, 11, 12}, out)
+	assert.Equal(t, []int{1, 2, 5, 6, 9, 11, 12}, out)
 	//fmt.Printf("%#v\n", out)
 
 	s.Close()
 	wg.Wait()
-	assert.Equal(t, []int{1, 2, 0, 5, 6, 9, 11, 12}, out)
+	assert.Equal(t, []int{1, 2, 5, 6, 9, 11, 12}, out)
 	//t.Logf("%#v\n", out)
 	//fmt.Printf("%#v\n", out)
+}
+
+func Test0ResetiraCurrent(t *testing.T) {
+	s := New(100 * time.Millisecond)
+
+	var wg sync.WaitGroup
+	var out []int
+	wg.Add(1)
+	go func() {
+		for m := range s.Output {
+			out = append(out, m.No)
+		}
+		wg.Done()
+	}()
+
+	s.Push(&Msg{No: 1})
+	s.Push(&Msg{No: 2})
+	s.Push(&Msg{No: 4})
+	s.Push(&Msg{No: 0})
+	s.Push(&Msg{No: 6})
+	s.Push(&Msg{No: 9})
+
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, 6, s.current)
+	assert.Equal(t, []int{1, 2, 0, 6}, out)
+
+	// prvi purge
+	time.Sleep(200 * time.Millisecond)
+	assert.Equal(t, 9, s.current)
+	assert.Equal(t, []int{1, 2, 0, 6, 9}, out)
+	//fmt.Printf("%#v\n", out)
+
+	s.Close()
+	wg.Wait()
+	assert.Equal(t, []int{1, 2, 0, 6, 9}, out)
 }
 
 func TestClose(t *testing.T) {
