@@ -62,7 +62,13 @@ func New(ttw time.Duration) *Sorter {
 func (s *Sorter) loop() {
 	var timer <-chan time.Time
 	scheduleTimer := func() {
+		if timer != nil {
+			return
+		}
 		timer = time.After(s.ttw)
+	}
+	clearTimer := func() {
+		timer = nil
 	}
 	for {
 		select {
@@ -76,15 +82,14 @@ func (s *Sorter) loop() {
 			if !s.empty() {
 				s.processQueue()
 			}
-			if s.empty() {
-				timer = nil
+			if !s.empty() {
+				scheduleTimer()
 			} else {
-				if timer == nil {
-					scheduleTimer()
-				}
+				clearTimer()
 			}
 		case <-timer:
 			s.purge()
+			clearTimer()
 		}
 	}
 }
