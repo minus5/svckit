@@ -2,9 +2,10 @@ package merger
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"sync"
-	"math"
+	"time"
 )
 
 const undefinedNo = math.MinInt64
@@ -37,6 +38,7 @@ type fullDiffOrderer struct {
 	dopunaHandler func()
 	dopunaAtNo    int64
 	oooLimit      int64 //out of order limit, odredjuje koliko diffova ceka prije trazenja fulla
+	changedAt     time.Time
 }
 
 func newFullDiffOrderer(dopunaHandler func()) *fullDiffOrderer {
@@ -47,6 +49,7 @@ func newFullDiffOrderer(dopunaHandler func()) *fullDiffOrderer {
 		exitSignal:    make(chan struct{}),
 		dopunaHandler: dopunaHandler,
 		oooLimit:      defaultOOOLimit,
+		changedAt:     time.Now(),
 	}
 	o.init()
 	go o.loop()
@@ -70,6 +73,7 @@ func (o *fullDiffOrderer) loop() {
 	for {
 		select {
 		case m := <-o.in:
+			o.changedAt = time.Now()
 			o.processMsg(m)
 			o.processQueue()
 		case <-o.exitSignal:
@@ -210,4 +214,8 @@ func (o *fullDiffOrderer) inQueue() string {
 		q += fmt.Sprintf(" d%d", m.no)
 	}
 	return strings.TrimSpace(q)
+}
+
+func (o *fullDiffOrderer) expired() bool {
+	return o.changedAt.Before(time.Now().Add(-3 * time.Hour))
 }

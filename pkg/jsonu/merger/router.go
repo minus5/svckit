@@ -7,13 +7,19 @@
 // Inicijalni full se dobija na zahtjev (Dopuna metoda).
 package merger
 
-import "time"
+import (
+	"strings"
+	"time"
+
+	"github.com/minus5/svckit/log"
+)
 
 // Router prima poruke za razlicite kanale i prosljedjuje ih
 // fullDiffOrderer-ima na obradu.
 type Router struct {
 	fdos          map[string]*fullDiffOrderer
 	in            chan *msg
+	inLoop        chan func()
 	Output        chan *OutMsg
 	dopunaHandler func(string, string)
 	queueSize     int
@@ -25,6 +31,7 @@ func New(dopunaHandler func(string, string)) *Router {
 	r := &Router{
 		fdos:          make(map[string]*fullDiffOrderer),
 		in:            make(chan *msg),
+		inLoop:        make(chan func()),
 		Output:        make(chan *OutMsg, 1024),
 		dopunaHandler: dopunaHandler,
 	}
@@ -45,6 +52,7 @@ func (r *Router) handler(m *msg) {
 
 func (r *Router) loop() {
 	stat := time.Tick(10 * time.Second)
+	cleanup := time.Tick(time.Hour)
 	for {
 		select {
 		case m := <-r.in:
@@ -59,6 +67,18 @@ func (r *Router) loop() {
 				queueSize += fdo.queueSize()
 			}
 			r.queueSize = queueSize
+		case <-cleanup:
+			for channel, fdo := range r.fdos {
+				if strings.HasPrefix(channel, "lm_") {
+					if fdo.expired() {
+						fdo.close()
+						delete(r.fdos, channel)
+						log.S("channel", channel).Info("cleanup")
+					}
+				}
+			}
+		case fn := <-r.inLoop:
+			fn()
 		}
 	}
 }
@@ -108,6 +128,27 @@ func (r *Router) close() {
 // Add dodaje novu poruku u router.
 func (r *Router) Add(typ string, no int64, body []byte, isDel bool) {
 	r.in <- newMsg(typ, no, body, isDel)
+}
+
+func (r *Router) Dump() map[string]string {
+	d := make(map[string]string)
+	c := make(chan struct{})
+	r.inLoop <- func() {
+		log.I("len", len(r.fdos)).Info("fdos")
+		i := 1
+		for k, v := range r.fdos {
+			changedAt := v.changedAt.Format(time.RFC3339)
+			d[k] = changedAt
+			log.S("channel", k).
+				I("no", i).
+				S("changedAt", changedAt).
+				I("queueSize", v.queueSize()).Info("dump")
+			i++
+		}
+		close(c)
+	}
+	<-c
+	return d
 }
 
 // Close cleanup routera.
