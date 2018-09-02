@@ -12,8 +12,8 @@ import (
 	"os/exec"
 	"strconv"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 // Mongo controls a MongoDB server process to be used within test suites.
