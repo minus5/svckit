@@ -61,4 +61,5 @@ const (
 	PortSbkApiClient              = "8542"
 	PortStatsd                    = "8550"
 	PortGoaccess                  = "8560"
+	PortChat                      = "8570"
 )
