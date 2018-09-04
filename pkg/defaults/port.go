@@ -49,7 +49,6 @@ const (
 	PortGamesConnector            = "8460"
 	PortCrasher                   = "8470"
 	PortLogger                    = "8480"
-	PortLoggerStatsd              = "8481"
 	PortLoggerSyslog              = "8482"
 	PortLoggerGraphite            = "8483"
 	PortGrafanaToGit              = "8490"
