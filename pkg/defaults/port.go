@@ -61,4 +61,5 @@ const (
 	PortStatsd                    = "8550"
 	PortLogFilter                 = "8560"
 	PortChat                      = "8570"
+	PortRezultati                 = "8580"
 )
