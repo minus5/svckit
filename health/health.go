@@ -3,6 +3,7 @@ package health
 import (
 	"expvar"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/minus5/svckit/env"
@@ -148,6 +149,8 @@ func sendNotification() {
 	lastPassingCheck = time.Now()
 }
 
+var ms = &runtime.MemStats{}
+
 func sendMetric() {
 	switch status {
 	case Passing:
@@ -163,6 +166,16 @@ func sendMetric() {
 		metric.Gauge("health.warn", 0)
 		metric.Gauge("health.fail", 1)
 	}
+	runtime.ReadMemStats(ms)
+	metric.Gauge("runtime.Sys", int(ms.Sys))
+	metric.Gauge("runtime.Alloc", int(ms.Alloc))
+	metric.Gauge("runtime.HeapSys", int(ms.HeapSys))
+	metric.Gauge("runtime.HeapInuse", int(ms.HeapInuse))
+	metric.Gauge("runtime.StackSys", int(ms.StackSys))
+	metric.Gauge("runtime.StackInuse", int(ms.StackInuse))
+	metric.Gauge("runtime.NumGC", int(ms.NumGC))
+	metric.Gauge("runtime.NumGoroutine", runtime.NumGoroutine())
+	//metric.Gauge("runtime.NumCgoCall", runtime.NumCgoCall())
 }
 
 func logger() *log.Agregator {
