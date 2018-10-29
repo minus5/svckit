@@ -26,7 +26,7 @@ const (
 var geoIPCheck *IPCheck
 var lock sync.RWMutex
 
-var whitelist = []string{"212.92.196.34/32"}
+var whitelist = []string{"212.92.192.0/19"}
 
 // IPCheck is structure used for handling check of ip addresses
 type IPCheck struct {
