@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -14,59 +13,69 @@ import (
 	"sync"
 	"time"
 
+	"github.com/minus5/svckit/log"
 	"github.com/nranchev/go-libGeoIP"
 )
 
 const (
 	GetFileRetryIntervalSeconds = 30
-	GeoIpUrl                    = "http://updates.maxmind.com/app/update?license_key=MHJmPlgC696x"
-	GeoIpCheckInterval          = 12 * 60 * time.Minute
+	GeoIPURL                    = "http://updates.maxmind.com/app/update?license_key=MHJmPlgC696x"
+	GeoIPCheckInterval          = 12 * 60 * time.Minute
 )
 
-var geoIpCheck *IpCheck
+var geoIPCheck *IPCheck
 var lock sync.RWMutex
 
-type IpCheck struct {
-	file       string
-	handle     *libgeo.GeoIP
-	cache      map[string]bool
-	cacheMutex sync.RWMutex
+var whitelist = []string{"212.92.196.34/32"}
+
+// IPCheck is structure used for handling check of ip addresses
+type IPCheck struct {
+	file        string
+	handle      *libgeo.GeoIP
+	cache       map[string]bool
+	IPWhitelist []*net.IPNet
+	sync.RWMutex
 }
 
+// Init initializes geoIPCheck
 func Init(file string) {
 	lock.Lock()
 	defer lock.Unlock()
-	c, err := NewIpCheck(file)
+	c, err := NewIPCheck(file, whitelist)
 	if err != nil {
-		log.Printf("could not initialize Geo IP check from %s", file)
+		log.Errorf("could not initialize Geo IP check from %s", file)
 		return
 	}
-	geoIpCheck = c
+	geoIPCheck = c
 }
 
+// Default initializes IPCheck with default file if it exists
 func Default() error {
 	for _, p := range strings.Split(os.Getenv("GOPATH"), ":") {
 		path := path.Join(p, "src/pkg/geo/testGeoIP.dat")
-		log.Printf("trying to load Geo IP from: %s", path)
+		log.Info("trying to load Geo IP from: %s", path)
 		if _, err := os.Stat(path); err == nil {
 			Init(path)
-			log.Printf("loaded default Geo IP: %s", path)
+			log.Info("loaded default Geo IP: %s", path)
 			return nil
 		}
 	}
 	return fmt.Errorf("default Geo IP file doesnt exist")
 }
 
-func NewIpCheck(file string) (*IpCheck, error) {
+// NewIPCheck initializes new IPCheck with specified file
+func NewIPCheck(file string, whitelist []string) (*IPCheck, error) {
 	handle, err := libgeo.Load(file)
 	if err != nil {
-		log.Printf("error NewIpCheck could not open file %s, error: %s", file, err)
+		log.Errorf("error NewIpCheck could not open file %s, error: %s", file, err)
 		return nil, err
 	}
-	return &IpCheck{file: file, handle: handle, cache: make(map[string]bool)}, nil
+
+	return &IPCheck{file: file, handle: handle, cache: make(map[string]bool), IPWhitelist: initIPWhitelist(whitelist)}, nil
 }
 
-func (g *IpCheck) Check(ip string) (ret bool) {
+// Check checks if IP is from specified area
+func (g *IPCheck) Check(ip string) (ret bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("error geo.Check failed: %v", r)
@@ -76,17 +85,25 @@ func (g *IpCheck) Check(ip string) (ret bool) {
 	if isLocalAddress(ip) {
 		return true
 	}
-	g.cacheMutex.RLock()
+	g.RLock()
 	val, ok := g.cache[ip]
-	g.cacheMutex.RUnlock()
+	g.RUnlock()
 	if ok {
 		return val
 	}
+
+	if g.checkIPWhitelist(ip) {
+		g.Lock()
+		defer g.Unlock()
+		g.cache[ip] = true
+		return true
+	}
+
 	loc := g.handle.GetLocationByIP(ip)
 	if loc != nil {
 		val := loc.CountryCode == "HR"
-		g.cacheMutex.Lock()
-		defer g.cacheMutex.Unlock()
+		g.Lock()
+		defer g.Unlock()
 		g.cache[ip] = val
 		return val
 	}
@@ -94,14 +111,25 @@ func (g *IpCheck) Check(ip string) (ret bool) {
 	return false
 }
 
+func (g *IPCheck) checkIPWhitelist(ip string) bool {
+	netip := net.ParseIP(ip)
+	for _, wl := range g.IPWhitelist {
+		if wl.Contains(netip) {
+			return true
+		}
+	}
+	return false
+}
+
+// IpOk does check of ip if IPCheck is initialized
 func IpOk(ip string) bool {
 	lock.RLock()
 	defer lock.RUnlock()
-	if geoIpCheck == nil {
+	if geoIPCheck == nil {
 		log.Printf("WARN geo ip check not activated")
 		return true
 	}
-	return geoIpCheck.Check(ip)
+	return geoIPCheck.Check(ip)
 }
 
 func isLocalAddress(ip string) bool {
@@ -118,7 +146,7 @@ func isLocalAddress(ip string) bool {
 	return false
 }
 
-func getGeoIpFile(url, savePath string) error {
+func getGeoIPFile(url, savePath string) error {
 	dir := filepath.Dir(savePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
@@ -130,7 +158,7 @@ func getGeoIpFile(url, savePath string) error {
 	defer res.Body.Close()
 	lastModified, err := time.Parse(time.RFC1123, res.Header.Get("Last-Modified"))
 	if err != nil {
-		log.Printf("unable to parse modification time of GeoIP database")
+		log.Errorf("unable to parse modification time of GeoIP database")
 		lastModified = time.Now()
 	}
 	gzReader, err := gzip.NewReader(res.Body)
@@ -147,48 +175,62 @@ func getGeoIpFile(url, savePath string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("written %d bytes to %s", n, savePath)
+	log.Info("written %d bytes to %s", n, savePath)
 	out.Close()
-	log.Print(lastModified)
 	if err := os.Chtimes(savePath, time.Now(), lastModified); err != nil {
 		return err
 	}
 	return nil
 }
 
-func checkGeoIpFile(path string) (*time.Time, error) {
+func checkGeoIPFile(path string) (*time.Time, error) {
 	log.Printf("checking geo ip at %s", path)
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("geo ip file doesn't exist")
-		} else {
-			return nil, fmt.Errorf("geo ip file unreadable")
 		}
+		return nil, fmt.Errorf("geo ip file unreadable")
 	}
-	log.Printf("found geo ip at %s", path)
+
+	log.Info("found geo ip at %s", path)
 	tm := new(time.Time)
 	*tm = fi.ModTime()
 	return tm, nil
 }
 
+func initIPWhitelist(whitelist []string) []*net.IPNet {
+	wl := make([]*net.IPNet, 0)
+	for _, ip := range whitelist {
+		_, net, err := net.ParseCIDR(ip)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		wl = append(wl, net)
+	}
+	return wl
+
+}
+
+// Maintain keeps track of ip database and downloads new version when available
 func Maintain(savePath string) {
-	url := GeoIpUrl
-	interval := GeoIpCheckInterval
+	url := GeoIPURL
+	interval := GeoIPCheckInterval
 	mt := func() time.Time {
 		for {
-			mt, err := checkGeoIpFile(savePath)
+			mt, err := checkGeoIPFile(savePath)
 			if err != nil {
-				log.Println(err)
-				if err := getGeoIpFile(url, savePath); err != nil {
-					log.Printf("error getting GeoIP file: %v", err)
+				log.Error(err)
+				if err := getGeoIPFile(url, savePath); err != nil {
+					log.Errorf("error getting GeoIP file: %v", err)
 					time.Sleep(GetFileRetryIntervalSeconds * time.Second)
 				}
 			} else {
 				Init(savePath)
-				if geoIpCheck == nil {
-					if err := getGeoIpFile(url, savePath); err != nil {
-						log.Printf("error getting GeoIP file: %v", err)
+				if geoIPCheck == nil {
+					if err := getGeoIPFile(url, savePath); err != nil {
+						log.Errorf("error getting GeoIP file: %v", err)
 						time.Sleep(GetFileRetryIntervalSeconds * time.Second)
 					}
 					continue
@@ -200,16 +242,16 @@ func Maintain(savePath string) {
 
 	for {
 		time.Sleep(interval)
-		if err := getGeoIpFile(url, savePath); err != nil {
-			log.Printf("error getting GeoIP file: %v", err)
+		if err := getGeoIPFile(url, savePath); err != nil {
+			log.Errorf("error getting GeoIP file: %v", err)
 		} else {
-			newMt, err := checkGeoIpFile(savePath)
+			newMt, err := checkGeoIPFile(savePath)
 			if err != nil {
-				log.Printf("error: %v", err)
+				log.Errorf("error: %v", err)
 			} else {
-				log.Printf("curent geo ip: %v, new geo ip: %v", mt, newMt)
+				log.Info("curent geo ip: %v, new geo ip: %v", mt, newMt)
 				if newMt.After(mt) {
-					log.Printf("loading geo ip")
+					log.Info("loading geo ip")
 					Init(savePath)
 					mt = *newMt
 				}
