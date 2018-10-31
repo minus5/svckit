@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
-	"github.com/alecthomas/template"
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
