@@ -1,6 +1,7 @@
 package mdb
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alecthomas/template"
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
@@ -206,6 +208,18 @@ type Mdb struct {
 
 // DefaultConnStr creates connection string from consul
 func DefaultConnStr() string {
+	// cita iz mongo kv store key mongo
+	cs, err := dcy.KV("mongo/default/connectionString")
+	if err == nil && cs != "" {
+		app := env.AppName()
+		kvs, err := dcy.KVs("mongo/" + app)
+		_, disabled := kvs["disabled"]
+		if err == nil && !disabled {
+			return connectionStringFromTemplate(cs, kvs["database"], kvs["username"], kvs["password"])
+		}
+	}
+
+	// trazi registrirani servis
 	connStr := "mongo.service.sd"
 	if addrs, err := dcy.Services(connStr); err == nil {
 		connStr = strings.Join(addrs.String(), ",")
@@ -530,4 +544,25 @@ func (db *Mdb) CreateCapedCollection(col string, maxGB int) error {
 			Capped:   true,
 			MaxBytes: maxGB * 1024 * 1024 * 1024,
 		})
+}
+
+func connectionStringFromTemplate(tpl, database, username, password string) string {
+	param := struct {
+		Database string
+		Username string
+		Password string
+	}{
+		database,
+		username,
+		password,
+	}
+
+	buf := bytes.NewBuffer(nil)
+	pt := template.Must(template.New("").Parse(tpl))
+	if err := pt.Execute(buf, param); err != nil {
+		log.Error(err)
+		return ""
+	}
+
+	return buf.String()
 }
