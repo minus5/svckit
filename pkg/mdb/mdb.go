@@ -298,7 +298,7 @@ func (db *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 	if err != nil {
 		return err
 	}
-	s.SetMode(mgo.Eventual, false)
+	s.SetMode(mgo.SecondaryPreferred, true)
 	s.SetSafe(nil)
 	db.session = s
 	// defaults
@@ -315,6 +315,7 @@ func (db *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 		}
 		go db.loop()
 	}
+	db.LogServers()
 	return nil
 }
 
@@ -323,6 +324,13 @@ func (db *Mdb) Ping() bool {
 	s := db.session.Copy()
 	defer s.Close()
 	return s.Ping() == nil
+}
+
+func (db *Mdb) LogServers() {
+	s := db.session.Copy()
+	defer s.Close()
+	srvs := strings.Join(s.LiveServers(), ",")
+	log.S("servers", srvs).S("db", db.name).Info("mongo servers")
 }
 
 func (db *Mdb) loop() {
