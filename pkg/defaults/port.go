@@ -59,6 +59,5 @@ const (
 	PortSbkApiPprof               = "8541"
 	PortSbkApiSse                 = "8542"
 	PortStatsd                    = "8550"
-	PortLogFilter                 = "8560"
 	PortChat                      = "8570"
 )
