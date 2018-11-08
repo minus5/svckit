@@ -79,8 +79,10 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		select {
 		case sendChan <- m:
 		default:
-			log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
-			unsubscribe()
+			if !closing {
+				log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
+				unsubscribe()
+			}
 
 		}
 	}
