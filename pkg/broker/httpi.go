@@ -75,6 +75,19 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
 	}
 
+	sendToCh := func(m *Message) {
+		select {
+		case sendChan <- m:
+		default:
+			log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
+			unsubscribe()
+
+			if m.Event == "status" && string(m.Data) == "done" {
+				unsubscribe()
+			}
+		}
+	}
+
 	for {
 		select {
 		case <-closeCh:
@@ -88,18 +101,9 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 				close(sendChan) //msgsCh closan, nema sto za slati
 				return
 			}
-			select {
-			case sendChan <- m:
-			default:
-				log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
-				unsubscribe()
-			}
-			if m.Event == "status" && string(m.Data) == "done" {
-				unsubscribe()
-			}
+			sendToCh(m)
 		case <-time.After(20 * time.Second):
-			send("heartbeat", time.Now().Format(time.RFC3339))
-			//log.Info("heartbeat send")
+			sendToCh(NewMessage("heartbeat", []byte(time.Now().Format(time.RFC3339))))
 		}
 	}
 }
