@@ -82,9 +82,6 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.Data).ErrorS("unable to send last message")
 			unsubscribe()
 
-			if m.Event == "status" && string(m.Data) == "done" {
-				unsubscribe()
-			}
 		}
 	}
 
@@ -102,6 +99,9 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 				return
 			}
 			sendToCh(m)
+			if m.Event == "status" && string(m.Data) == "done" {
+				unsubscribe()
+			}
 		case <-time.After(20 * time.Second):
 			sendToCh(NewMessage("heartbeat", []byte(time.Now().Format(time.RFC3339))))
 		}
