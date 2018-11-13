@@ -60,4 +60,5 @@ const (
 	PortSbkApiSse                 = "8542"
 	PortStatsd                    = "8550"
 	PortChat                      = "8570"
+	PortChatWs                    = "8571"
 )
