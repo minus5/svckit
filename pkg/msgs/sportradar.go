@@ -23,6 +23,10 @@ type LigaInfoResponse struct {
 	LigaGrupaNaziv *string `json:"ligaGrupaNaziv"`
 }
 
+type SpecijalInfoResponse struct {
+	Id int
+}
+
 type SportradarIdResponse struct {
 	SportradarId     int `json:"statistikaId"`
 	SportradarLigaId int `json:"statistikaLigaId"`
