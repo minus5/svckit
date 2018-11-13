@@ -21,6 +21,7 @@ type LigaInfoResponse struct {
 	LigaNaziv      string  `json:"ligaNaziv"`
 	LigaGrupaId    *int    `json:"ligaGrupaId"`
 	LigaGrupaNaziv *string `json:"ligaGrupaNaziv"`
+	ImaSpecijal    bool    `json:"imaSpecijal"`
 }
 
 type SpecijalInfoResponse struct {
