@@ -61,4 +61,6 @@ const (
 	PortStatsd                    = "8550"
 	PortChat                      = "8570"
 	PortChatWs                    = "8571"
+	PortShare                     = "8580"
+	PortShareWs                   = "8581"
 )
