@@ -4,6 +4,7 @@ package msgs
 const (
 	TypeAppVersion          = "app_version"
 	TypeMojiListici         = "moji_listici"
+	TypeMojiListiciTip      = "moji_listici_tip"
 	TypeSync                = "sync"
 	TypeListic              = "listic"
 	TypeDodajListic         = "dodaj_listic"
