@@ -136,6 +136,13 @@ func (util *TestMSSQLUtility) RecordsCount(t *testing.T, tableAndWhere string) (
 	return int(cnt), err
 }
 
+// RecordsCountAssert provjerava da li record count odgovoara ocekivanom
+func (util *TestMSSQLUtility) RecordsCountAssert(t *testing.T, expected int, tableAndWhere string) {
+	count, err := util.RecordsCount(t, tableAndWhere)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, count, "RecordsCountAssert for: %s", tableAndWhere)
+}
+
 // ExecFixture izvrsava ma bazi sadrzaj fixture datoteke, tako da splita po GO
 // naredbama i izvrsava kao zasebne query-e
 func (util *TestMSSQLUtility) ExecFixture(t *testing.T, name string) {
