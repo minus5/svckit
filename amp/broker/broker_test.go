@@ -34,7 +34,8 @@ func TestDvaTopica(t *testing.T) {
 	s.Publish(m11)
 	s.Publish(m20)
 	s.Publish(m30)
-	s.waitClose()
+	s.wait("1")
+	s.wait("2")
 
 	// provjeri da dobije poruke samo iz  topica 1 i 2
 	assert.Len(t, c.messages, 3)
@@ -127,10 +128,13 @@ func TestDobijePropusteneDiffOveNaSubscribe(t *testing.T) {
 	m2 := &amp.Msg{Topic: "1", Ts: 105, UpdateType: amp.Diff}
 	m3 := &amp.Msg{Topic: "1", Ts: 107, UpdateType: amp.Diff}
 	m4 := &amp.Msg{Topic: "1", Ts: 111, UpdateType: amp.Diff}
+	m5 := &amp.Msg{Topic: "1", Ts: 101, UpdateType: amp.Diff}
+
 	s.Publish(m1)
 	s.Publish(m2)
 	s.Publish(m3)
 	s.Publish(m4)
+	s.Publish(m5)
 	s.wait("1")
 
 	// spoji se consumer koji je zadnje uspjesno dobio 105

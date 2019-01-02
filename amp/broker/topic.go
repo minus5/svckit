@@ -17,7 +17,8 @@ type topic struct {
 	loopWork  chan func()
 	consumers map[amp.Subscriber]int64
 	closed    chan struct{}
-	prev      []*amp.Msg // previous messages, full and all diffs after that full
+	full      *amp.Msg   // last full message
+	diffs     []*amp.Msg // previous diff messages
 	updatedAt time.Time
 }
 
@@ -27,7 +28,7 @@ func newTopic() *topic {
 		consumers: make(map[amp.Subscriber]int64),
 		closed:    make(chan struct{}),
 		loopWork:  make(chan func()),
-		prev:      make([]*amp.Msg, 0),
+		diffs:     make([]*amp.Msg, 0),
 	}
 	go t.loop()
 	return t
@@ -35,69 +36,6 @@ func newTopic() *topic {
 
 func (t *topic) publish(m *amp.Msg) {
 	t.messages <- m
-}
-
-func (t *topic) close() {
-	close(t.messages)
-	<-t.closed
-}
-
-func (t *topic) subscribe(c amp.Subscriber, ts int64) {
-	t.loopWork <- func() {
-		if ts <= 0 {
-			ts = tsNone
-		}
-		t.consumers[c] = ts
-		msgs := t.findForSubscribe(ts)
-		for _, m := range msgs {
-			t.send(c, m)
-		}
-	}
-}
-
-func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
-	t.consumers[c] = m.Ts
-	c.Send(m)
-}
-
-func (t *topic) prevTs() (int64, int64) {
-	lastFull := tsNone
-	lastMsg := tsNone
-	if len(t.prev) > 0 {
-		lastFull = t.prev[0].Ts
-		lastMsg = t.prev[len(t.prev)-1].Ts
-	}
-	return lastFull, lastMsg
-}
-
-// poruke koje dobije kada napravi subscribe
-func (t *topic) findForSubscribe(ts int64) []*amp.Msg {
-	lastFull, lastMsg := t.prevTs()
-	if ts < lastFull {
-		return t.prev
-	}
-	if ts > lastMsg && lastMsg != tsNone {
-		return t.prev
-	}
-
-	var msgs []*amp.Msg
-	for _, m := range t.prev {
-		if m.Ts > ts {
-			msgs = append(msgs, m)
-		}
-	}
-	return msgs
-
-}
-
-// Unsubscribe vraca true ako vise nema niti jednog consumera.
-func (t *topic) unsubscribe(c amp.Subscriber) bool {
-	empty := make(chan bool)
-	t.loopWork <- func() {
-		delete(t.consumers, c)
-		empty <- len(t.consumers) == 0
-	}
-	return <-empty
 }
 
 func (t *topic) loop() {
@@ -115,43 +53,133 @@ func (t *topic) loop() {
 	}
 }
 
-func (t *topic) sortPrev() {
-	sort.Slice(t.prev, func(i, j int) bool {
-		return t.prev[i].Ts < t.prev[j].Ts
-	})
-	// remove duplicates
-	for i := 0; i < len(t.prev)-1; i++ {
-		m1 := t.prev[i]
-		m2 := t.prev[i+1]
-		if m1.Ts == m2.Ts && m1.UpdateType == m2.UpdateType {
-			if m1.IsReplay() {
-				t.prev = append(t.prev[:i], t.prev[i+1:]...) //remove i
-				continue
-			}
-			j := i + 1
-			t.prev = append(t.prev[:j], t.prev[j+1:]...) //remove i+1
+func (t *topic) close() {
+	close(t.messages)
+	<-t.closed
+}
+
+func (t *topic) subscribe(c amp.Subscriber, ts int64) {
+	t.loopWork <- func() {
+		if ts <= 0 {
+			ts = tsNone
+		}
+		t.consumers[c] = ts
+		t.sendAll(c, t.findForSubscribe(ts))
+	}
+}
+
+// unsubscribe vraca true ako vise nema niti jednog consumera.
+func (t *topic) unsubscribe(c amp.Subscriber) bool {
+	empty := make(chan bool)
+	t.loopWork <- func() {
+		delete(t.consumers, c)
+		empty <- len(t.consumers) == 0
+	}
+	return <-empty
+}
+
+func (t *topic) sendAll(c amp.Subscriber, msgs []*amp.Msg) {
+	for _, m := range msgs {
+		t.send(c, m)
+	}
+}
+
+func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
+	t.consumers[c] = m.Ts
+	c.Send(m)
+}
+
+// message for subsribers after he subscribes with ts
+func (t *topic) findForSubscribe(ts int64) []*amp.Msg {
+	if len(t.diffs) > 0 && ts >= t.diffs[0].Ts && ts <= t.diffs[len(t.diffs)-1].Ts {
+		return t.diffsAfter(ts)
+	}
+	if t.full == nil {
+		return nil
+	}
+	return t.current()
+}
+
+// updateCache adds new message to the caches t.full or t.diffs
+func (t *topic) updateCache(m *amp.Msg) {
+	if m.IsFull() {
+		if m.IsReplay() && t.full != nil {
+			return
+		}
+		if t.full != nil { // preserve all after previous full
+			t.compactDiffs(t.full.Ts)
+		}
+		t.full = m
+		return
+	}
+
+	t.diffs = append(t.diffs, m)
+	if len(t.diffs) > 1 {
+		prev := len(t.diffs) - 2
+		if m.Ts <= t.diffs[prev].Ts {
+			t.sortDiffs()
 		}
 	}
 }
 
+// compactDiffs preserves only diffs with Ts greater than input ts
+func (t *topic) compactDiffs(ts int64) {
+	var n []*amp.Msg
+	for _, m := range t.diffs {
+		if m.Ts >= ts {
+			n = append(n, m)
+		}
+	}
+	t.diffs = n
+}
+
+// sortDiffs sorts and removes duplicates in t.diffs
+func (t *topic) sortDiffs() {
+	sort.Slice(t.diffs, func(i, j int) bool {
+		return t.diffs[i].Ts < t.diffs[j].Ts
+	})
+	// remove duplicates
+	for i := 0; i < len(t.diffs)-1; i++ {
+		m1 := t.diffs[i]
+		m2 := t.diffs[i+1]
+		if m1.Ts == m2.Ts {
+			if m1.IsReplay() {
+				t.diffs = append(t.diffs[:i], t.diffs[i+1:]...) //remove i
+				continue
+			}
+			j := i + 1
+			t.diffs = append(t.diffs[:j], t.diffs[j+1:]...) //remove i+1
+		}
+	}
+}
+
+func (t *topic) diffsAfter(ts int64) []*amp.Msg {
+	var d []*amp.Msg
+	for _, m := range t.diffs {
+		if m.Ts > ts {
+			d = append(d, m)
+		}
+	}
+	return d
+}
+
+func (t *topic) current() []*amp.Msg {
+	return append([]*amp.Msg{t.full}, t.diffsAfter(t.full.Ts)...)
+}
+
 func (t *topic) onMessage(m *amp.Msg) {
 	ts := m.Ts
+	t.updateCache(m)
 	if m.IsFull() {
-		// sacuvaj full i sve diffove nakon njega
-		p := make([]*amp.Msg, 0)
-		p = append(p, m)
-		for _, pm := range t.prev {
-			if pm.Ts > m.Ts {
-				p = append(p, pm)
-			}
-		}
-		t.prev = p
-		t.sortPrev()
-		// posalji full svima koji jos nisu nista dobili
+		var current []*amp.Msg
 		for c, cNo := range t.consumers {
-			if cNo == tsNone {
-				t.send(c, m)
+			if cNo != tsNone {
+				continue
 			}
+			if current == nil {
+				current = t.current()
+			}
+			t.sendAll(c, current)
 		}
 		return
 	}
@@ -164,29 +192,37 @@ func (t *topic) onMessage(m *amp.Msg) {
 		}
 		t.send(c, m)
 	}
-	if len(t.prev) == 0 {
-		return
-	}
-	lastFull, lastMsg := t.prevTs()
-	if m.Ts > lastFull {
-		t.prev = append(t.prev, m)
-		if m.Ts < lastMsg {
-			t.sortPrev()
-		}
-	}
 	t.updatedAt = time.Now()
 }
 
 func (t *topic) replay() []*amp.Msg {
 	ret := make(chan []*amp.Msg, 1)
 	t.loopWork <- func() {
-		var msgs []*amp.Msg
-		for _, m := range t.prev {
-			msgs = append(msgs, m.AsReplay())
-		}
-		ret <- msgs
+		ret <- t.current()
 	}
-	return <-ret
+	msgs := <-ret
+	var rmsgs []*amp.Msg
+	for _, m := range msgs {
+		rmsgs = append(rmsgs, m.AsReplay())
+	}
+	return rmsgs
+}
+
+func (t *topic) metrics() (diffs, firstDiffTs, lastDiffTs, fullTs int64) {
+	done := make(chan struct{})
+	t.loopWork <- func() {
+		diffs = int64(len(t.diffs))
+		if len(t.diffs) > 0 {
+			firstDiffTs = t.diffs[0].Ts
+			lastDiffTs = t.diffs[len(t.diffs)-1].Ts
+		}
+		if t.full != nil {
+			fullTs = t.full.Ts
+		}
+		close(done)
+	}
+	<-done
+	return
 }
 
 // samo za testove

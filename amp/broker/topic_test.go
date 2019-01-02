@@ -9,8 +9,9 @@ import (
 
 func TestTopicFindForSubscribe(t *testing.T) {
 	topic := &topic{
-		prev: []*amp.Msg{
-			&amp.Msg{Ts: 10, UpdateType: amp.Full},
+		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
+		diffs: []*amp.Msg{
+			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 11, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 13, UpdateType: amp.Diff},
@@ -53,8 +54,8 @@ func TestTopicFindForSubscribe(t *testing.T) {
 
 func TestTopicOnMessage(t *testing.T) {
 	topic := &topic{
-		prev: []*amp.Msg{
-			&amp.Msg{Ts: 10, UpdateType: amp.Full},
+		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
+		diffs: []*amp.Msg{
 			&amp.Msg{Ts: 11, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
 		},
@@ -62,19 +63,22 @@ func TestTopicOnMessage(t *testing.T) {
 
 	// diff se dodaje
 	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
-	assert.Len(t, topic.prev, 4)
+	assert.Len(t, topic.diffs, 3)
 
 	// full postavlja novo stanje od kojeg krecemo
 	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Full})
-	assert.Len(t, topic.prev, 1)
+	assert.Len(t, topic.diffs, 3)
 
 	// diff koji je isti kao full, njega ne spremamo samo proslijedimo
 	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
-	assert.Len(t, topic.prev, 1)
+	assert.Len(t, topic.diffs, 3)
 
 	// stari njega preskacemo
 	topic.onMessage(&amp.Msg{Ts: 14, UpdateType: amp.Diff})
-	assert.Len(t, topic.prev, 1)
+	assert.Len(t, topic.diffs, 4)
+
+	topic.onMessage(&amp.Msg{Ts: 14, UpdateType: amp.Diff})
+	assert.Len(t, topic.diffs, 4)
 }
 
 func TestTopicReplay(t *testing.T) {
@@ -98,8 +102,8 @@ func TestTopicReplay(t *testing.T) {
 
 func TestSortPrevRemovesDuplicates(t *testing.T) {
 	topic := &topic{
-		prev: []*amp.Msg{
-			&amp.Msg{Ts: 10, UpdateType: amp.Full},
+		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
+		diffs: []*amp.Msg{
 			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
@@ -107,10 +111,9 @@ func TestSortPrevRemovesDuplicates(t *testing.T) {
 			&amp.Msg{Ts: 15, UpdateType: amp.Diff, Replay: 1},
 		},
 	}
-	topic.sortPrev()
-	assert.Len(t, topic.prev, 4)
-	assert.Equal(t, int64(10), topic.prev[0].Ts)
-	assert.Equal(t, int64(10), topic.prev[1].Ts)
-	assert.Equal(t, int64(12), topic.prev[2].Ts)
-	assert.Equal(t, int64(15), topic.prev[3].Ts)
+	topic.sortDiffs()
+	assert.Len(t, topic.diffs, 3)
+	assert.Equal(t, int64(10), topic.diffs[0].Ts)
+	assert.Equal(t, int64(12), topic.diffs[1].Ts)
+	assert.Equal(t, int64(15), topic.diffs[2].Ts)
 }

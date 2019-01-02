@@ -1,6 +1,8 @@
 package main
 
 import (
+	"expvar"
+
 	"github.com/mnu5/svckit/example/amp/session"
 
 	"github.com/mnu5/svckit/amp/broker"
@@ -11,6 +13,8 @@ import (
 	"github.com/mnu5/svckit/httpi"
 	"github.com/mnu5/svckit/log"
 	"github.com/mnu5/svckit/signal"
+
+	_ "github.com/mnu5/svckit" // adding svckit.stats to expvar
 )
 
 var (
@@ -35,6 +39,7 @@ func main() {
 		sessions.Close()
 	}()
 	go debugHTTP()
+	expvar.Publish("svckit.amp.broker", expvar.Func(broker.Expvar))
 
 	ws.Listen(interuptCtx, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
 	sessions.Wait()
