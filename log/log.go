@@ -16,6 +16,7 @@ const (
 	SyslogServiceName = "syslog"
 	EnvSyslog         = "SVCKIT_LOG_SYSLOG"
 	EnvDisableDebug   = "SVCKIT_LOG_DISABLE_DEBUG"
+	EnvNode           = "node"
 )
 
 var (
@@ -27,15 +28,15 @@ var (
 type stdLibOutput struct{}
 
 func (o *stdLibOutput) Write(p []byte) (int, error) {
-	if !debugLogLevelEnabled {
-		return len(p), nil
-	}
 	if len(p) > 0 {
 		//izbaci zadnji znak (\n)
 		p = p[0 : len(p)-1]
 	}
 	msg := string(p)
 	level, msg := splitLevelMessage(msg)
+	if level == LevelDebug && !debugLogLevelEnabled {
+		return len(p), nil
+	}
 	a := newAgregator(5)
 	a.level = level
 	a.msg = msg
@@ -52,8 +53,13 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 func init() {
 	out = os.Stderr
 
+	hostname := env.Hostname()
+	if node := os.Getenv(EnvNode); node != "" {
+		hostname = node
+	}
+
 	//prefix za sve logove
-	p := fmt.Sprintf(`"host":"%s", "app":"%s"`, env.Hostname(), env.AppName())
+	p := fmt.Sprintf(`"host":"%s", "app":"%s"`, hostname, env.AppName())
 	prefix = []byte(p)
 
 	// preusmjeri go standard lib logger kroz mene

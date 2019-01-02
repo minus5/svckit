@@ -1,6 +1,7 @@
 package statsd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
+	"github.com/minus5/svckit/signal"
 )
 
 const (
@@ -26,6 +28,9 @@ const (
 
 	// DefaultSendLoopCount max loops for sending data
 	DefaultSendLoopCount = 1
+
+	// DefaultMaxPacketSize is max size of packet
+	DefaultMaxPacketSize = 1398
 )
 
 type client interface {
@@ -76,6 +81,18 @@ again:
 	}
 }
 
+func TryDial(opts ...Option) {
+	if err := Dial(opts...); err == nil {
+		return
+	}
+	go func() {
+		ctx := context.Background()
+		signal.WithBackoff(ctx, func() error {
+			return Dial(opts...)
+		}, time.Minute, time.Hour*24*365)
+	}()
+}
+
 // Dial connects to statsd server and set it as metric driver.
 // - default statsd address is read from dcy or env STATSD_LOGGER_ADDRESS
 // - default prefix is AppName.InstanceId
@@ -91,6 +108,7 @@ func Dial(opts ...Option) error {
 		bufPoolCapacity:   DefaultBufPoolCapacity,
 		sendQueueCapacity: DefaultSendQueueCapacity,
 		sendLoopCount:     DefaultSendLoopCount,
+		maxPacketSize:     DefaultMaxPacketSize,
 	}
 
 	// apply sent options
@@ -112,6 +130,7 @@ func Dial(opts ...Option) error {
 		api.BufPoolCapacity(o.bufPoolCapacity),
 		api.SendQueueCapacity(o.sendQueueCapacity),
 		api.SendLoopCount(o.sendLoopCount),
+		api.MaxPacketSize(o.maxPacketSize),
 		api.Logger(golog.New(&logRedir{packetsLostNotice: false}, "", 0)),
 	)
 

@@ -1,8 +1,8 @@
 package nsq
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -12,16 +12,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
-	"github.com/pkg/errors"
 )
 
 var (
 	DefaultTimeout = time.Hour
-	ErrTimeout     = fmt.Errorf("timeout")
-	ErrStopped     = fmt.Errorf("stopped")
+	ErrTimeout     = errors.New("timeout")
+	ErrStopped     = errors.New("stopped")
 	rrProducers    = make(map[string]*RrProducer)
 )
 
@@ -48,7 +46,7 @@ type RrProducerCorrelation interface {
 // - opts are functions to set additional options
 func RrPub(topic string, opts ...func(*RrProducer)) *RrProducer {
 	if topic == "" {
-		topic = fmt.Sprintf("z...rsp.%s.%s", env.AppName(), dcy.NodeName())
+		topic = fmt.Sprintf("z...rsp.%s.%s", env.AppName(), env.InstanceId())
 	}
 	if s, ok := rrProducers[topic]; ok {
 		return s
@@ -250,10 +248,12 @@ func (s *RrProducer) ReqRspBase(p ReqRspBaseParams) ([]byte, error) {
 		return nil, p.Fatal(err)
 	}
 
+	timer := time.NewTimer(p.Ttl)
+	defer timer.Stop()
 	select {
 	case re := <-c:
 		return re.Body, p.Error(re.Error)
-	case <-time.After(p.Ttl):
+	case <-timer.C:
 		s.timeout(p.correlationId)
 		return nil, p.Timeout()
 	case <-p.Sig:
@@ -263,47 +263,8 @@ func (s *RrProducer) ReqRspBase(p ReqRspBaseParams) ([]byte, error) {
 	return nil, nil
 }
 
-// Rpc made a rpc call
-//  topic - where to send request
-//  typ   - server side method
-//  req   - request body
-// returns:
-//  response body
-//  response application error (as string)
-//  trasport error
-func (s *RrProducer) Rpc(ctx context.Context, topic, typ string, req []byte) ([]byte, string, error) {
-	correlationId := s.correlationID()
-	eReq := &Envelope{
-		Type:          typ,
-		ReplyTo:       s.topic,
-		CorrelationId: correlationId,
-		Body:          req,
-	}
-	if d, ok := ctx.Deadline(); ok {
-		eReq.ExpiresAt = d.Unix()
-	}
-	c := make(chan *Envelope)
-	s.add(correlationId, c)
-
-	if err := s.pub(topic).Publish(eReq.Bytes()); err != nil {
-		return nil, "", errors.Wrap(err, "nsq publish failed")
-	}
-
-	select {
-	case re := <-c:
-		return re.Body, re.Error, nil
-	case <-ctx.Done():
-		s.timeout(correlationId)
-		return nil, "", ctx.Err()
-	}
-}
-
 // NewCorrelationID creates unique correlationID as request identifier
 func (s *RrProducer) NewCorrelationID(topic, typ string, req interface{}) string {
-	return s.correlationID()
-}
-
-func (s *RrProducer) correlationID() string {
 	s.Lock()
 	defer s.Unlock()
 	s.msgNo++

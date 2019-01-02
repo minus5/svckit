@@ -15,6 +15,7 @@ type options struct {
 	bufPoolCapacity   int
 	sendQueueCapacity int
 	sendLoopCount     int
+	maxPacketSize     int
 }
 
 // Validate options before start

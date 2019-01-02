@@ -54,7 +54,7 @@ func NewConsumer(topic string, handler func(*Message) error,
 	}
 
 	c.SetLogger(o.logger, o.logLevel)
-	c.AddConcurrentHandlers(&nsqHandler{fn: handler}, cfg.MaxInFlight)
+	c.AddConcurrentHandlers(&nsqHandler{fn: handler}, o.concurrency)
 
 	err = c.ConnectToNSQLookupds(o.lookupds.String())
 	if err != nil {
@@ -69,7 +69,7 @@ func NewConsumer(topic string, handler func(*Message) error,
 		},
 	}
 
-	co.logger().I("maxInFlight", o.maxInFlight).Debug("starting consumer")
+	co.logger().I("maxInFlight", o.maxInFlight).I("concurrency", o.concurrency).Debug("starting consumer")
 	dcy.Subscribe(LookupdHTTPServiceName, co.onLookupChanges)
 	return co, nil
 }

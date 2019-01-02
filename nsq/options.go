@@ -48,6 +48,7 @@ func (n *nsqLogger) Output(calldepth int, s string) error {
 
 type options struct {
 	maxInFlight int
+	concurrency int
 	channel     string
 	nsqdTCPAddr string
 	logger      *nsqLogger
@@ -72,6 +73,13 @@ func (c *options) apply(opts ...func(*options)) *options {
 	return c
 }
 
+func (c *options) Concurrency() int {
+	if c.concurrency != 0 {
+		return c.concurrency
+	}
+	return c.maxInFlight
+}
+
 func MaxInFlight(m int) func(*options) {
 	return func(o *options) {
 		o.maxInFlight = m
@@ -81,5 +89,20 @@ func MaxInFlight(m int) func(*options) {
 func Channel(c string) func(*options) {
 	return func(o *options) {
 		o.channel = c
+	}
+}
+
+// Concurrency sets concurrency for the consumer.
+func Concurrency(c int) func(*options) {
+	return func(o *options) {
+		o.concurrency = c
+	}
+}
+
+// Ordered sets concurrency to 1 to preserve order
+// of incomming messages while calling handler.
+func Ordered() func(*options) {
+	return func(o *options) {
+		o.concurrency = 1
 	}
 }

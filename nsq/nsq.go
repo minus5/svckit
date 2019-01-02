@@ -19,6 +19,7 @@ import (
 
 const (
 	DefaultMaxInFlight      = 256
+	DefaultConcurrency      = 16
 	LookupdHTTPServiceName  = "nsqlookupd-http"
 	NsqdTCPServiceName      = "nsqd-tcp"
 	EnvNsqd                 = "SVCKIT_NSQD"
@@ -55,6 +56,7 @@ func Set(opts ...func(*options)) {
 func initDefaults() {
 	defaults = &options{
 		maxInFlight: DefaultMaxInFlight,
+		concurrency: DefaultConcurrency,
 		channel:     fmt.Sprintf("%s-%s", env.AppName(), env.InstanceId()),
 		nsqdTCPAddr: "127.0.0.1:4150",
 		lookupds:    dcy.Addresses{dcy.Address{Address: "127.0.0.1", Port: 4161}},

@@ -260,7 +260,7 @@ func (a *Agregator) F(key string, val float64, prec int) *Agregator {
 	return a
 }
 
-// S - add integer key, value attribute
+// S - add string key, value attribute
 func (a *Agregator) S(key string, val string) *Agregator {
 	key = escapeKey(key)
 	val = limitStrLen(strconv.QuoteToASCII(val))

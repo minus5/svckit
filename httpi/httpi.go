@@ -2,6 +2,7 @@ package httpi
 
 import (
 	_ "expvar"
+	"fmt"
 	"net/http"
 
 	"github.com/minus5/svckit/env"
@@ -9,8 +10,8 @@ import (
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/signal"
 
-	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
+	"github.com/urfave/negroni"
 )
 
 func NewRouter() *Router {
@@ -61,19 +62,18 @@ func (r *Router) RouteVars(path string,
 //
 //   httpi.Start(":8123", httpi.LogRequests())
 func (r *Router) Start(listen string) {
-	n := r.Handler()
-	// Run i ListenAndServe (koji se zove unutra)
-	// nikada ne nastavi na slijedecoj liniji
-	// nisam skuzio kako no ako je u svojoj goroutini onda je malo bolje
-	//n.Run(listen)
+	r.Go(listen)
+	signal.WaitForInterupt()
+}
+
+func (r *Router) Go(listen string) {
 	go func() {
 		log.S("lib", "svckit/httpi").S("listen", listen).Info("starting")
-		err := http.ListenAndServe(listen, n)
+		err := http.ListenAndServe(listen, r.Handler())
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
-	signal.WaitForInterupt()
 }
 
 // Handler create http handler.
@@ -86,6 +86,9 @@ func (r *Router) Handler() *negroni.Negroni {
 		//otvori expvar interface (na /debug/vars)
 		r.muxRouter.Handle("/debug/vars", http.DefaultServeMux)
 	}
+	r.muxRouter.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, fmt.Sprintf("501 url not implemented %s", r.URL.String()), http.StatusNotImplemented)
+	})
 	handlers := []negroni.Handler{negroni.NewRecovery(), NewStats()}
 	if r.log {
 		handlers = append(handlers, NewRequestLogger())

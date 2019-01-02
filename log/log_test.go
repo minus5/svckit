@@ -86,6 +86,7 @@ func TestSplitLevelMessage(t *testing.T) {
 		level string
 		msg   string
 	}{
+		{"[INFO] nesto", LevelInfo, "nesto"},
 		{"[DEBUG] nesto", LevelDebug, "nesto"},
 		{"[NOTICE] nesto", LevelNotice, "nesto"},
 		{"[ERROR] nesto", LevelError, "nesto"},
