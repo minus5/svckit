@@ -3,7 +3,7 @@ package httpi
 import (
 	"fmt"
 	"net/http"
-	"github.com/minus5/svckit/metric"
+	"github.com/mnu5/svckit/metric"
 	"strings"
 	"time"
 )

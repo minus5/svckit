@@ -6,9 +6,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/minus5/svckit/env"
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/metric"
+	"github.com/mnu5/svckit/env"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/metric"
 )
 
 // Allowed values for status

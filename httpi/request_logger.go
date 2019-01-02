@@ -3,7 +3,7 @@ package httpi
 import (
 	"fmt"
 	"net/http"
-	"github.com/minus5/svckit/log"
+	"github.com/mnu5/svckit/log"
 	"time"
 
 	"github.com/codegangsta/negroni"

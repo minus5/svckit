@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/minus5/svckit/example/nsq_rr/api"
-	"github.com/minus5/svckit/example/nsq_rr/api/nsq"
-	"github.com/minus5/svckit/log"
+	"github.com/mnu5/svckit/example/nsq_rr/api"
+	"github.com/mnu5/svckit/example/nsq_rr/api/nsq"
+	"github.com/mnu5/svckit/log"
 )
 
 var c *api.Client

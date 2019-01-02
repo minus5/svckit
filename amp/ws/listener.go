@@ -106,7 +106,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			return os, true
 		},
 		// ocitvamo ostale bitne http headere
-		OnHeader: func(k, v []byte) (err error, code int) {
+		OnHeader: func(k, v []byte) error {
 			key := strings.ToLower(string(k))
 			value := string(v)
 			switch key {
@@ -118,7 +118,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 				}
 				cc.forwardedFor += value
 			}
-			return nil, 0
+			return nil
 		},
 	}
 

@@ -3,9 +3,9 @@
 package main
 
 import (
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/nsq"
-	"github.com/minus5/svckit/signal"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/nsq"
+	"github.com/mnu5/svckit/signal"
 )
 
 func main() {

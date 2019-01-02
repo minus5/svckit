@@ -1,6 +1,6 @@
 package main
 
-import "github.com/minus5/svckit/log"
+import "github.com/mnu5/svckit/log"
 
 func main() {
 	log.I("key", 1).Debug("Pero")

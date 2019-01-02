@@ -2,9 +2,10 @@ package broker
 
 import (
 	"math"
-	"pkg/amp/light/amp"
 	"sort"
 	"time"
+
+	"github.com/mnu5/svckit/amp"
 )
 
 var (

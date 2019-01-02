@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/minus5/svckit/log"
+	"github.com/mnu5/svckit/log"
 )
 
 // Message types

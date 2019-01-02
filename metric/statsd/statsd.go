@@ -9,10 +9,10 @@ import (
 
 	golog "log"
 
-	"github.com/minus5/svckit/env"
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/metric"
-	"github.com/minus5/svckit/signal"
+	"github.com/mnu5/svckit/env"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/metric"
+	"github.com/mnu5/svckit/signal"
 	api "github.com/smira/go-statsd"
 )
 
@@ -232,7 +232,7 @@ func (i *Statsd) AppendSuffix(suffix string) metric.Metric {
 }
 
 func logger() *log.Agregator {
-	return log.S("lib", "svckit.metric").S("statsd", "github.com/minus5/go-statsd")
+	return log.S("lib", "svckit.metric")
 }
 
 // logRedir simple io.Writer for log redirection to svckit log

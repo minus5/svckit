@@ -3,8 +3,8 @@ package api
 import (
 	"reflect"
 
-	"github.com/minus5/svckit/types/ers"
-	"github.com/minus5/svckit/types/registry"
+	"github.com/mnu5/svckit/types/ers"
+	"github.com/mnu5/svckit/types/registry"
 )
 
 type addReq struct {

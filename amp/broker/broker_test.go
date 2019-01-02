@@ -1,11 +1,11 @@
 package broker
 
 import (
-	"pkg/amp/light/amp"
 	"sync"
 	"testing"
 
-	"github.com/minus5/svckit/log"
+	"github.com/mnu5/svckit/amp"
+	"github.com/mnu5/svckit/log"
 	"github.com/stretchr/testify/assert"
 )
 

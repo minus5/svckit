@@ -1,7 +1,7 @@
 package nsq
 
 import (
-	"github.com/minus5/svckit/log"
+	"github.com/mnu5/svckit/log"
 
 	gonsq "github.com/nsqio/go-nsq"
 )

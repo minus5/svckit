@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/minus5/svckit/dcy"
-	"github.com/minus5/svckit/env"
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/signal"
+	"github.com/mnu5/svckit/dcy"
+	"github.com/mnu5/svckit/env"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/signal"
 
 	gonsq "github.com/nsqio/go-nsq"
 )

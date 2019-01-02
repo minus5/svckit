@@ -1,9 +1,9 @@
 package broker
 
 import (
-	"pkg/amp/light/amp"
 	"testing"
 
+	"github.com/mnu5/svckit/amp"
 	"github.com/stretchr/testify/assert"
 )
 

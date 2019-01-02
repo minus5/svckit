@@ -1,8 +1,8 @@
 package dev
 
 import (
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/metric"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/metric"
 )
 
 func Init() {

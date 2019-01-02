@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/minus5/svckit/example/nsq_rr/api"
-	"github.com/minus5/svckit/example/nsq_rr/api/nsq"
-	"github.com/minus5/svckit/signal"
+	"github.com/mnu5/svckit/example/nsq_rr/api"
+	"github.com/mnu5/svckit/example/nsq_rr/api/nsq"
+	"github.com/mnu5/svckit/signal"
 )
 
 var topic = "nsq_rr.req"

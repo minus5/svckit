@@ -6,8 +6,8 @@ import (
 
 	m "github.com/minus5/nsqm"
 	"github.com/minus5/nsqm/discovery/consul"
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/signal"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/signal"
 )
 
 const (

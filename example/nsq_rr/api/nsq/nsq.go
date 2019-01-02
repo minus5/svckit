@@ -3,8 +3,8 @@ package nsq
 import (
 	"time"
 
-	"github.com/minus5/svckit/example/nsq_rr/api"
-	"github.com/minus5/svckit/nsq"
+	"github.com/mnu5/svckit/example/nsq_rr/api"
+	"github.com/mnu5/svckit/nsq"
 )
 
 var topic = "nsq_rr.req"

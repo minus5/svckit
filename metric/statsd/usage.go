@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/minus5/svckit/env"
+	"github.com/mnu5/svckit/env"
 )
 
 // usage struct for counting statistic usage

@@ -2,11 +2,11 @@ package nsq
 
 import (
 	"context"
-	"pkg/amp/light/amp"
 	"sync"
 
-	"github.com/minus5/svckit/log"
-	"github.com/minus5/svckit/nsq"
+	"github.com/mnu5/svckit/amp"
+	"github.com/mnu5/svckit/log"
+	"github.com/mnu5/svckit/nsq"
 	"github.com/pkg/errors"
 )
 

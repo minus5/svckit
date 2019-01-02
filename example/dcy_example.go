@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/minus5/svckit/dcy"
+	"github.com/mnu5/svckit/dcy"
 )
 
 func main() {
