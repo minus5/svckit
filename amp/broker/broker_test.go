@@ -174,10 +174,10 @@ func TestReplay(t *testing.T) {
 
 	msgs := s.Replay("1")
 	assert.Len(t, msgs, 4)
-	assert.Equal(t, m1, msgs[0])
-	assert.Equal(t, m2, msgs[1])
-	assert.Equal(t, m3, msgs[2])
-	assert.Equal(t, m4, msgs[3])
+	assert.Equal(t, m1.Ts, msgs[0].Ts)
+	assert.Equal(t, m2.Ts, msgs[1].Ts)
+	assert.Equal(t, m3.Ts, msgs[2].Ts)
+	assert.Equal(t, m4.Ts, msgs[3].Ts)
 
 	msgs = s.Replay("")
 	assert.Len(t, msgs, 6)

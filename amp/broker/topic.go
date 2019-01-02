@@ -119,6 +119,19 @@ func (t *topic) sortPrev() {
 	sort.Slice(t.prev, func(i, j int) bool {
 		return t.prev[i].Ts < t.prev[j].Ts
 	})
+	// remove duplicates
+	for i := 0; i < len(t.prev)-1; i++ {
+		m1 := t.prev[i]
+		m2 := t.prev[i+1]
+		if m1.Ts == m2.Ts && m1.UpdateType == m2.UpdateType {
+			if m1.IsReplay() {
+				t.prev = append(t.prev[:i], t.prev[i+1:]...) //remove i
+				continue
+			}
+			j := i + 1
+			t.prev = append(t.prev[:j], t.prev[j+1:]...) //remove i+1
+		}
+	}
 }
 
 func (t *topic) onMessage(m *amp.Msg) {
@@ -146,6 +159,9 @@ func (t *topic) onMessage(m *amp.Msg) {
 		if cTs == ts || cTs == tsNone {
 			continue // ovaj consumer je vec dobio ovu ili jos nije dobio full
 		}
+		if m.IsReplay() && cTs >= m.Ts { // nemoj ponavljati replay poruke onima koji ih vec imaju
+			continue
+		}
 		t.send(c, m)
 	}
 	if len(t.prev) == 0 {
@@ -166,7 +182,7 @@ func (t *topic) replay() []*amp.Msg {
 	t.loopWork <- func() {
 		var msgs []*amp.Msg
 		for _, m := range t.prev {
-			msgs = append(msgs, m)
+			msgs = append(msgs, m.AsReplay())
 		}
 		ret <- msgs
 	}

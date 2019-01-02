@@ -90,8 +90,27 @@ func TestTopicReplay(t *testing.T) {
 	topic.wait()
 	msgs := topic.replay()
 	assert.Len(t, msgs, 4)
-	assert.Equal(t, m1, msgs[0])
-	assert.Equal(t, m2, msgs[1])
-	assert.Equal(t, m3, msgs[2])
-	assert.Equal(t, m4, msgs[3])
+	assert.Equal(t, m1.Ts, msgs[0].Ts)
+	assert.Equal(t, m2.Ts, msgs[1].Ts)
+	assert.Equal(t, m3.Ts, msgs[2].Ts)
+	assert.Equal(t, m4.Ts, msgs[3].Ts)
+}
+
+func TestSortPrevRemovesDuplicates(t *testing.T) {
+	topic := &topic{
+		prev: []*amp.Msg{
+			&amp.Msg{Ts: 10, UpdateType: amp.Full},
+			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 15, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 15, UpdateType: amp.Diff, Replay: 1},
+		},
+	}
+	topic.sortPrev()
+	assert.Len(t, topic.prev, 4)
+	assert.Equal(t, int64(10), topic.prev[0].Ts)
+	assert.Equal(t, int64(10), topic.prev[1].Ts)
+	assert.Equal(t, int64(12), topic.prev[2].Ts)
+	assert.Equal(t, int64(15), topic.prev[3].Ts)
 }

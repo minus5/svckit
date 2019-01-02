@@ -67,6 +67,7 @@ type Msg struct {
 	Topic      string `json:"o,omitempty"`
 	Ts         int64  `json:"s,omitempty"`
 	UpdateType uint8  `json:"u,omitempty"`
+	Replay     uint8  `json:"p,omitempty"`
 	// sub
 	Subscriptions map[string]int64 `json:"b,omitempty"`
 
@@ -244,6 +245,23 @@ func (m *Msg) IsTopicClose() bool {
 	return m.UpdateType == Close
 }
 
+func (m *Msg) IsReplay() bool {
+	return m.Replay == 1
+}
+
 func (m *Msg) IsFull() bool {
 	return m.UpdateType == Full
+}
+
+// AsReplay marks message as replay
+func (m *Msg) AsReplay() *Msg {
+	return &Msg{
+		Type:       m.Type,
+		Topic:      m.Topic,
+		UpdateType: m.UpdateType,
+		Replay:     1,
+		Ts:         m.Ts,
+		body:       m.body,
+		src:        m.src,
+	}
 }
