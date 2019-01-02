@@ -1,5 +1,6 @@
 package statsd
 
+/*
 import (
 	"fmt"
 	"sync/atomic"
@@ -28,42 +29,42 @@ func usageReport(interval time.Duration, client client) *usage {
 		stop:     make(chan struct{}, 1),
 		prefix:   fmt.Sprintf("statsd_sent.%s.%s.", env.AppName(), env.InstanceId()),
 	}
-	go u.run()
+	//go u.run()
 	return u
 }
 
-// run usage reporting
-func (u *usage) run() {
-	ri := time.NewTicker(u.interval)
-	for {
-		select {
-		case <-ri.C:
-			u.report()
-		case <-u.stop:
-			ri.Stop()
-			u.report()
-			return
-		}
-	}
-}
+// // run usage reporting
+// func (u *usage) run() {
+// 	ri := time.NewTicker(u.interval)
+// 	for {
+// 		select {
+// 		case <-ri.C:
+// 			u.report()
+// 		case <-u.stop:
+// 			ri.Stop()
+// 			u.report()
+// 			return
+// 		}
+// 	}
+// }
 
-// report sends report to statsd client
-func (u *usage) report() {
-	pl := atomic.SwapInt64(&u.packetsLost, u.c.GetLostPackets()-u.packetsLost)
-	u.c.Gauge(u.prefix+"lost_packets", pl)
-	u.c.Gauge(u.prefix+"lost_bytes", u.c.GetLostBytes())
+// // report sends report to statsd client
+// func (u *usage) report() {
+// 	pl := atomic.SwapInt64(&u.packetsLost, u.c.GetLostPackets()-u.packetsLost)
+// 	u.c.Gauge(u.prefix+"lost_packets", pl)
+// 	u.c.Gauge(u.prefix+"lost_bytes", u.c.GetLostBytes())
 
-	u.c.Gauge(u.prefix+"sent_packets", u.c.GetSentPackets())
-	u.c.Gauge(u.prefix+"sent_bytes", u.c.GetSentBytes())
+// 	u.c.Gauge(u.prefix+"sent_packets", u.c.GetSentPackets())
+// 	u.c.Gauge(u.prefix+"sent_bytes", u.c.GetSentBytes())
 
-	u.c.Gauge(u.prefix+"send_queue_len", u.c.GetSendQueueLen())
-	u.c.Gauge(u.prefix+"buf_pool_len", u.c.GetBufPoolLen())
+// 	u.c.Gauge(u.prefix+"send_queue_len", u.c.GetSendQueueLen())
+// 	u.c.Gauge(u.prefix+"buf_pool_len", u.c.GetBufPoolLen())
 
-	u.c.Gauge(u.prefix+"counters", atomic.SwapInt64(&u.counters, 0))
-	u.c.Gauge(u.prefix+"timers", atomic.SwapInt64(&u.timers, 0))
-	u.c.Gauge(u.prefix+"gauges", atomic.SwapInt64(&u.gauges, 0))
+// 	u.c.Gauge(u.prefix+"counters", atomic.SwapInt64(&u.counters, 0))
+// 	u.c.Gauge(u.prefix+"timers", atomic.SwapInt64(&u.timers, 0))
+// 	u.c.Gauge(u.prefix+"gauges", atomic.SwapInt64(&u.gauges, 0))
 
-}
+// }
 
 // Counter sent
 func (u *usage) Counter() {
@@ -84,3 +85,4 @@ func (u *usage) Gauge() {
 func (u *usage) Close() {
 	close(u.stop)
 }
+*/

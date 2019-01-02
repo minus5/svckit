@@ -9,11 +9,11 @@ import (
 
 	golog "log"
 
-	api "github.com/minus5/go-statsd"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
 	"github.com/minus5/svckit/signal"
+	api "github.com/smira/go-statsd"
 )
 
 const (
@@ -44,17 +44,17 @@ type client interface {
 	FGaugeDelta(stat string, value float64, tags ...api.Tag)
 	SetAdd(stat string, value string, tags ...api.Tag)
 	Close() error
-	GetLostPackets() int64
-	GetLostBytes() int64
-	GetSendQueueLen() int64
-	GetBufPoolLen() int64
-	GetSentPackets() int64
-	GetSentBytes() int64
+	//GetLostPackets() int64
+	//GetLostBytes() int64
+	//GetSendQueueLen() int64
+	//GetBufPoolLen() int64
+	//GetSentPackets() int64
+	//GetSentBytes() int64
 }
 
 var (
 	currentClient client // currentClient global package client
-	usageSent     *usage // usageSent global package usage send stat
+	//usageSent     *usage // usageSent global package usage send stat
 )
 
 // Statsd metric driver.
@@ -144,7 +144,7 @@ func Dial(opts ...Option) error {
 	logger().S("addr", o.addr).S("prefix", o.prefix).Info("started")
 
 	// statSent send every 5 sec
-	usageSent = usageReport(5*time.Second, currentClient)
+	//usageSent = usageReport(5*time.Second, currentClient)
 	return nil
 }
 
@@ -167,7 +167,7 @@ func (i *Statsd) Counter(name string, values ...int) {
 		}
 	}
 	i.client.Incr(i.handlePrefix(name), int64(value))
-	usageSent.Counter()
+	//usageSent.Counter()
 }
 
 // Close client connection and flush all metric
@@ -175,14 +175,14 @@ func Close() {
 	if nil == currentClient {
 		return
 	}
-	usageSent.Close()
+	//usageSent.Close()
 	currentClient.Close()
 }
 
 // Gauge submits/updates a statsd gauge type.
 func (i *Statsd) Gauge(name string, value int) {
 	i.client.Gauge(i.handlePrefix(name), int64(value))
-	usageSent.Gauge()
+	//usageSent.Gauge()
 }
 
 // Timing measures execution time for f and submits it as statsd timing type.
@@ -196,7 +196,7 @@ func (i *Statsd) Timing(name string, f func()) {
 // Time submits a statsd timing type.
 func (i *Statsd) Time(name string, duration int) {
 	i.client.Timing(i.handlePrefix(name), int64(duration))
-	usageSent.Timer()
+	//usageSent.Timer()
 }
 
 func (i *Statsd) handlePrefix(name string) string {
