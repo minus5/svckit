@@ -10,6 +10,7 @@ require (
 	github.com/circonus-labs/circonusllhist v0.1.3 // indirect
 	github.com/codegangsta/negroni v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/structtag v1.0.0
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
 	github.com/gobwas/pool v0.2.0 // indirect
 	github.com/gobwas/ws v1.0.1-0.20181126200828-5772ad49dd5a
