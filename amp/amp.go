@@ -265,3 +265,15 @@ func (m *Msg) AsReplay() *Msg {
 		src:        m.src,
 	}
 }
+
+type jsonMarshaler struct {
+	o interface{}
+}
+
+func (j jsonMarshaler) ToJSON() ([]byte, error) {
+	return json.Marshal(j.o)
+}
+
+func JSONMarshaler(o interface{}) *jsonMarshaler {
+	return &jsonMarshaler{o: o}
+}
