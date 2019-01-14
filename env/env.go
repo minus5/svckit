@@ -19,6 +19,12 @@ var (
 
 func init() {
 	appName = path.Base(os.Args[0])
+	if appName == "main" { // when running with go run, get directory name instead of main
+		wd, err := os.Getwd()
+		if err == nil {
+			_, appName = path.Split(wd)
+		}
+	}
 
 	hostname, _ = os.Hostname()
 	if strings.Contains(hostname, ".") {
