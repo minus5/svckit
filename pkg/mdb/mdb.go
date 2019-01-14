@@ -341,6 +341,10 @@ func (db *Mdb) loop() {
 	//t.Stop()
 }
 
+func (db *Mdb) ResetIndexCache() {
+	db.session.ResetIndexCache()
+}
+
 func (db *Mdb) checkpoint() {
 	if db.cache != nil {
 		db.cache.purge()
