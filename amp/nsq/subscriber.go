@@ -66,3 +66,19 @@ func (s *subscriber) close() {
 		sub.Close()
 	}
 }
+
+func Publish(topic string, in <-chan *amp.Msg) chan *amp.Msg {
+	pub := nsq.Pub(topic)
+	publish := func(m *amp.Msg) {
+		pub.Publish(m.Marshal())
+	}
+	out := make(chan *amp.Msg, 16)
+	go func() {
+		defer close(out)
+		for m := range in {
+			publish(m)
+			out <- m
+		}
+	}()
+	return out
+}
