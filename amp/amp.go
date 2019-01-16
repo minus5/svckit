@@ -49,7 +49,7 @@ type Subscriber interface {
 
 // BodyMarshaler nesto sto se zna zapakovati
 type BodyMarshaler interface {
-	ToJSON() ([]byte, error)
+	MarshalJSON() ([]byte, error)
 }
 
 // Msg ...
@@ -153,7 +153,7 @@ func (m *Msg) payload() []byte {
 		buf.Write(m.body)
 	}
 	if m.src != nil {
-		body, _ := m.src.ToJSON()
+		body, _ := m.src.MarshalJSON()
 		buf.Write(body)
 	}
 	return buf.Bytes()
@@ -234,13 +234,6 @@ func NewPublish(topic string, ts int64, updateType uint8, b BodyMarshaler) *Msg 
 	}
 }
 
-// type Subscriptions []*Subscription
-
-// type Subscription struct {
-// 	Topic string `json:"o,omitempty"`
-// 	Ts    int64  `json:"n,omitempty"`
-// }
-
 func (m *Msg) IsTopicClose() bool {
 	return m.UpdateType == Close
 }
@@ -270,7 +263,10 @@ type jsonMarshaler struct {
 	o interface{}
 }
 
-func (j jsonMarshaler) ToJSON() ([]byte, error) {
+func (j jsonMarshaler) MarshalJSON() ([]byte, error) {
+	if t, ok := j.o.(BodyMarshaler); ok {
+		return t.MarshalJSON()
+	}
 	return json.Marshal(j.o)
 }
 
