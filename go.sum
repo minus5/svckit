@@ -83,10 +83,6 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/miekg/dns v1.1.1 h1:DVkblRdiScEnEr0LR9nTnEQqHYycjkXW9bOjd+2EL2o=
 github.com/miekg/dns v1.1.1/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
-github.com/minus5/nsqm v0.0.0-20180124131437-bb786a0943ff h1:28LK+SwD6BDiPnWgvv7B/Or3ljRimlx0eHxeR7I9lUs=
-github.com/minus5/nsqm v0.0.0-20180124131437-bb786a0943ff/go.mod h1:f4aunz6tiHF4wpOnciBu470/Fk8X6omiODKCJKwGnpg=
-github.com/minus5/svckit v0.0.0-20181008072501-0b38e7a243d1 h1:guJo7HNoFLfZExA+S+7XkV4pZY/T56VDoJJ0wZbN+2M=
-github.com/minus5/svckit v0.0.0-20181008072501-0b38e7a243d1/go.mod h1:6aHJFRCW4zsJWmrl8WjwXUKLheZCyzURlR03KclNlgI=
 github.com/mitchellh/go-homedir v1.0.0 h1:vKb8ShqSby24Yrqr/yDYkuFz8d0WUjys40rvnGC8aR0=
 github.com/mitchellh/go-homedir v1.0.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/go-testing-interface v1.0.0 h1:fzU/JVNcaqHQEcVFAKeR41fkiLdIPrefOvVG1VZ96U0=
