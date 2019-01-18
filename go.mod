@@ -10,13 +10,16 @@ require (
 	github.com/circonus-labs/circonusllhist v0.1.3 // indirect
 	github.com/codegangsta/negroni v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/color v1.7.0
 	github.com/fatih/structtag v1.0.0
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
 	github.com/gobwas/pool v0.2.0 // indirect
 	github.com/gobwas/ws v1.0.1-0.20181126200828-5772ad49dd5a
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v1.6.2
+	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/hashicorp/consul v1.4.0
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-msgpack v0.0.0-20150518234257-fa3f63826f7c // indirect
@@ -27,9 +30,13 @@ require (
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.8.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
+	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/mattn/go-colorable v0.0.9 // indirect
+	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/miekg/dns v1.1.1 // indirect
 	github.com/minus5/nsqm v0.0.0-20180124131437-bb786a0943ff
+	github.com/minus5/svckit v0.0.0-20181008072501-0b38e7a243d1
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
@@ -53,6 +60,7 @@ require (
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1 // indirect
+	gopkg.in/yaml.v2 v2.2.2
 	labix.org/v2/mgo v0.0.0-20140701140051-000000000287 // indirect
 	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 )
