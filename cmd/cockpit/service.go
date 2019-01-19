@@ -34,7 +34,7 @@ type service struct {
 	done       chan struct{}
 	cmd        *exec.Cmd
 	Port       int
-	Consul     []serviceConsul
+	Consul     []*serviceConsul
 	watcher    *fsnotify.Watcher
 	Kill       string
 	Env        []string
@@ -42,12 +42,21 @@ type service struct {
 
 type serviceConsul struct {
 	Name      string
+	PortLabel string `yaml:"port_label"`
 	Port      int
 	Tags      []string
 	HTTPCheck string `yaml:"http_check"`
+	TCPCheck  bool   `yaml:"tcp_check"`
 }
 
-func (s *service) Init(name string) {
+var netPortRange = 9000
+
+func netPort() int {
+	netPortRange++
+	return netPortRange
+}
+
+func (s *service) init(name string) {
 	if s.Path != "" {
 		s.Path = env.ExpandPath(s.Path)
 	}
@@ -59,11 +68,26 @@ func (s *service) Init(name string) {
 		s.Command = strings.Replace(s.Command, "$USER", env.Username(), -1)
 	}
 	if s.Port != 0 {
-		s.Consul = append(s.Consul, serviceConsul{
+		s.Consul = append(s.Consul, &serviceConsul{
 			Port:      s.Port,
 			Name:      name,
 			HTTPCheck: "/health_check",
 		})
+	}
+	for _, c := range s.Consul {
+		if c.HTTPCheck == "" {
+			c.HTTPCheck = "/health_check"
+		}
+		if c.Name == "" {
+			c.Name = name
+		}
+		if c.PortLabel == "" {
+			c.PortLabel = "default"
+		}
+		if c.Port == 0 {
+			c.Port = netPort()
+		}
+		s.Env = append(s.Env, fmt.Sprintf("PORT_%s=%d", c.PortLabel, c.Port))
 	}
 }
 
@@ -245,7 +269,7 @@ func (s *service) Go() error {
 	return nil
 }
 
-func register(c serviceConsul) error {
+func register(c *serviceConsul) error {
 	config := api.DefaultConfig()
 	consul, err := api.NewClient(config)
 	if err != nil {
@@ -267,15 +291,39 @@ func register(c serviceConsul) error {
 	}
 	log.S("service", c.Name).I("port", c.Port).Info("registerd service")
 
-	if c.HTTPCheck == "" {
+	if c.TCPCheck {
+		tcp := fmt.Sprintf("localhost:%d", c.Port)
+		check := &api.AgentCheckRegistration{
+			ID:        c.Name,
+			Name:      fmt.Sprintf("Service '%s' TCP health check", c.Name),
+			Notes:     fmt.Sprintf("tcp: %s", tcp),
+			ServiceID: service.ID,
+			AgentServiceCheck: api.AgentServiceCheck{
+				Status:   "passing",
+				Interval: "10s",
+				Timeout:  "1s",
+				TCP:      tcp,
+			},
+		}
+		if err := agent.CheckRegister(check); err != nil {
+			log.Error(err)
+			return err
+		}
+		log.S("service", c.Name).S("tcp", tcp).Info("registerd health check")
 		return nil
 	}
 
-	url := fmt.Sprintf("http://127.0.0.1:%d%s", c.Port, c.HTTPCheck)
+	if c.HTTPCheck == "" {
+		return nil
+	}
+	url := c.HTTPCheck
+	if !strings.HasPrefix(url, "http") {
+		url = fmt.Sprintf("http://127.0.0.1:%d%s", c.Port, c.HTTPCheck)
+	}
 	check := &api.AgentCheckRegistration{
 		ID:        c.Name,
-		Name:      fmt.Sprintf("Service '%s' ttl check", c.Name),
-		Notes:     "",
+		Name:      fmt.Sprintf("Service '%s' HTTP health check", c.Name),
+		Notes:     fmt.Sprintf("url: %s", url),
 		ServiceID: service.ID,
 		AgentServiceCheck: api.AgentServiceCheck{
 			Status:   "passing",

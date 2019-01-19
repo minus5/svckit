@@ -15,6 +15,7 @@ nsqlookupd:
     - 
       name: nsqlookupd-tcp
       port: 4160
+      http_check: http://localhost:4161/ping
     -   
       name: nsqlookupd-http
       port: 4161
@@ -36,6 +37,7 @@ nsqd:
   consul:
     - 
       name: nsqd-tcp
+      http_check: http://localhost:4151/ping
       port: 4150
     -   
       name: nsqd-http
@@ -44,8 +46,12 @@ nsqd:
 
 fabio:
   entrypoint: fabio
-  command: -proxy.addr :80 -log.level TRACE -registry.consul.service.status passing,warning,critical,unknown -insecure
-  # consul:
-  #   - 
-  #     name: fabio
-  #     port: 9999
+  command: -proxy.addr :80 -insecure -log.level TRACE -registry.consul.register.tags urlprefix-fabio.localhost/
+  consul:
+    -
+      # register consul route
+      name: consul
+      http_check: /ui
+      port: 8500
+      tags:
+        - urlprefix-consul.localhost/

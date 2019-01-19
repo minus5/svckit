@@ -115,7 +115,7 @@ func loadServicesFile(file string) map[string]*service {
 		log.Fatal(err)
 	}
 	for name, s := range services {
-		s.Init(name)
+		s.init(name)
 	}
 	return services
 }
