@@ -15,7 +15,6 @@ nsqlookupd:
     - 
       name: nsqlookupd-tcp
       port: 4160
-      http_check: http://localhost:4161/ping
     -   
       name: nsqlookupd-http
       port: 4161
@@ -37,7 +36,6 @@ nsqd:
   consul:
     - 
       name: nsqd-tcp
-      http_check: http://localhost:4151/ping
       port: 4150
     -   
       name: nsqd-http

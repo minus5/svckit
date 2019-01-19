@@ -46,7 +46,6 @@ type serviceConsul struct {
 	Port      int
 	Tags      []string
 	HTTPCheck string `yaml:"http_check"`
-	TCPCheck  bool   `yaml:"tcp_check"`
 }
 
 var netPortRange = 9000
@@ -75,9 +74,9 @@ func (s *service) init(name string) {
 		})
 	}
 	for _, c := range s.Consul {
-		if c.HTTPCheck == "" {
-			c.HTTPCheck = "/health_check"
-		}
+		// if c.HTTPCheck == "" {
+		// 	c.HTTPCheck = "/health_check"
+		// }
 		if c.Name == "" {
 			c.Name = name
 		}
@@ -177,7 +176,7 @@ func (s *service) start() error {
 	}
 	cmd := exec.Command(e, strings.Split(s.Command, " ")...)
 	if len(s.Env) != 0 {
-		fmt.Println("setting env", s.Env)
+		//fmt.Println("setting env", s.Env)
 		cmd.Env = s.Env
 	}
 	cmd.Stdin = nil
@@ -291,7 +290,7 @@ func register(c *serviceConsul) error {
 	}
 	log.S("service", c.Name).I("port", c.Port).Info("registerd service")
 
-	if c.TCPCheck {
+	if c.HTTPCheck == "" {
 		tcp := fmt.Sprintf("localhost:%d", c.Port)
 		check := &api.AgentCheckRegistration{
 			ID:        c.Name,
@@ -313,9 +312,6 @@ func register(c *serviceConsul) error {
 		return nil
 	}
 
-	if c.HTTPCheck == "" {
-		return nil
-	}
 	url := c.HTTPCheck
 	if !strings.HasPrefix(url, "http") {
 		url = fmt.Sprintf("http://127.0.0.1:%d%s", c.Port, c.HTTPCheck)
