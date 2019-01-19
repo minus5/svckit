@@ -12,7 +12,7 @@ import (
 	"github.com/mnu5/svckit/log"
 )
 
-type Config struct {
+type config struct {
 	Services []string
 	HTTP     struct {
 		Port  int
@@ -21,10 +21,10 @@ type Config struct {
 			Backend string
 		}
 	}
-	services map[string]*Service
+	services map[string]*service
 }
 
-func (c *Config) Start() error {
+func (c *config) start() error {
 	for _, key := range c.Services {
 		service := c.services[key]
 		if service == nil {
@@ -41,14 +41,14 @@ func (c *Config) Start() error {
 	return nil
 }
 
-func (c *Config) Stop() {
+func (c *config) stop() {
 	for i := len(c.Services) - 1; i >= 0; i-- {
 		service := c.services[c.Services[i]]
-		service.Stop()
+		service.stop()
 	}
 }
 
-func (c *Config) StartHTTP() error {
+func (c *config) startHTTP() error {
 	if c.HTTP.Port == 0 {
 		return nil
 	}

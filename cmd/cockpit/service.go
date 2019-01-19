@@ -24,7 +24,7 @@ var (
 	warn  = color.New(color.FgRed).Add(color.Bold).PrintfFunc()
 )
 
-type Service struct {
+type service struct {
 	Name       string
 	Entrypoint string
 	Command    string
@@ -34,19 +34,20 @@ type Service struct {
 	done       chan struct{}
 	cmd        *exec.Cmd
 	Port       int
-	Consul     []ServiceConsul
+	Consul     []serviceConsul
 	watcher    *fsnotify.Watcher
 	Kill       string
 	Env        []string
 }
 
-type ServiceConsul struct {
+type serviceConsul struct {
 	Name      string
 	Port      int
+	Tags      []string
 	HTTPCheck string `yaml:"http_check"`
 }
 
-func (s *Service) Init(name string) {
+func (s *service) Init(name string) {
 	if s.Path != "" {
 		s.Path = env.ExpandPath(s.Path)
 	}
@@ -58,7 +59,7 @@ func (s *Service) Init(name string) {
 		s.Command = strings.Replace(s.Command, "$USER", env.Username(), -1)
 	}
 	if s.Port != 0 {
-		s.Consul = append(s.Consul, ServiceConsul{
+		s.Consul = append(s.Consul, serviceConsul{
 			Port:      s.Port,
 			Name:      name,
 			HTTPCheck: "/health_check",
@@ -66,15 +67,15 @@ func (s *Service) Init(name string) {
 	}
 }
 
-func (s Service) String() string {
+func (s service) String() string {
 	return s.Name
 }
 
-func (s Service) logFile() (*os.File, error) {
+func (s service) logFile() (*os.File, error) {
 	return os.Create(logFilePath(s.Name))
 }
 
-func (s *Service) Stop() {
+func (s *service) stop() {
 	if s == nil || s.cmd == nil || s.done == nil {
 		return
 	}
@@ -130,7 +131,7 @@ func terminateProc(p *os.Process) error {
 	return err
 }
 
-func (s *Service) Start() error {
+func (s *service) start() error {
 	if s.Entrypoint == "_" || strings.HasSuffix(s.Name, "_build") {
 		info("Done %s\n", s)
 		return nil
@@ -186,7 +187,7 @@ func (s *Service) Start() error {
 	return s.Watch()
 }
 
-func (s *Service) Register() error {
+func (s *service) register() error {
 	for _, c := range s.Consul {
 		if c.Name == "" {
 			c.Name = s.Name
@@ -202,7 +203,7 @@ func (s *Service) Register() error {
 	return nil
 }
 
-func (s *Service) Prepare() error {
+func (s *service) prepare() error {
 	if s.Build == "" {
 		return nil
 	}
@@ -218,7 +219,7 @@ func (s *Service) Prepare() error {
 	return cmd.Wait()
 }
 
-func (s *Service) CreateTopics() error {
+func (s *service) createTopics() error {
 	for _, topic := range s.Topics {
 		c := func() error { return createTopic(topic) }
 		if err := signal.WithExponentialBackoff(c); err != nil {
@@ -228,23 +229,23 @@ func (s *Service) CreateTopics() error {
 	return nil
 }
 
-func (s *Service) Go() error {
-	if err := s.Prepare(); err != nil {
+func (s *service) Go() error {
+	if err := s.prepare(); err != nil {
 		return err
 	}
-	if err := s.CreateTopics(); err != nil {
+	if err := s.createTopics(); err != nil {
 		return err
 	}
-	if err := s.Register(); err != nil {
+	if err := s.register(); err != nil {
 		return err
 	}
-	if err := s.Start(); err != nil {
+	if err := s.start(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func register(c ServiceConsul) error {
+func register(c serviceConsul) error {
 	config := api.DefaultConfig()
 	consul, err := api.NewClient(config)
 	if err != nil {
@@ -258,6 +259,7 @@ func register(c ServiceConsul) error {
 		ID:   c.Name,
 		Name: c.Name,
 		Port: c.Port,
+		Tags: c.Tags,
 	}
 	if err := agent.ServiceRegister(service); err != nil {
 		log.Error(err)
@@ -291,7 +293,7 @@ func register(c ServiceConsul) error {
 	return nil
 }
 
-func (s *Service) Watch() error {
+func (s *service) Watch() error {
 	if s.Path == "" {
 		return nil
 	}
@@ -314,8 +316,8 @@ func (s *Service) Watch() error {
 				if event.Op&fsnotify.Write == fsnotify.Write ||
 					event.Op&fsnotify.Create == fsnotify.Create {
 					log.S("service", s.Name).S("file", event.Name).Info("modified")
-					s.Stop()
-					s.Start()
+					s.stop()
+					s.start()
 				}
 			case err := <-watcher.Errors:
 				if err != nil {

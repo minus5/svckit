@@ -15,16 +15,13 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Ideje:
-//  - istaziti sto treba za web (Rails, Nginx...)
-//  - razlicite konfiguracije za npr. cloudionica
-
 var configFile string
 var clear bool
+var servicesFileName = "services.yml"
 
 func init() {
-	flag.StringVar(&configFile, "config", "cloudionica.yml", "config file")
-	flag.BoolVar(&clear, "c", false, "clear tmp directory")
+	flag.StringVar(&configFile, "config", "./cockpit.yml", "config file name")
+	flag.BoolVar(&clear, "clear", false, "clear tmp directory")
 	flag.Parse()
 }
 
@@ -33,10 +30,14 @@ func logFilePath(name string) string {
 }
 
 func main() {
-	dir := env.BinDir()
-	if err := os.Chdir(dir); err != nil {
-		log.Fatal(err)
+	if fileNotExists(configFile) {
+		log.Fatal(fmt.Errorf("config file [%s]is missing", configFile))
 	}
+
+	// dir := env.BinDir()
+	// if err := os.Chdir(dir); err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	if clear {
 		os.RemoveAll("./log")
@@ -60,28 +61,55 @@ func main() {
 	config := loadConfig()
 	config.services = services
 
-	//PP(services)
-	//PP(config)
-	//return
+	// PP(services)
+	// PP(config)
+	// return
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
-	err = config.Start()
+	err = config.start()
 	if err == nil {
-		config.StartHTTP()
+		config.startHTTP()
 		<-c
 	}
 	fmt.Println()
-	config.Stop()
+	config.stop()
 }
 
-func loadServices() map[string]*Service {
-	data, err := ioutil.ReadFile("./services.yml")
+func loadServices() map[string]*service {
+	files := []string{
+		env.BinDir() + "/" + servicesFileName, // binary directory
+		"./" + servicesFileName,               // current directory
+	}
+	services := make(map[string]*service)
+	for _, file := range files {
+		if fileNotExists(file) {
+			log.S("path", file).Debug("file does not exists")
+			continue
+		}
+		log.S("path", file).Info("loading services from file")
+		for k, s := range loadServicesFile(file) {
+			log.S("path", file).S("service", k).Info("service")
+			services[k] = s
+		}
+	}
+	return services
+}
+
+func fileNotExists(file string) bool {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return true
+	}
+	return false
+}
+
+func loadServicesFile(file string) map[string]*service {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}
-	services := make(map[string]*Service)
+	services := make(map[string]*service)
 	err = yaml.Unmarshal([]byte(data), &services)
 	if err != nil {
 		log.Fatal(err)
@@ -92,16 +120,17 @@ func loadServices() map[string]*Service {
 	return services
 }
 
-func loadConfig() Config {
-	data, err := ioutil.ReadFile("./" + configFile)
+func loadConfig() config {
+	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	c := Config{}
+	c := config{}
 	err = yaml.Unmarshal([]byte(data), &c)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.S("path", configFile).I("services", len(c.Services)).Debug("config")
 	return c
 }
 

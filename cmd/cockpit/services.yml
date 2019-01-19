@@ -9,7 +9,6 @@ mongo:
       name: mongo
       port: 27017
 
-
 nsqlookupd:
   entrypoint: nsqlookupd
   consul:
@@ -28,6 +27,9 @@ nsqadmin:
     - 
       port: 4171
       http_check: /ping
+      tags:
+        - urlprefix-nsq.localhost/
+
 nsqd:
   entrypoint: nsqd
   command: -lookupd-tcp-address=127.0.0.1:4160 -broadcast-address=127.0.0.1 -data-path=./tmp/nsqd -max-msg-size=10485760
@@ -40,186 +42,10 @@ nsqd:
       port: 4151
       http_check: /ping
 
-statsd_to_nsq:
-  path: ~/work/services/src/cmd/statsd_to_nsq
-  build: go build
-  consul:
-    - # glumi statsd na njegovom portu
-      name: statsd
-      port: 8125
-  topics:
-    - stats
-    
-backendapi:
-  path: ~/work/services/src/cmd/backendapi
-  build: go build
-  port: 8221
-  topics:
-    - z...rsp.backendapi
-    - listici.novi_backend_api
-    - listici.upis.req
-    - listici.upis.rsp
-  consul:
-    # health_check zahtjeva ove servise registrirane u consul pa ih simuliram na ovaj nacin
-    # da nam ne pada health_check svaki malo
-    - 
-      name: dbi
-      port: 8221
-    -
-      name: tecajna_loto
-      port: 8221
-    
-igraci_mock:
-  path: ~/work/services/src/cmd/igraci
-  build: go build
-  command: --mock
-  port: 8360
-  topics:
-    - igraci.svc.req
-    - listici.spremi.req
-    - igraci
-
-igraci:
-  path: ~/work/services/src/cmd/igraci
-  build: go build
-  port: 8360
-  topics:
-    - igraci.svc.req
-    - listici.spremi.req
-    - igraci    
-    
-sessions:
-  path: ~/work/services/src/cmd/sessions
-  build: go build
-  port: 8430
-  topics:
-    - sessions
-    - sessions.req
-    
-tecajna:
-  path: ~/work/services/src/cmd/tecajna
-  build: go build
-  command: -no-heartbeat -en=true -baseids=false
-  port: 8090
-  topics:
-    - listici.rezultati
-    - tecajna.nazivi
-    - tecajna.req
-    - tecajna.req2
-    - tecajna.stat
-    - tecajna.web
-    - tecajna.web.dopuna
-    - betradar
-    
-betradar_merger:
-  path: ~/work/services/src/cmd/betradar_merger
-  build: go build
-  command: -vfl=false -vbl=false -vto=false -en=true
-  port: 8130
-  
-nsq_to_mongo:
-  path: ~/work/services/src/cmd/nsq_to_mongo
-  build: go build
-  port: 8190
-  
-betradar_mts_connector:
-  path: ~/work/services/src/cmd/betradar_mts_connector
-  build: go build
-  command: -test
-  port: 8340
-  
-web_app_api:
-  path: ~/work/services/src/cmd/web_app_api
-  build: go build
-  command: -listen=localhost:3015 -dev=true -geo_ip_maintain=false -session-flags=6
-  port: 3015
-  topics:
-    - z...rsp.web_app_api
-    - upis.rsp-dev01
-    - dev.logs
-    
-nsq_to_ws_sg4:
-  entrypoint: nsq_to_ws
-  path: ~/work/services/src/cmd/nsq_to_ws
-  build: go build
-  command: -connect=10.0.66.157:10400 -server-channel=nsq_to_ws-$USER#ephemeral -topic=tecajna.web -topic=tecajna.web.dopuna -out-topic=tecajna.req
-  port: 8210
-  topics:
-    - tecajna.web
-    - tecajna.web.dopuna
-    - tecajna.req
-
-nsq_to_ws_s2_live:
-  entrypoint: nsq_to_ws
-  path: ~/work/services/src/cmd/nsq_to_ws
-  build: go build
-  command: -connect=nsq-to-ws.service.s2.sd:10400 -server-channel=nsq_to_ws-$USER#ephemeral -topic=betradar -topic=betgenius -topic=ponuda.dogadjaj
-  port: 8210
-  topics:
-    - betradar
-    - betgenius
-    - ponuda.dogadjaj
-
-listici:
-  path: ~/work/services/src/cmd/listici
-  build: go build
-  port: 8350
-  topics:
-    - listici.svc.dobitak
-    - listici.svc.novi
-    - listici.svc.promjene
-    - listici.svc.status
-
-upis_validator:
-  path:  ~/work/webjs/src/pkg/upis-validator.apl
-  entrypoint: /usr/local/bin/node
-  command: src/main.js
-  port: 3000
-  topics:
-    - listici.promjene
-    - listici.novi
-
-cloudionica_build:
-  path: ~/work/webjs/src/pkg/cloudionica.page
-  build: ./build.sh
-
-web_build:
-  path: ~/work/webjs/src/pkg/web.page
-  build: npm run build --dev
-  entrypoint: npm
-  command: run watch
-
-archiver:
-  path: ~/work/services/src/cmd/archiver
-  build: go build
-  command: -dry-run
-  port: 8400
-  topics:
-    - archiver.req
-
-
-dbi:
-  path: ~/work/services/src/cmd/dbi
-  env:
-    #- TDSVER=7.0
-    # - TDSDUMP=/tmp/freetds.log
-  command: -db=user=minus5;pwd=minus5;host=mssql.s.minus5.hr;database=SuperSportTest_ianic -db_to_nsq=true -reset-timestamps=true
-  #command: -db=user=app_web_backend;password=7aCDW2gSk1HK(h68;server=alfa;database=SuperSport 
-  build: go build
-  port: 8091
-  topics:
-    - bonuses
-    - dbi.igraci.req
-    - z...rsp.main-dev01
-
-
-bonus:
-  path: ~/work/services/src/cmd/bonus
-  build: go build
-#  port: 3015
-  topics:
-    - bonus.req
-    - bonuses
-    - transakcije
-    - listici.svc.promjene
-    - z...rsp-main-dev01
+fabio:
+  entrypoint: fabio
+  command: -proxy.addr :80 -log.level TRACE -registry.consul.service.status passing,warning,critical,unknown -insecure
+  # consul:
+  #   - 
+  #     name: fabio
+  #     port: 9999
