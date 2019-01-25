@@ -46,10 +46,13 @@ require (
 	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/quipo/statsd v0.0.0-20180118161217-3d6a5565f314 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/smira/go-statsd v1.2.1
 	github.com/stretchr/testify v1.2.2
 	github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926 // indirect
 	github.com/urfave/negroni v1.0.0
+	github.com/yudai/gojsondiff v1.0.0
+	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 // indirect
 	golang.org/x/net v0.0.0-20181220203305-927f97764cc3 // indirect
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
