@@ -103,6 +103,7 @@ func JsKeys(v reflect.Value, file string) error {
 	}
 	w(`
   _%s(o);
+  return o;
 }
 `, root)
 	w(`module.exports = unpack;`)
