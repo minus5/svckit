@@ -3,7 +3,7 @@ package gen
 import "text/template"
 
 var jsKeysTemplate = template.Must(template.New("").Funcs(fns).Parse(`
-  function _unpack{{.Type}}(o) {
+  function _{{.Type}}(o) {
     var keys = {
     {{- range .Fields }}
       {{- if .NeedUnpack }}
@@ -24,21 +24,16 @@ var jsKeysTemplate = template.Must(template.New("").Funcs(fns).Parse(`
     {{- end}}
     {{- end}}
     };
-    _unpack(o, keys);
+    unpackObject(o, keys);
 
     {{- range .Maps}}
-    for(var k in o["{{.FieldLower}}"]) {
-      var c = o["{{.FieldLower}}"][k];
-      if (c !== null) {
-        _unpack{{.Value}}(c);
-      }
-    }
+    unpackMap(o["{{.FieldLower}}"], _{{.Value}});
     {{- end}}
     {{- range .Structs}}
     var s = o["{{.FieldLower}}"];
     if (s !== undefined && Object.keys(s).length > 0) {
-      s["_isStruct"] = 1;
-      _unpack{{.Field}}(s);
+      s["_isStruct"] = true;
+      _{{.Field}}(s);
     }
     {{- end}}
   }
