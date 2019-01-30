@@ -14,12 +14,12 @@ import (
 )
 
 type Requester struct {
-	topic           string
-	p               *nsq.Producer
-	c               *nsq.Consumer
-	queue           map[string]*request // requests in process
-	correlationNo   int
-	topicForMsgType func(string) string
+	topic                 string
+	p                     *nsq.Producer
+	c                     *nsq.Consumer
+	queue                 map[string]*request // requests in process
+	correlationNo         int
+	topicForRequestMethod func(string) string
 	sync.Mutex
 }
 
@@ -28,24 +28,24 @@ type request struct {
 	source amp.Subscriber
 }
 
-func MustRequester(topicForMsgType func(string) string) *Requester {
-	r, err := NewRequester(topicForMsgType)
+func MustRequester(topicForRequestMethod func(string) string) *Requester {
+	r, err := NewRequester(topicForRequestMethod)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return r
 }
 
-func NewRequester(topicForMsgType func(string) string) (*Requester, error) {
+func NewRequester(topicForRequestMethod func(string) string) (*Requester, error) {
 	p, err := nsq.NewProducer("")
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	r := &Requester{
-		p:               p,
-		queue:           make(map[string]*request),
-		topic:           resposesTopicName(),
-		topicForMsgType: topicForMsgType,
+		p:                     p,
+		queue:                 make(map[string]*request),
+		topic:                 resposesTopicName(),
+		topicForRequestMethod: topicForRequestMethod,
 	}
 	c, err := nsq.NewConsumer(r.topic, r.responses)
 	if err != nil {
@@ -94,7 +94,7 @@ func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	buf := rm.Marshal()
 
 	go func() {
-		err := r.p.PublishTo(r.topicForMsgType(m.Method), buf)
+		err := r.p.PublishTo(r.topicForRequestMethod(m.Method), buf)
 		if err != nil {
 			r.reply(correlationID, m.ResponseTransportError())
 		}

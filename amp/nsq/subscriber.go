@@ -82,3 +82,20 @@ func Publish(topic string, in <-chan *amp.Msg) chan *amp.Msg {
 	}()
 	return out
 }
+
+func Responder(in <-chan *amp.Msg) {
+	pub := nsq.Pub("")
+	publish := func(m *amp.Msg) {
+		topic := "dead.letter"
+		if m.ReplyTopic != "" {
+			topic = m.ReplyTopic
+		}
+		pub.PublishTo(topic, m.Marshal())
+	}
+	go func() {
+		defer pub.Close()
+		for m := range in {
+			publish(m)
+		}
+	}()
+}

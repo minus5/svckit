@@ -63,6 +63,7 @@ type Msg struct {
 	ExpiresAt     int64  `json:"x,omitempty"` // TODO unused so far
 	Error         string `json:"e,omitempty"`
 	ErrorCode     int    `json:"c,omitempty"`
+	ReplyTopic    string `json:"-"`
 	// publish message attributes
 	Topic      string `json:"o,omitempty"`
 	Ts         int64  `json:"s,omitempty"`
@@ -184,6 +185,7 @@ func (m *Msg) Response(b BodyMarshaler) *Msg {
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
 		Method:        m.Method,
+		ReplyTopic:    m.ReplyTo,
 		src:           b,
 	}
 }
