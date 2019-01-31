@@ -64,4 +64,5 @@ const (
 	PortShare                     = "8580"
 	PortShareWs                   = "8581"
 	PortKladomatLogs              = "8590"
+	PortPrematchSbk               = "8610"
 )
