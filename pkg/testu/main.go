@@ -142,6 +142,15 @@ func SaveJSON(name string, o interface{}) {
 	ioutil.WriteFile(name, buf, 0644)
 }
 
+func SaveJSONUgly(name string, o interface{}) {
+	buf, err := json.Marshal(o)
+	if err != nil {
+		log.Printf("%s", err)
+		return
+	}
+	ioutil.WriteFile(name, buf, 0644)
+}
+
 func RunShellScript(t *testing.T, name string) {
 	cmd := exec.Command("/bin/sh", name)
 	err := cmd.Start()
