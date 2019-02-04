@@ -4,6 +4,7 @@ import (
 	"expvar"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/mnu5/svckit/env"
@@ -29,6 +30,8 @@ func init() {
 	lastPassingCheck = time.Now()
 	go loop()
 	expvar.Publish("svckit.health", expvar.Func(func() interface{} {
+		mu.RLock()
+		defer mu.RUnlock()
 		stats := struct {
 			Status string    `json:"status"`
 			Note   string    `json:"note"`
@@ -45,7 +48,7 @@ func init() {
 // Status represents service status
 type Status int
 
-// Add connects twu statsu values
+// Add connects two statsu values
 func (s *Status) Add(s2 Status) {
 	if s2 > *s {
 		*s = s2
@@ -60,6 +63,7 @@ var (
 	checkTime        time.Time
 	lastPassingCheck time.Time
 	notificationSent bool
+	mu               sync.RWMutex
 )
 
 // ToHtmlStatus converts status to Consul frendly http status.
@@ -89,6 +93,8 @@ func (s Status) String() string {
 
 // HttpHandler exposes status to http
 func HttpHandler(w http.ResponseWriter, r *http.Request) {
+	mu.RLock()
+	defer mu.RUnlock()
 	w.Header().Set("Application", env.AppName())
 	w.WriteHeader(status.ToHtmlStatus())
 	w.Write([]byte(note))
@@ -100,12 +106,16 @@ func notImplemented() (Status, []byte) {
 
 // Set the health check handler
 func Set(h func() (Status, []byte)) {
+	mu.Lock()
 	handler = h
+	mu.Unlock()
 	check()
 }
 
 // Get the current health status
 func Get() (Status, []byte) {
+	mu.RLock()
+	defer mu.RUnlock()
 	return status, note
 }
 
@@ -126,6 +136,8 @@ func loop() {
 }
 
 func check() {
+	mu.Lock()
+	defer mu.Unlock()
 	status, note = handler()
 	checkTime = time.Now()
 	sendNotification()
