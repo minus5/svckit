@@ -3,8 +3,8 @@ package nsq
 import (
 	"context"
 
-	"github.com/ianic/svckit/log"
 	"github.com/mnu5/svckit/amp"
+	"github.com/mnu5/svckit/log"
 	"github.com/mnu5/svckit/nsq"
 )
 
