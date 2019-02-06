@@ -1,17 +1,23 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/mnu5/svckit/amp"
 	"github.com/mnu5/svckit/amp/broker"
-	"github.com/mnu5/svckit/nsq"
+	"github.com/mnu5/svckit/amp/nsq"
+	"github.com/mnu5/svckit/env"
+	"github.com/mnu5/svckit/health"
+	"github.com/mnu5/svckit/httpi"
 	"github.com/mnu5/svckit/signal"
 )
 
 const (
+	v1Topic  = "math.v1"
+	reqTopic = "math.req"
+
 	methodAdd    = "add"
 	methodReplay = "replay"
 )
@@ -21,90 +27,44 @@ type params struct {
 	Y int64 `json:"y,omitempty"`
 }
 
-func (p *params) ToJSON() ([]byte, error) {
-	return json.Marshal(p)
-}
-
-func (p *params) FromJSON(buf []byte) error {
-	return json.Unmarshal(buf, p)
-}
-
-func (p *params) FromMsgp(buf []byte) error {
-	panic("not supported")
-}
-
 type rsp struct {
 	Z int64 `json:"z"`
 }
 
-func (r *rsp) ToLang(string) amp.BodyMarshaler {
-	return r
+type msg struct {
+	params *params
+	isFull bool
 }
 
-func (r *rsp) ToMsgp() ([]byte, error) {
-	panic("not supported")
-}
-
-func (r *rsp) ToJSON() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-func main() {
-	msgs := make(chan *amp.Msg, 1)
-	broker := broker.New()
-	broker.Consume(msgs)
-
-	pub := nsq.Pub("math.rsp")
-
-	reply := func(m *amp.Msg, r *rsp) error {
-		buf := m.Response(r).Marshal()
-		return pub.PublishTo(m.ReplyTo, buf)
+func updateType(m *msg) uint8 {
+	if m.isFull {
+		return amp.Full
 	}
+	return amp.Diff
+}
 
-	nsq.Sub("math.req", func(nm *nsq.Message) error {
-		m := amp.Parse(nm.Body)
-		switch m.Method {
-		case methodAdd:
-			p := &params{}
-			if err := m.BodyTo(p); err != nil {
-				return err
-			}
-			z := p.X + p.Y
-			fmt.Printf("z: %d\n", z)
-			if err := reply(m, &rsp{Z: z}); err != nil {
-				return err
-			}
-		case methodReplay:
-			for _, m := range broker.Replay("") {
-				_ = pub.PublishTo("math.topics", m.Marshal())
-			}
-		default:
-			return fmt.Errorf("unsupported method %s", m.Method)
-		}
-		return nil
-	})
+func producer(ctx context.Context) chan *msg {
+	out := make(chan *msg, 1)
 
 	go func() {
-
+		defer close(out)
+		// init
 		i := int64(1)
 		x := i
 		y := x
-
+		// define publish function
 		publish := func() {
 			p := &params{
 				X: x,
 				Y: y,
 			}
-			updateType := amp.Diff
-			if y != 0 {
-				updateType = amp.Full
+			out <- &msg{
+				params: p,
+				isFull: y != 0,
 			}
-			m := amp.NewPublish("math.topic.1", time.Now().UnixNano(), updateType, p)
-			msgs <- m
-			_ = pub.PublishTo("math.topics", m.Marshal())
 		}
 		publish()
-
+		// loop and generate full/diffs
 		diff := time.Tick(time.Second)
 		full := time.Tick(30 * time.Second)
 		for {
@@ -118,9 +78,63 @@ func main() {
 				x = i
 				y = x
 				publish()
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
 
-	signal.WaitForInterupt()
+	return out
+}
+
+func msg2ampMsg(in <-chan *msg) <-chan *amp.Msg {
+	out := make(chan *amp.Msg, 1)
+	go func() {
+		defer close(out)
+		for m := range in {
+			out <- amp.NewPublish(v1Topic, "i", amp.TS(), updateType(m), m.params)
+		}
+	}()
+	return out
+}
+
+func debugHTTP() {
+	health.Set(func() (health.Status, []byte) {
+		return health.Passing, []byte("OK")
+	})
+	httpi.Start(env.Address(""))
+}
+
+type requests struct {
+	broker *broker.ReplayBroker
+}
+
+func (r *requests) handler(m *amp.Msg) (*amp.Msg, error) {
+	switch m.Path() {
+	case methodAdd:
+		p := &params{}
+		if err := m.Unmarshal(p); err != nil {
+			return nil, err
+		}
+		z := p.X + p.Y
+		return m.Response(amp.JSONMarshaler(&rsp{Z: z})), nil
+	case methodReplay:
+		r.broker.Replay("")
+	default:
+		return nil, fmt.Errorf("unknown method")
+	}
+	return nil, nil
+}
+
+func main() {
+	interupt := signal.InteruptContext()
+
+	broker := broker.NewWithReplay()
+	responder := nsq.NewResponder(interupt, (&requests{broker: broker}).handler, reqTopic)
+	defer responder.Wait()
+
+	pub := nsq.NewPublisher(broker.Pipe(msg2ampMsg(producer(interupt))))
+	defer pub.Wait()
+
+	debugHTTP()
 }

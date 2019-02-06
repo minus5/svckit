@@ -1,0 +1,10 @@
+math:
+  path: ~/work/mnu5/svckit/example/amp/math
+  build: go build --race
+  topics:
+    - math.output
+  consul:
+    -
+      http_check: /health_check
+      tags:
+        - urlprefix-math.localhost/

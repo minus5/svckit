@@ -5,7 +5,9 @@ import (
 	"compress/flate"
 	"encoding/json"
 	"io"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/mnu5/svckit/log"
 )
@@ -30,15 +32,20 @@ const (
 	Close               // last message for the topic, topic is closed after this
 )
 
-// podrzani nacini kompresije poruke
+// Replay types
+const (
+	Original uint8 = iota // original message
+	Replay                // replay of the previously sent message
+)
+
+// supported compression types
 const (
 	CompressionNone uint8 = iota
 	CompressionDeflate
 )
 
 var (
-	// ne komprimiramo poruke manje od
-	CompressionLenLimit = 8 * 1024
+	compressionLenLimit = 8 * 1024 // do not compress messages smaller than
 	separtor            = []byte{10}
 )
 
@@ -52,30 +59,26 @@ type BodyMarshaler interface {
 	MarshalJSON() ([]byte, error)
 }
 
-// Msg ...
+// Msg basic application message structure
 type Msg struct {
-	// message type
-	Type uint8 `json:"t,omitempty"`
-	// request reponse messages attributes
-	Method        string `json:"m,omitempty"`
-	ReplyTo       string `json:"r,omitempty"`
-	CorrelationID string `json:"i,omitempty"` // TODO mozda uint64
-	ExpiresAt     int64  `json:"x,omitempty"` // TODO unused so far
-	Error         string `json:"e,omitempty"`
-	ErrorCode     int    `json:"c,omitempty"`
-	ReplyTopic    string `json:"-"`
-	// publish message attributes
-	Topic      string `json:"o,omitempty"`
-	Ts         int64  `json:"s,omitempty"`
-	UpdateType uint8  `json:"u,omitempty"`
-	Replay     uint8  `json:"p,omitempty"`
-	// sub
-	Subscriptions map[string]int64 `json:"b,omitempty"`
+	Type          uint8            `json:"t,omitempty"` // message type
+	ReplyTo       string           `json:"r,omitempty"` // topic to send replay to
+	CorrelationID uint64           `json:"i,omitempty"` // correlationID between request and response
+	Error         string           `json:"e,omitempty"` // error description in response message
+	ErrorCode     int64            `json:"c,omitempty"` // error code in response message
+	URI           string           `json:"u,omitempty"` // has structure: topic/path
+	Ts            int64            `json:"s,omitempty"` // timestamp unix milli
+	UpdateType    uint8            `json:"p,omitempty"` // explains how to handle publish message
+	Replay        uint8            `json:"l,omitempty"` // is this a re-play message (repeated)
+	Subscriptions map[string]int64 `json:"b,omitempty"` // topics to subscribe to
 
 	body          []byte
 	noCompression bool
 	payloads      map[uint8][]byte
 	src           BodyMarshaler
+	topic         string
+	path          string
+
 	sync.Mutex
 }
 
@@ -104,16 +107,18 @@ func Undeflate(data []byte) []byte {
 	return out.Bytes()
 }
 
+// Marshal packs message for sending on the wire
 func (m *Msg) Marshal() []byte {
 	buf, _ := m.marshal(CompressionNone)
 	return buf
 }
 
+// MarshalDeflate packs and compress message
 func (m *Msg) MarshalDeflate() ([]byte, bool) {
 	return m.marshal(CompressionDeflate)
 }
 
-// Payload encodes message into []byte
+// marshal encodes message into []byte
 func (m *Msg) marshal(supportedCompression uint8) ([]byte, bool) {
 	m.Lock()
 	defer m.Unlock()
@@ -129,7 +134,7 @@ func (m *Msg) marshal(supportedCompression uint8) ([]byte, bool) {
 
 	payload := m.payload()
 	// decide wather we need compression
-	if len(payload) < CompressionLenLimit {
+	if len(payload) < compressionLenLimit {
 		m.noCompression = true
 		compression = CompressionNone
 	}
@@ -176,85 +181,136 @@ func deflate(src []byte) []byte {
 	return buf
 }
 
+// BodyTo unmarshals message body to the v
 func (m *Msg) BodyTo(v interface{}) error {
 	return json.Unmarshal(m.body, v)
 }
 
+// Unmarshal unmarshals message body to the v
+func (m *Msg) Unmarshal(v interface{}) error {
+	return json.Unmarshal(m.body, v)
+}
+
+// Response creates response message from original request
 func (m *Msg) Response(b BodyMarshaler) *Msg {
 	return &Msg{
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
-		Method:        m.Method,
-		ReplyTopic:    m.ReplyTo,
 		src:           b,
 	}
 }
 
+// ResponseTransportError creates response message with error set to transport error
 func (m *Msg) ResponseTransportError() *Msg {
 	return &Msg{
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
-		Method:        m.Method,
 		Error:         "transport error", // TODO
 		ErrorCode:     -128,
 	}
 }
 
+// Request creates request type message from original message
 func (m *Msg) Request() *Msg {
 	return &Msg{
 		Type:          Request,
 		CorrelationID: m.CorrelationID,
-		Method:        m.Method,
+		URI:           m.URI,
 		src:           m.src,
 		body:          m.body,
 	}
 }
 
+// NewAlive creates new alive type message
 func NewAlive() *Msg {
 	return &Msg{Type: Alive}
 }
 
+// NewPong creates new pong type message
 func NewPong() *Msg {
 	return &Msg{Type: Pong}
 }
 
+// IsPing returns true is message is Ping type
 func (m *Msg) IsPing() bool {
 	return m.Type == Ping
 }
 
+// IsAlive returns true is message is Alive type
 func (m *Msg) IsAlive() bool {
 	return m.Type == Alive
 }
 
-func NewPublish(topic string, ts int64, updateType uint8, b BodyMarshaler) *Msg {
+// NewPublish creates new publish type message
+// Topic and path are combined in URI: topic/path
+func NewPublish(topic, path string, ts int64, updateType uint8, o interface{}) *Msg {
+	var b BodyMarshaler
+	if t, ok := o.(BodyMarshaler); ok {
+		b = t
+	} else {
+		b = JSONMarshaler(o)
+	}
+
+	uri := topic
+	if path != "" {
+		uri = topic + "/" + path
+	}
+
 	return &Msg{
 		Type:       Publish,
-		Topic:      topic,
+		URI:        uri,
 		Ts:         ts,
 		UpdateType: updateType,
+		topic:      topic,
+		path:       path,
 		src:        b,
 	}
 }
 
+// IsTopicClose ...
 func (m *Msg) IsTopicClose() bool {
 	return m.UpdateType == Close
 }
 
+// IsReplay ...
 func (m *Msg) IsReplay() bool {
-	return m.Replay == 1
+	return m.Replay == Replay
 }
 
+// IsFull ...
 func (m *Msg) IsFull() bool {
 	return m.UpdateType == Full
+}
+
+// Topic returns topic part of the URI
+func (m *Msg) Topic() string {
+	if m.topic == "" {
+		m.topic = m.URI
+		if strings.Contains(m.URI, "/") {
+			m.topic = strings.Split(m.URI, "/")[0]
+		}
+	}
+	return m.topic
+}
+
+// Path returns path part of the URI
+func (m *Msg) Path() string {
+	if strings.Contains(m.URI, "/") {
+		p := strings.SplitN(m.URI, "/", 2)
+		if len(p) > 1 {
+			return p[1]
+		}
+	}
+	return ""
 }
 
 // AsReplay marks message as replay
 func (m *Msg) AsReplay() *Msg {
 	return &Msg{
 		Type:       m.Type,
-		Topic:      m.Topic,
+		URI:        m.URI,
 		UpdateType: m.UpdateType,
-		Replay:     1,
+		Replay:     Replay,
 		Ts:         m.Ts,
 		body:       m.body,
 		src:        m.src,
@@ -272,6 +328,12 @@ func (j jsonMarshaler) MarshalJSON() ([]byte, error) {
 	return json.Marshal(j.o)
 }
 
+// JSONMarshaler converst o to something which has MarshalJSON method
 func JSONMarshaler(o interface{}) *jsonMarshaler {
 	return &jsonMarshaler{o: o}
+}
+
+// TS return timestamp in unix milliseconds
+func TS() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }

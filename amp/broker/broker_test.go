@@ -26,10 +26,10 @@ func TestDvaTopica(t *testing.T) {
 	s := New()
 	c := &testConsumer{topics: map[string]int64{"1": 0, "2": 0}}
 	s.Subscribe(c, c.topics)
-	m10 := &amp.Msg{Topic: "1", Ts: 1, UpdateType: amp.Full}
-	m11 := &amp.Msg{Topic: "1", Ts: 2, UpdateType: amp.Diff}
-	m20 := &amp.Msg{Topic: "2", Ts: 1, UpdateType: amp.Full}
-	m30 := &amp.Msg{Topic: "3", Ts: 1, UpdateType: amp.Full}
+	m10 := &amp.Msg{URI: "1", Ts: 1, UpdateType: amp.Full}
+	m11 := &amp.Msg{URI: "1", Ts: 2, UpdateType: amp.Diff}
+	m20 := &amp.Msg{URI: "2", Ts: 1, UpdateType: amp.Full}
+	m30 := &amp.Msg{URI: "3", Ts: 1, UpdateType: amp.Full}
 	s.Publish(m10)
 	s.Publish(m11)
 	s.Publish(m20)
@@ -73,8 +73,8 @@ func TestSubscribe(t *testing.T) {
 
 func TestDobijeFullNakonSubscribe(t *testing.T) {
 	s := New()
-	m10 := &amp.Msg{Topic: "1", Ts: 1, UpdateType: amp.Full}
-	m11 := &amp.Msg{Topic: "1", Ts: 2, UpdateType: amp.Diff}
+	m10 := &amp.Msg{URI: "1", Ts: 1, UpdateType: amp.Full}
+	m11 := &amp.Msg{URI: "1", Ts: 2, UpdateType: amp.Diff}
 	s.Publish(m10)
 	s.Publish(m11)
 	s.wait("1")
@@ -85,7 +85,7 @@ func TestDobijeFullNakonSubscribe(t *testing.T) {
 	s.Subscribe(c2, c2.topics)
 	s.Subscribe(c3, c3.topics)
 	s.Subscribe(c4, c4.topics)
-	m13 := &amp.Msg{Topic: "1", Ts: 3, UpdateType: amp.Diff}
+	m13 := &amp.Msg{URI: "1", Ts: 3, UpdateType: amp.Diff}
 	s.Publish(m13)
 	s.waitClose()
 
@@ -110,7 +110,7 @@ func TestSubscribeNaPrazanTopic(t *testing.T) {
 	c2 := &testConsumer{topics: map[string]int64{"1": 101, "2": 0}}
 	s.Subscribe(c2, c2.topics)
 
-	m1 := &amp.Msg{Topic: "1", Ts: 101, UpdateType: amp.Diff}
+	m1 := &amp.Msg{URI: "1", Ts: 101, UpdateType: amp.Diff}
 	s.Publish(m1)
 	s.wait("1")
 
@@ -124,11 +124,11 @@ func TestDobijePropusteneDiffOveNaSubscribe(t *testing.T) {
 	c0 := &testConsumer{topics: map[string]int64{"1": 0, "2": 0}}
 	s.Subscribe(c0, c0.topics)
 
-	m1 := &amp.Msg{Topic: "1", Ts: 101, UpdateType: amp.Full}
-	m2 := &amp.Msg{Topic: "1", Ts: 105, UpdateType: amp.Diff}
-	m3 := &amp.Msg{Topic: "1", Ts: 107, UpdateType: amp.Diff}
-	m4 := &amp.Msg{Topic: "1", Ts: 111, UpdateType: amp.Diff}
-	m5 := &amp.Msg{Topic: "1", Ts: 101, UpdateType: amp.Diff}
+	m1 := &amp.Msg{URI: "1", Ts: 101, UpdateType: amp.Full}
+	m2 := &amp.Msg{URI: "1", Ts: 105, UpdateType: amp.Diff}
+	m3 := &amp.Msg{URI: "1", Ts: 107, UpdateType: amp.Diff}
+	m4 := &amp.Msg{URI: "1", Ts: 111, UpdateType: amp.Diff}
+	m5 := &amp.Msg{URI: "1", Ts: 101, UpdateType: amp.Diff}
 
 	s.Publish(m1)
 	s.Publish(m2)
@@ -160,13 +160,13 @@ func TestDobijePropusteneDiffOveNaSubscribe(t *testing.T) {
 
 func TestReplay(t *testing.T) {
 	s := New()
-	m1 := &amp.Msg{Topic: "1", Ts: 101, UpdateType: amp.Full}
-	m2 := &amp.Msg{Topic: "1", Ts: 105, UpdateType: amp.Diff}
-	m3 := &amp.Msg{Topic: "1", Ts: 107, UpdateType: amp.Diff}
-	m4 := &amp.Msg{Topic: "1", Ts: 111, UpdateType: amp.Diff}
-	m21 := &amp.Msg{Topic: "2", Ts: 110, UpdateType: amp.Full}
-	m22 := &amp.Msg{Topic: "2", Ts: 109, UpdateType: amp.Diff} // manji ts od full
-	m23 := &amp.Msg{Topic: "2", Ts: 111, UpdateType: amp.Diff}
+	m1 := &amp.Msg{URI: "1", Ts: 101, UpdateType: amp.Full}
+	m2 := &amp.Msg{URI: "1", Ts: 105, UpdateType: amp.Diff}
+	m3 := &amp.Msg{URI: "1", Ts: 107, UpdateType: amp.Diff}
+	m4 := &amp.Msg{URI: "1", Ts: 111, UpdateType: amp.Diff}
+	m21 := &amp.Msg{URI: "2", Ts: 110, UpdateType: amp.Full}
+	m22 := &amp.Msg{URI: "2", Ts: 109, UpdateType: amp.Diff} // manji ts od full
+	m23 := &amp.Msg{URI: "2", Ts: 111, UpdateType: amp.Diff}
 	s.Publish(m1)
 	s.Publish(m2)
 	s.Publish(m3)

@@ -193,7 +193,7 @@ func (s *Broker) loop() {
 				s.close()
 				return
 			}
-			t := m.Topic
+			t := m.URI
 			topic := s.find(t)
 			if m.IsTopicClose() {
 				log.S("topic", t).Debug("delete")

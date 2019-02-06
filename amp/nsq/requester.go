@@ -3,7 +3,6 @@ package nsq
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/mnu5/svckit/amp"
@@ -14,12 +13,11 @@ import (
 )
 
 type Requester struct {
-	topic                 string
-	p                     *nsq.Producer
-	c                     *nsq.Consumer
-	queue                 map[string]*request // requests in process
-	correlationNo         int
-	topicForRequestMethod func(string) string
+	topic         string
+	p             *nsq.Producer
+	c             *nsq.Consumer
+	queue         map[uint64]*request // requests in process
+	correlationNo uint64
 	sync.Mutex
 }
 
@@ -28,24 +26,23 @@ type request struct {
 	source amp.Subscriber
 }
 
-func MustRequester(topicForRequestMethod func(string) string) *Requester {
-	r, err := NewRequester(topicForRequestMethod)
+func MustRequester() *Requester {
+	r, err := NewRequester()
 	if err != nil {
 		log.Fatal(err)
 	}
 	return r
 }
 
-func NewRequester(topicForRequestMethod func(string) string) (*Requester, error) {
+func NewRequester() (*Requester, error) {
 	p, err := nsq.NewProducer("")
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	r := &Requester{
-		p:                     p,
-		queue:                 make(map[string]*request),
-		topic:                 resposesTopicName(),
-		topicForRequestMethod: topicForRequestMethod,
+		p:     p,
+		queue: make(map[uint64]*request),
+		topic: resposesTopicName(),
 	}
 	c, err := nsq.NewConsumer(r.topic, r.responses)
 	if err != nil {
@@ -65,7 +62,7 @@ func (r *Requester) responses(nm *nsq.Message) error {
 	return nil
 }
 
-func (r *Requester) reply(correlationID string, m *amp.Msg) {
+func (r *Requester) reply(correlationID uint64, m *amp.Msg) {
 	r.Lock()
 	req, ok := r.queue[correlationID]
 	if ok {
@@ -84,7 +81,7 @@ func (r *Requester) reply(correlationID string, m *amp.Msg) {
 func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	r.Lock()
 	r.correlationNo++
-	correlationID := strconv.Itoa(r.correlationNo)
+	correlationID := r.correlationNo
 	r.queue[correlationID] = &request{msg: m, source: e}
 	r.Unlock()
 
@@ -94,7 +91,7 @@ func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	buf := rm.Marshal()
 
 	go func() {
-		err := r.p.PublishTo(r.topicForRequestMethod(m.Method), buf)
+		err := r.p.PublishTo(m.Topic(), buf)
 		if err != nil {
 			r.reply(correlationID, m.ResponseTransportError())
 		}
@@ -117,5 +114,5 @@ func (r *Requester) Wait(ctx context.Context) {
 	r.c.Close()
 	r.Lock()
 	defer r.Unlock()
-	r.queue = make(map[string]*request)
+	r.queue = make(map[uint64]*request)
 }

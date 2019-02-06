@@ -1,0 +1,10 @@
+services:
+  # infrastructure
+  - consul
+  - nsqlookupd
+  - nsqadmin
+  - nsqd
+  - fabio
+
+  # applications
+  - math

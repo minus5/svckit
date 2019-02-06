@@ -67,35 +67,19 @@ func (s *subscriber) close() {
 	}
 }
 
-func Publish(topic string, in <-chan *amp.Msg) chan *amp.Msg {
-	pub := nsq.Pub(topic)
-	publish := func(m *amp.Msg) {
-		pub.Publish(m.Marshal())
-	}
-	out := make(chan *amp.Msg, 16)
-	go func() {
-		defer close(out)
-		for m := range in {
-			publish(m)
-			out <- m
-		}
-	}()
-	return out
-}
-
-func Responder(in <-chan *amp.Msg) {
-	pub := nsq.Pub("")
-	publish := func(m *amp.Msg) {
-		topic := "dead.letter"
-		if m.ReplyTopic != "" {
-			topic = m.ReplyTopic
-		}
-		pub.PublishTo(topic, m.Marshal())
-	}
-	go func() {
-		defer pub.Close()
-		for m := range in {
-			publish(m)
-		}
-	}()
-}
+// func responder(in <-chan *amp.Msg) {
+// 	pub := nsq.Pub("")
+// 	publish := func(m *amp.Msg) {
+// 		topic := "dead.letter"
+// 		if m.ReplyTopic != "" {
+// 			topic = m.ReplyTopic
+// 		}
+// 		pub.PublishTo(topic, m.Marshal())
+// 	}
+// 	go func() {
+// 		defer pub.Close()
+// 		for m := range in {
+// 			publish(m)
+// 		}
+// 	}()
+// }

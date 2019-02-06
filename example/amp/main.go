@@ -28,9 +28,9 @@ func main() {
 	tcpListener := ws.MustOpen(wsPort)      // try to open ws port
 	interuptCtx := signal.InteruptContext() // application interupt signal
 
-	requester := nsq.MustRequester(topicForMsgType)
+	requester := nsq.MustRequester()
 	broker := broker.New()
-	broker.Consume(nsq.Subscribe(interuptCtx, []string{"math.topics"}))
+	broker.Consume(nsq.Subscribe(interuptCtx, []string{"math.v1"}))
 	sessions := session.Factory(broker, requester)
 
 	go func() {
@@ -51,13 +51,4 @@ func debugHTTP() {
 		return health.Passing, []byte("OK")
 	})
 	httpi.Start(":" + debugPort)
-}
-
-func topicForMsgType(msgType string) string {
-	switch msgType {
-	case "add":
-		return "math.req"
-	default:
-		return "dead.letter"
-	}
 }

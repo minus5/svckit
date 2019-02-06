@@ -198,13 +198,13 @@ func (s *service) start() error {
 	s.done = done
 
 	go func() {
+		defer close(done)
 		err = cmd.Wait()
-		if err == nil {
-			info2("Stopped %s\n", s)
-		} else {
+		if err != nil {
 			info2("Stopped %s, %s\n", s, err)
+			return
 		}
-		close(done)
+		info2("Stopped %s\n", s)
 	}()
 
 	return s.Watch()
