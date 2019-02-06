@@ -192,11 +192,11 @@ func (m *Msg) Unmarshal(v interface{}) error {
 }
 
 // Response creates response message from original request
-func (m *Msg) Response(b BodyMarshaler) *Msg {
+func (m *Msg) Response(o interface{}) *Msg {
 	return &Msg{
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
-		src:           b,
+		src:           toBodyMarshaler(o),
 	}
 }
 
@@ -244,13 +244,6 @@ func (m *Msg) IsAlive() bool {
 // NewPublish creates new publish type message
 // Topic and path are combined in URI: topic/path
 func NewPublish(topic, path string, ts int64, updateType uint8, o interface{}) *Msg {
-	var b BodyMarshaler
-	if t, ok := o.(BodyMarshaler); ok {
-		b = t
-	} else {
-		b = JSONMarshaler(o)
-	}
-
 	uri := topic
 	if path != "" {
 		uri = topic + "/" + path
@@ -263,8 +256,15 @@ func NewPublish(topic, path string, ts int64, updateType uint8, o interface{}) *
 		UpdateType: updateType,
 		topic:      topic,
 		path:       path,
-		src:        b,
+		src:        toBodyMarshaler(o),
 	}
+}
+
+func toBodyMarshaler(o interface{}) BodyMarshaler {
+	if t, ok := o.(BodyMarshaler); ok {
+		return t
+	}
+	return JSONMarshaler(o)
 }
 
 // IsTopicClose ...
