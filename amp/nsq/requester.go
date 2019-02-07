@@ -14,10 +14,11 @@ import (
 
 type Requester struct {
 	topic         string
-	p             *nsq.Producer
-	c             *nsq.Consumer
+	producer      *nsq.Producer
+	consumer      *nsq.Consumer
 	queue         map[uint64]*request // requests in process
 	correlationNo uint64
+	ctx           context.Context
 	sync.Mutex
 }
 
@@ -26,29 +27,30 @@ type request struct {
 	source amp.Subscriber
 }
 
-func MustRequester() *Requester {
-	r, err := NewRequester()
+func MustRequester(ctx context.Context) *Requester {
+	r, err := NewRequester(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return r
 }
 
-func NewRequester() (*Requester, error) {
+func NewRequester(ctx context.Context) (*Requester, error) {
 	p, err := nsq.NewProducer("")
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	r := &Requester{
-		p:     p,
-		queue: make(map[uint64]*request),
-		topic: resposesTopicName(),
+		producer: p,
+		queue:    make(map[uint64]*request),
+		topic:    resposesTopicName(),
+		ctx:      ctx,
 	}
 	c, err := nsq.NewConsumer(r.topic, r.responses)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	r.c = c
+	r.consumer = c
 	return r, nil
 }
 
@@ -91,7 +93,7 @@ func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	buf := rm.Marshal()
 
 	go func() {
-		err := r.p.PublishTo(m.Topic(), buf)
+		err := r.producer.PublishTo(m.Topic(), buf)
 		if err != nil {
 			r.reply(correlationID, m.ResponseTransportError())
 		}
@@ -108,10 +110,10 @@ func (r *Requester) Unsubscribe(e amp.Subscriber) {
 	}
 }
 
-func (r *Requester) Wait(ctx context.Context) {
-	<-ctx.Done()
-	r.p.Close()
-	r.c.Close()
+func (r *Requester) Wait() {
+	<-r.ctx.Done()
+	r.producer.Close()
+	r.consumer.Close()
 	r.Lock()
 	defer r.Unlock()
 	r.queue = make(map[uint64]*request)
