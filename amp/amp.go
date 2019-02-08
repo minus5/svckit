@@ -221,6 +221,15 @@ func (m *Msg) Request() *Msg {
 	}
 }
 
+// Pong creates Pong for corresponding Ping
+func (m *Msg) Pong() *Msg {
+	return &Msg{
+		Type:          Pong,
+		Ts:            m.Ts,
+		CorrelationID: m.CorrelationID,
+	}
+}
+
 // NewAlive creates new alive type message
 func NewAlive() *Msg {
 	return &Msg{Type: Alive}

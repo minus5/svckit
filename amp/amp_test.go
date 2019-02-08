@@ -41,3 +41,8 @@ func TestPublish(t *testing.T) {
 
 	assert.Equal(t, expected, string(buf))
 }
+
+func TestParse(t *testing.T) {
+	m := Parse(nil)
+	assert.Nil(t, m)
+}
