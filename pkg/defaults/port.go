@@ -64,6 +64,7 @@ const (
 	PortShare                     = "8580"
 	PortShareWs                   = "8581"
 	PortKladomatLogs              = "8590"
-	PortPrematchSbk               = "8610"
-	PortPromo                     = "8620"
+	// Port 8600 is reserved by Consul as default dns forwarding port
+	PortPrematchSbk = "8610"
+	PortPromo       = "8620"
 )
