@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Agregator - spaja json log liniju.
@@ -191,6 +193,7 @@ func (a *Agregator) ErrorS(msg string) {
 }
 
 func (a *Agregator) Error(err error) {
+	a.addStack(err)
 	a.level = LevelError
 	if err != nil {
 		a.msg = err.Error()
@@ -213,6 +216,7 @@ func (a *Agregator) Event(msg string) {
 }
 
 func (a *Agregator) Fatal(err error) {
+	a.addStack(err)
 	a.level = LevelFatal
 	if err != nil {
 		a.msg = err.Error()
@@ -363,4 +367,37 @@ func getCaller(depth int) (string, int) {
 		}
 	}
 	return shortFile, line
+}
+
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
+type causer interface {
+	Cause() error
+}
+
+// adds filename:line from stack were error was raised
+// for messages raised by pkg/errors package WithStack or Wrap functions
+func (a *Agregator) addStack(err error) {
+	if _, ok := err.(stackTracer); !ok {
+		return
+	}
+	inner := err
+	stackCounter := 1
+	for {
+		if st, ok := inner.(stackTracer); ok {
+			for _, f := range st.StackTrace() {
+				line := fmt.Sprintf("%v", f)
+				a.S("stack"+strconv.Itoa(stackCounter), line)
+				stackCounter++
+				break
+			}
+		}
+		c, ok := inner.(causer)
+		if !ok {
+			break
+		}
+		inner = c.Cause()
+	}
 }
