@@ -7,12 +7,14 @@ type BookDiff struct {
 	Version *int                  `json:"version,omitempty" bson:"version,omitempty" msg:"version"`
 	Sports  map[string]*SportDiff `json:"sports,omitempty" bson:"sports,omitempty" msg:"sports"`
 	Events  map[string]*EventDiff `json:"events,omitempty" bson:"events,omitempty" msg:"events"`
+	Items   map[string]*ItemDiff  `json:"events,omitempty" bson:"events,omitempty" msg:"events"`
 }
 
 func (o BookDiff) empty() bool {
 	return o.Version == nil &&
 		(o.Sports == nil || len(o.Sports) == 0) &&
-		(o.Events == nil || len(o.Events) == 0)
+		(o.Events == nil || len(o.Events) == 0) &&
+		(o.Items == nil || len(o.Items) == 0)
 }
 
 type SportDiff struct {
@@ -57,6 +59,16 @@ type ResultDiff struct {
 func (o ResultDiff) empty() bool {
 	return o.Home == nil &&
 		o.Away == nil
+}
+
+type ItemDiff struct {
+	Filed1 *string `json:"filed1,omitempty" bson:"filed1,omitempty" msg:"filed1"`
+	Filed2 *int    `json:"filed2,omitempty" bson:"filed2,omitempty" msg:"filed2"`
+}
+
+func (o ItemDiff) empty() bool {
+	return o.Filed1 == nil &&
+		o.Filed2 == nil
 }
 
 // MergeDiff applies diff (d) to Book (o).
@@ -120,6 +132,32 @@ func (o Book) MergeDiff(d *BookDiff) (Book, bool) {
 		if c2, merged := c.MergeDiff(dc); merged {
 			copyOnWriteEvents()
 			o.Events[k] = c2
+		}
+	}
+	// Items map
+	var copyItemsOnce sync.Once
+	copyOnWriteItems := func() {
+		copyItemsOnce.Do(func() {
+			m := make(map[string]Item)
+			for k, v := range o.Items {
+				m[k] = v
+			}
+			o.Items = m
+			changed = true
+		})
+	}
+	for k, dc := range d.Items {
+		c, ok := o.Items[k]
+		if dc == nil {
+			if ok {
+				copyOnWriteItems()
+				delete(o.Items, k)
+			}
+			continue
+		}
+		if c2, merged := c.MergeDiff(dc); merged {
+			copyOnWriteItems()
+			o.Items[k] = c2
 		}
 	}
 	return o, changed
@@ -228,6 +266,24 @@ func (o Result) MergeDiff(d *ResultDiff) (Result, bool) {
 	return o, changed
 }
 
+// MergeDiff applies diff (d) to Item (o).
+func (o Item) MergeDiff(d *ItemDiff) (Item, bool) {
+	if d == nil {
+		return o, false
+	}
+	changed := false
+	// fields
+	if d.Filed1 != nil && *d.Filed1 != o.Filed1 {
+		o.Filed1 = *d.Filed1
+		changed = true
+	}
+	if d.Filed2 != nil && *d.Filed2 != o.Filed2 {
+		o.Filed2 = *d.Filed2
+		changed = true
+	}
+	return o, changed
+}
+
 // Diff creates diff (i) between new (n) and old (o) Book.
 // So that diff applyed to old will produce new.
 func (o Book) Diff(n Book) *BookDiff {
@@ -276,6 +332,27 @@ func (o Book) Diff(n Book) *BookDiff {
 
 	if len(i.Events) == 0 {
 		i.Events = nil
+	}
+	i.Items = make(map[string]*ItemDiff)
+	for k, nc := range n.Items {
+		oc, ok := o.Items[k]
+		if !ok {
+			oc = Item{}
+		}
+		ip := oc.Diff(nc)
+		if ip != nil {
+			i.Items[k] = ip
+		}
+	}
+
+	for k, _ := range o.Items {
+		if _, ok := n.Items[k]; !ok {
+			i.Items[k] = nil
+		}
+	}
+
+	if len(i.Items) == 0 {
+		i.Items = nil
 	}
 	if i.empty() {
 		return nil
@@ -362,6 +439,22 @@ func (o Result) Diff(n Result) *ResultDiff {
 	}
 	if n.Away != o.Away {
 		i.Away = &n.Away
+	}
+	if i.empty() {
+		return nil
+	}
+	return i
+}
+
+// Diff creates diff (i) between new (n) and old (o) Item.
+// So that diff applyed to old will produce new.
+func (o Item) Diff(n Item) *ItemDiff {
+	i := &ItemDiff{}
+	if n.Filed1 != o.Filed1 {
+		i.Filed1 = &n.Filed1
+	}
+	if n.Filed2 != o.Filed2 {
+		i.Filed2 = &n.Filed2
 	}
 	if i.empty() {
 		return nil

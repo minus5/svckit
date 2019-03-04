@@ -50,9 +50,17 @@ func ValueDiff(v reflect.Value, file string) error {
 	if err := genValueDiffMethod(t, v); err != nil {
 		return err
 	}
-	// if err := genCopyMethod(t, v); err != nil {
-	// 	return err
-	// }
+	return save(file)
+}
+
+func ValueCopyMerge(v reflect.Value, file string) error {
+	t := v.Type()
+	pkg = removePackagePrefix(t.PkgPath())
+	buf = bytes.NewBuffer(nil)
+	header(pkg)
+	if err := genValueCopyMerge(t, v); err != nil {
+		return err
+	}
 	return save(file)
 }
 
@@ -181,6 +189,10 @@ func genAdapterDiffMethod(t reflect.Type, v reflect.Value) error {
 
 func genCopyMethod(t reflect.Type, v reflect.Value) error {
 	return runTemplate(copyMethodTemplate, t, v, "")
+}
+
+func genValueCopyMerge(t reflect.Type, v reflect.Value) error {
+	return runTemplate(valueCopyMergeTemplate, t, v, "")
 }
 
 func w(format string, a ...interface{}) {

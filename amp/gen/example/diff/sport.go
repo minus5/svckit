@@ -4,13 +4,21 @@ package diff
 
 type Book struct {
 	Version int
-	Sports  map[string]Sport
-	Events  map[string]Event `json:"events,omitempty"`
+	Sports  Sports
+	Events  Events `json:"events,omitempty"`
+	Items   Items  `json:"events,omitempty"`
 }
+
+type (
+	Sports     map[string]Sport
+	Events     map[string]Event
+	Categories map[string]Category
+	Items      map[string]Item
+)
 
 type Sport struct {
 	Name       string
-	Categories map[string]Category
+	Categories Categories
 	Order      int `json:",omitempty"`
 }
 
@@ -28,4 +36,9 @@ type Event struct {
 type Result struct {
 	Home int
 	Away int
+}
+
+type Item struct {
+	Filed1 string
+	Filed2 int
 }
