@@ -30,13 +30,29 @@ func Diff(v reflect.Value, file string) error {
 	if err := genCreateDiffMethod(t, v); err != nil {
 		return err
 	}
-	// TODO adapter je napustena ideja
-	// if err := genAdapterDiffMethod(t, v); err != nil {
-	// 	return err
-	// }
 	if err := genCopyMethod(t, v); err != nil {
 		return err
 	}
+	return save(file)
+}
+
+func ValueDiff(v reflect.Value, file string) error {
+	t := v.Type()
+	pkg = removePackagePrefix(t.PkgPath())
+	buf = bytes.NewBuffer(nil)
+	header(pkg)
+	if err := genStruct(t, v); err != nil {
+		return err
+	}
+	if err := genValueMergeMethod(t, v); err != nil {
+		return err
+	}
+	if err := genValueDiffMethod(t, v); err != nil {
+		return err
+	}
+	// if err := genCopyMethod(t, v); err != nil {
+	// 	return err
+	// }
 	return save(file)
 }
 
@@ -147,8 +163,16 @@ func genMergeMethod(t reflect.Type, v reflect.Value) error {
 	return runTemplate(mergeMethodTemplate, t, v, "")
 }
 
+func genValueMergeMethod(t reflect.Type, v reflect.Value) error {
+	return runTemplate(valueMergeMethodTemplate, t, v, "")
+}
+
 func genCreateDiffMethod(t reflect.Type, v reflect.Value) error {
 	return runTemplate(createDiffTemplate, t, v, "")
+}
+
+func genValueDiffMethod(t reflect.Type, v reflect.Value) error {
+	return runTemplate(valueDiffTemplate, t, v, "")
 }
 
 func genAdapterDiffMethod(t reflect.Type, v reflect.Value) error {

@@ -16,13 +16,16 @@ import (
 func main() {
 	//apiPath := "../../api/js/src/v1_unpack.js"
 	b := &diff.Book{}
-	genDiff(b, "book")
+	genDiff(b, "sport")
 	//jsUnpack(b, apiPath)
 }
 
 func genDiff(o interface{}, prefix string) {
 	v := reflect.ValueOf(o).Elem()
-	if err := gen.Diff(v, fmt.Sprintf("./%s_diff.go", prefix)); err != nil {
+	// if err := gen.Diff(v, fmt.Sprintf("./%s_diff.go", prefix)); err != nil {
+	// 	log.Fatal(err)
+	// }
+	if err := gen.ValueDiff(v, fmt.Sprintf("./%s_diff.go", prefix)); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -145,19 +145,26 @@ func TestCreateDiff(t *testing.T) {
 func TestMerge(t *testing.T) {
 	b := book()
 	i := diff(0)
-	_, b = b.MergeDiff(i)
+	b, _ = b.MergeDiff(i)
 	assert.Equal(t, testFulls[1], js(b))
 
 	b = book()
 	i = diff(1)
-	_, b = b.MergeDiff(i)
+	b, _ = b.MergeDiff(i)
 	assert.Equal(t, testFulls[2], js(b))
 
 	b = book()
 	i = diff(2)
-	_, b = b.MergeDiff(i)
+	b, _ = b.MergeDiff(i)
 	assert.Equal(t, testFulls[3], js(b))
 	//pp(b)
+
+	var b1 Book
+	b2, _ := b1.MergeDiff(diff(1))
+	assert.Len(t, b1.Sports, 0)
+	assert.Len(t, b2.Sports, 1)
+	// pp(b1)
+	// pp(b2)
 }
 
 func pp(o interface{}) {
