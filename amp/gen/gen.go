@@ -36,7 +36,9 @@ func Diff(v reflect.Value, file string) error {
 	return save(file)
 }
 
-func ValueDiff(v reflect.Value, file string) error {
+func ValueDiff(v reflect.Value) error {
+	file := nonExported(v.Type().Name()) + "_diff.go"
+
 	t := v.Type()
 	pkg = removePackagePrefix(t.PkgPath())
 	buf = bytes.NewBuffer(nil)
