@@ -280,6 +280,13 @@ func MajoritySafe() func(db *Mdb) {
 	}
 }
 
+// SetModePrimaryPreferred sets mode to primary preferred
+func SetModePrimaryPreferred() func(db *Mdb) {
+	return func(db *Mdb) {
+		db.session.SetMode(mgo.PrimaryPreferred, true)
+	}
+}
+
 // NewDb creates new Db
 // Connects to mongo, initializes cache, starts checkpoint loop.
 func NewDb(connStr string, opts ...func(db *Mdb)) (*Mdb, error) {
