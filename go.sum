@@ -48,8 +48,6 @@ github.com/hashicorp/go-cleanhttp v0.5.0 h1:wvCrVc9TjDls6+YGAF2hAifE1E5U1+b4tH6K
 github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-immutable-radix v1.0.0 h1:AKDB1HM5PWEA7i4nhcpwOrO2byshxBjXVn/J/3+z5/0=
 github.com/hashicorp/go-immutable-radix v1.0.0/go.mod h1:0y9vanUI8NX6FsYoO3zeMjhV/C5i9g4Q3DwcSNZ4P60=
-github.com/hashicorp/go-msgpack/codec v0.5.2 h1:cmkmTIgYvZqNmguT3wmV3S5aVAeF25RYyX+i0cCBx2Y=
-github.com/hashicorp/go-msgpack/codec v0.5.2/go.mod h1:SBOqJMpw6v89HNDBaJw1Q3L782fY1L/PAwTzdU2+azo=
 github.com/hashicorp/go-multierror v1.0.0 h1:iVjPR7a6H0tWELX5NxNe7bYopibicUzc7uPribsnS6o=
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-retryablehttp v0.5.0 h1:aVN0FYnPwAgZI/hVzqwfMiM86ttcHTlQKbBVeVmXPIs=

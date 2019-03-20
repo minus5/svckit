@@ -22,7 +22,6 @@ require (
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/hashicorp/consul v1.4.0
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
-	github.com/hashicorp/go-msgpack/codec v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.5.0 // indirect
 	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 // indirect
