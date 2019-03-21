@@ -112,6 +112,18 @@ func Set(h func() (Status, []byte)) {
 	check()
 }
 
+// Setx sets the simple health check handler,
+// one that returns only error.
+func Setx(h func() error) {
+	Set(func() (Status, []byte) {
+		err := h()
+		if err == nil {
+			return Passing, nil
+		}
+		return Warn, nil
+	})
+}
+
 // Get the current health status
 func Get() (Status, []byte) {
 	mu.RLock()
