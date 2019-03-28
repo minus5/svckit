@@ -137,7 +137,6 @@ func updateEnv() {
 }
 
 func noConsulTestMode() {
-	//log.Info("setting dcy into test mode, no Consul connection")
 	domain = "sd"
 	dc = "dev"
 	nodeName = "node01"
@@ -235,10 +234,10 @@ func parseConsulServiceEntries(ses []*api.ServiceEntry) Addresses {
 	return srvs
 }
 
-func updateCache(name string, dc string, srvs Addresses) {
+func updateCache(tag, name, dc string, srvs Addresses) {
 	l.Lock()
 	defer l.Unlock()
-	key := cacheKey(name, dc)
+	key := cacheKey(tag, name, dc)
 	if srvs2, ok := cache[key]; ok {
 		if srvs2.Equal(srvs) {
 			return
@@ -246,22 +245,27 @@ func updateCache(name string, dc string, srvs Addresses) {
 	}
 	cache[key] = srvs
 	notify(name, srvs)
+
 }
 
-func invalidateCache(name string, dc string) {
+func invalidateCache(tag, name, dc string) {
 	l.Lock()
 	defer l.Unlock()
-	delete(cache, cacheKey(name, dc))
+	delete(cache, cacheKey(tag, name, dc))
 }
 
-func cacheKey(name string, dc string) string {
-	if dc == "" {
-		return name
+func cacheKey(tag, name, dc string) string {
+	var key string
+	if tag != "" {
+		key = fmt.Sprintf("%s-", tag)
 	}
-	return fmt.Sprintf("%s-%s", name, dc)
+	if dc == "" {
+		return fmt.Sprintf("%s%s", key, name)
+	}
+	return fmt.Sprintf("%s%s-%s", key, name, dc)
 }
 
-func monitor(name string, dc string, startIndex uint64) {
+func monitor(tag, name, dc string, startIndex uint64) {
 	wi := startIndex
 	tries := 0
 	for {
@@ -272,12 +276,11 @@ func monitor(name string, dc string, startIndex uint64) {
 			RequireConsistent: false,
 			Datacenter:        dc,
 		}
-
-		ses, qm, err := service(name, "", qo)
+		ses, qm, err := service(name, tag, qo)
 		if err != nil {
 			tries++
 			if tries == queryRetries {
-				invalidateCache(name, dc)
+				invalidateCache(tag, name, dc)
 				return
 			}
 			time.Sleep(time.Second * queryTimeoutSeconds)
@@ -285,7 +288,7 @@ func monitor(name string, dc string, startIndex uint64) {
 		}
 		tries = 0
 		wi = qm.LastIndex
-		updateCache(name, dc, parseConsulServiceEntries(ses))
+		updateCache(tag, name, dc, parseConsulServiceEntries(ses))
 	}
 }
 
@@ -308,10 +311,9 @@ loop:
 	return filteredSes, qm, nil
 }
 
-func query(name string, dc string) (Addresses, error) {
-	//log.Printf("querying Consul for %s", name)
+func query(tag, name, dc string) (Addresses, error) {
 	qo := &api.QueryOptions{Datacenter: dc}
-	ses, qm, err := service(name, "", qo)
+	ses, qm, err := service(name, tag, qo)
 	if err != nil {
 		return nil, err
 	}
@@ -319,35 +321,35 @@ func query(name string, dc string) (Addresses, error) {
 	if len(srvs) == 0 {
 		return nil, fmt.Errorf("service %s not found in consul %s", name, consulAddr)
 	}
-	updateCache(name, dc, srvs)
+	updateCache(tag, name, dc, srvs)
 	go func() {
-		monitor(name, dc, qm.LastIndex)
+		monitor(tag, name, dc, qm.LastIndex)
 	}()
 	return srvs, nil
 }
 
-func srvQuery(name string, dc string) (Addresses, error) {
+func srvQuery(tag, name string, dc string) (Addresses, error) {
 	l.RLock()
-	srvs, ok := cache[cacheKey(name, dc)]
+	srvs, ok := cache[cacheKey(tag, name, dc)]
 	l.RUnlock()
 	if ok && len(srvs) > 0 {
 		return srvs, nil
 	}
-	srvs, err := query(name, dc)
+	srvs, err := query(tag, name, dc)
 	if err != nil {
 		return nil, err
 	}
 	return srvs, nil
 }
 
-func srv(name string, dc string) (Addresses, error) {
-	srvs, err := srvQuery(name, dc)
+func srv(tag, name string, dc string) (Addresses, error) {
+	srvs, err := srvQuery(tag, name, dc)
 	if err == nil {
 		return srvs, nil
 	}
 
 	nameNomad := strings.Replace(name, "_", "-", -1)
-	srvs, err = srvQuery(nameNomad, dc)
+	srvs, err = srvQuery(tag, nameNomad, dc)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +359,7 @@ func srv(name string, dc string) (Addresses, error) {
 // Services retruns all services register in Consul.
 func Services(name string) (Addresses, error) {
 	sn, dc := serviceName(name, domain)
-	return srv(sn, dc)
+	return srv("", sn, dc)
 }
 
 // Service will find one service in Consul cluster.
@@ -371,8 +373,14 @@ func Service(name string) (Address, error) {
 	return srv, nil
 }
 
+// ServiceInDc will find one service in Consul claster for specified datacenter
 func ServiceInDc(name, dc string) (Address, error) {
-	srvs, err := srv(name, dc)
+	return ServiceInDcByTag("", name, dc)
+}
+
+// ServiceInDcByTag will find one service in consul claster with tag for specified datacenter
+func ServiceInDcByTag(tag, name, dc string) (Address, error) {
+	srvs, err := srv(tag, name, dc)
 	if err != nil {
 		return Address{}, err
 	}
@@ -578,7 +586,6 @@ func Subscribe(name string, handler func(Addresses)) {
 	if err != nil {
 		log.Error(err)
 	}
-
 	l.Lock()
 	defer l.Unlock()
 	a := subscribers[name]
