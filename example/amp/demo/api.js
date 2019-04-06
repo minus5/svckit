@@ -31,7 +31,7 @@ function Api(wsuri) {
 
         sock.onopen = function() {
             console.log("connected to " + wsuri);
-            subscriptions = {"math.topic.1": 0};
+            subscriptions = {"math.v1/i": 0};
             subscribe();
         };
 
@@ -73,13 +73,13 @@ function Api(wsuri) {
         }
     }
 
-    function request(method, payload, ok, fail) {
+    function request(uri, payload, ok, fail) {
         if (sock.readyState !== wsOpen) {
             fail(undefined, {error: "connection closed", errorCode: statusConnectionClosed, wsReadyState: sock.readyState});
             return;
         }
         correlationID++;
-        var header = {t: ampRequest, m: method, i: correlationID.toString()};
+        var header = {t: ampRequest, u: uri, i: correlationID};
         var msg = JSON.stringify(header) + "\n" + JSON.stringify(payload);
         requests[correlationID] = {ok: ok, fail: fail};
         try {
@@ -95,7 +95,6 @@ function Api(wsuri) {
             "i": "correlationID",
             "e": "error",
             "c": "errorCode",
-            "m": "method"
         };
 
         for (var short in keys) {

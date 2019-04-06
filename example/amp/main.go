@@ -2,13 +2,15 @@ package main
 
 import (
 	"expvar"
-
-	"github.com/mnu5/svckit/example/amp/session"
+	"net/http"
+	"strconv"
 
 	"github.com/mnu5/svckit/amp/broker"
 	"github.com/mnu5/svckit/amp/nsq"
 	"github.com/mnu5/svckit/amp/ws"
+	"github.com/mnu5/svckit/env"
 
+	"github.com/mnu5/svckit/amp/session"
 	"github.com/mnu5/svckit/health"
 	"github.com/mnu5/svckit/httpi"
 	"github.com/mnu5/svckit/log"
@@ -18,37 +20,42 @@ import (
 )
 
 var (
-	wsPort    = "8080"
-	debugPort = "8081"
+	inputTopics   = []string{"math.v1"}
+	wsPortLabel   = "ws"
+	demoPortLabel = "demo"
 )
 
 func main() {
 	log.Debug("starting")
+	defer log.Debug("stopped")
 
-	tcpListener := ws.MustOpen(wsPort)      // try to open ws port
-	interuptCtx := signal.InteruptContext() // application interupt signal
+	tcpListener := ws.MustOpen(strconv.Itoa(env.Port(wsPortLabel))) // try to open ws port
+	interupt := signal.InteruptContext()
 
-	requester := nsq.MustRequester()
+	requester := nsq.MustRequester(interupt)
+	defer requester.Wait()
 	broker := broker.New()
-	broker.Consume(nsq.Subscribe(interuptCtx, []string{"math.v1"}))
+	defer broker.Wait()
+	broker.Consume(nsq.Subscribe(interupt, inputTopics))
 	sessions := session.Factory(broker, requester)
+	defer sessions.Wait()
 
-	go func() {
-		requester.Wait(interuptCtx)
-		broker.Wait()
-		sessions.Close()
-	}()
 	go debugHTTP()
-	expvar.Publish("svckit.amp.broker", expvar.Func(broker.Expvar))
+	go demoServer()
+	expvar.Publish("svckit.amp.broker", expvar.Func(broker.Expvar)) // TODO this is experimental
 
-	ws.Listen(interuptCtx, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
-	sessions.Wait()
-	log.Debug("stopped")
+	ws.Listen(interupt, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
 }
 
 func debugHTTP() {
 	health.Set(func() (health.Status, []byte) {
 		return health.Passing, []byte("OK")
 	})
-	httpi.Start(":" + debugPort)
+	httpi.Start(env.Address(""))
+}
+
+func demoServer() {
+	fs := http.FileServer(http.Dir("./demo/"))
+	http.Handle("/", fs)
+	http.ListenAndServe(env.Address(demoPortLabel), nil)
 }

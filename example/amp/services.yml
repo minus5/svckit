@@ -8,3 +8,26 @@ math:
       http_check: /health_check
       tags:
         - urlprefix-math.localhost/
+
+amp:
+  path: ~/work/mnu5/svckit/example/amp
+  build: go build --race
+  topics:
+    - math.v1
+  consul:
+    - 
+      name: api
+      http_check: /health_check
+      tags:
+        - urlprefix-sbk-server.localhost/
+    - 
+      name: api-ws
+      port_label: ws
+      tags:
+        - urlprefix-/api
+    - 
+      name: api-demo
+      port_label: demo
+      http_check: /index.html
+      tags:
+        - urlprefix-/demo strip=/demo
