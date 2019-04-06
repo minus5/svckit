@@ -1,8 +1,17 @@
-//var wsuri = "ws://127.0.0.1:8080";
-//var wsuri = "ws://localhost:8080";
-//var wsuri = "ws://10.211.55.2:8080";
 var apiWsUri = "ws://" + location.hostname + "/api";
-var api = Api(apiWsUri);
+
+var api = mnu5.api(apiWsUri, function(){
+  start();
+});
+
+function start() {
+  //api.language("en");
+
+  var topic = "math.v1/i";
+  api.subscribe(topic, function(data) {
+    console.log("sub", topic, data);
+  });
+}
 
 function add(x, y) {
     var ok = function(rsp) {
