@@ -3,8 +3,7 @@ var sub = require("./subscriptions.js");
 var req = require("./requests.js");
 
 var sock = null,
-    connectInterval = 5 * 1000,
-    lang = "en";
+    connectInterval = 5 * 1000;
 
 var wsOpen = 1,
     statusConnectionClosed = -256,
@@ -102,19 +101,11 @@ function request(uri, payload, ok, fail) {
   send(msg, fail);
 }
 
-function setLang(l) {
-  if (l !== undefined) {
-    lang = l;
-  }
-  return lang;
-}
-
 export function api(uri, onChange) {
   sub.init(subscribe);
   connect(uri, onChange);
   return {
     request: request,
-    language: setLang,
     subscribe: sub.add,
     unSubscribe: sub.remove,
   };
