@@ -3,13 +3,14 @@ package ws
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
+	"github.com/mnu5/svckit/log"
 	"github.com/pkg/errors"
 )
 
@@ -22,16 +23,17 @@ type listener struct {
 // Open opens new tcp port.
 // Returns net.Listener for call to the Listen method below.
 // Fails if port is already open.
-func Open(port string) (net.Listener, error) {
-	ln, err := net.Listen("tcp", "0.0.0.0:"+port)
+func Open(port int) (net.Listener, error) {
+	ln, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	log.I("port", port).Info("ws listener started")
 	return ln, nil
 }
 
 // MustOpen raises fatal if unsuccessful
-func MustOpen(port string) net.Listener {
+func MustOpen(port int) net.Listener {
 	ln, err := Open(port)
 	if err != nil {
 		log.Fatal(err)

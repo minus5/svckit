@@ -18,7 +18,7 @@ type Requester struct {
 	consumer      *nsq.Consumer
 	queue         map[uint64]*request // requests in process
 	correlationNo uint64
-	ctx           context.Context
+	closed        chan struct{}
 	sync.Mutex
 }
 
@@ -44,13 +44,14 @@ func NewRequester(ctx context.Context) (*Requester, error) {
 		producer: p,
 		queue:    make(map[uint64]*request),
 		topic:    resposesTopicName(),
-		ctx:      ctx,
+		closed:   make(chan struct{}),
 	}
 	c, err := nsq.NewConsumer(r.topic, r.responses)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	r.consumer = c
+	go r.waitDone(ctx)
 	return r, nil
 }
 
@@ -110,11 +111,17 @@ func (r *Requester) Unsubscribe(e amp.Subscriber) {
 	}
 }
 
-func (r *Requester) Wait() {
-	<-r.ctx.Done()
+func (r *Requester) waitDone(ctx context.Context) {
+	<-ctx.Done()
+
 	r.producer.Close()
 	r.consumer.Close()
 	r.Lock()
 	defer r.Unlock()
 	r.queue = make(map[uint64]*request)
+	close(r.closed)
+}
+
+func (r *Requester) Wait() {
+	<-r.closed
 }

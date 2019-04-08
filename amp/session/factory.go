@@ -36,19 +36,22 @@ type Sessions struct {
 	broker    broker
 	requester requester
 	cancelSig context.Context
-	cancelFn  context.CancelFunc
+	closed    chan struct{}
 	wg        sync.WaitGroup
 }
 
 // Factory creates new seessions factory.
-func Factory(broker broker, requester requester) *Sessions {
-	cancelSig, cancelFn := context.WithCancel(context.Background())
-	return &Sessions{
+func Factory(ctx context.Context, broker broker, requester requester) *Sessions {
+	cancelSig, cancelSessions := context.WithCancel(context.Background())
+	s := &Sessions{
 		broker:    broker,
 		requester: requester,
 		cancelSig: cancelSig,
-		cancelFn:  cancelFn,
+		closed:    make(chan struct{}),
 	}
+
+	go s.waitDone(ctx, cancelSessions)
+	return s
 }
 
 // Serve creates new session for connection.
@@ -60,10 +63,16 @@ func (s *Sessions) Serve(conn connection) {
 	}()
 }
 
+func (s *Sessions) waitDone(ctx context.Context, cancelSessions func()) {
+	<-ctx.Done()       // wait for application interupt signal
+	s.requester.Wait() // wait for clean exit of requester
+	s.broker.Wait()    //   and broker
+	cancelSessions()   // request cancel of all session
+	s.wg.Wait()        // wait for all sessions to exit
+	close(s.closed)    // signal that I'am closed
+}
+
 // Wait blocks until all sessions are closed.
 func (s *Sessions) Wait() {
-	s.requester.Wait()
-	s.broker.Wait()
-	s.cancelFn()
-	s.wg.Wait()
+	<-s.closed
 }

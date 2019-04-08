@@ -3,6 +3,8 @@ var sub = require("./subscriptions.js");
 var req = require("./requests.js");
 
 var sock = null,
+    wsURI = "",
+    wsOnChange = undefined,
     connectInterval = 5 * 1000;
 
 var wsOpen = 1,
@@ -41,22 +43,22 @@ function subscribe(msg) {
   send(msg);
 }
 
-function connect(uri, onChange) {
-  sock = new WebSocket(uri);
+function connect() {
+  sock = new WebSocket(wsURI);
 
   sock.onopen = function() {
-    console.log("connected to " + uri);
+    console.log("connected to " + wsURI);
     subscribe();
-    if (onChange) {
-      onChange(sock.readyState);
+    if (wsOnChange) {
+      wsOnChange(sock.readyState);
     }
   };
 
   sock.onclose = function(e) {
     setTimeout(connect, connectInterval);
     console.log("connection closed",  e.code , e);
-    if (onChange) {
-      onChange(sock.readyState);
+    if (wsOnChange) {
+      wsOnChange(sock.readyState);
     }
   };
 
@@ -84,6 +86,7 @@ function onmessage(data) {
   case amp.messageType.alive:
     break;
   case amp.messageType.ping:
+    // TODO return pong message
     break;
   case amp.messageType.pong:
     break;
@@ -103,7 +106,9 @@ function request(uri, payload, ok, fail) {
 
 export function api(uri, onChange) {
   sub.init(subscribe);
-  connect(uri, onChange);
+  wsURI = uri;
+  wsOnChange = onChange;
+  connect();
   return {
     request: request,
     subscribe: sub.add,
