@@ -1,0 +1,11 @@
+
+cd ~/work/minus5/svckit/cmd/cockpit; go build; cd -
+
+cd ~/work/minus5/svckit/amp/sdk/js; webpack ; cp ./dist/sdk.js ../../../example/amp/demo ; cd -
+
+
+nsq_tail --nsqd-tcp-address=localhost:4150 --topic=math.v1
+
+
+cd ~/work/minus5/svckit/example/amp; ../../cmd/cockpit/cockpit
+
