@@ -10,7 +10,7 @@ import (
 
 var (
 	maxWriteQueueDepth = 128              // max number of messages in client write queue
-	aliveInterval      = 32 * time.Second // interfal for sending alive messages to the client
+	aliveInterval      = 32 * time.Second // interval for sending alive messages to the client
 )
 
 type session struct {
