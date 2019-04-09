@@ -298,7 +298,7 @@ func register(c *serviceConsul) error {
 			Notes:     fmt.Sprintf("tcp: %s", tcp),
 			ServiceID: service.ID,
 			AgentServiceCheck: api.AgentServiceCheck{
-				Status:   "passing",
+				Status:   api.HealthPassing,
 				Interval: "10s",
 				Timeout:  "1s",
 				TCP:      tcp,
@@ -322,7 +322,7 @@ func register(c *serviceConsul) error {
 		Notes:     fmt.Sprintf("url: %s", url),
 		ServiceID: service.ID,
 		AgentServiceCheck: api.AgentServiceCheck{
-			Status:   "passing",
+			Status:   api.HealthPassing,
 			Interval: "10s",
 			Timeout:  "1s",
 			HTTP:     url,
