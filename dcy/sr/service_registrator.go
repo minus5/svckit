@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/mnu5/svckit/dcy"
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/health"
-	"github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/dcy"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/log"
 )
 
 // Name sets the service name.

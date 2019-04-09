@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/koding/websocketproxy"
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/log"
 )
 
 type config struct {

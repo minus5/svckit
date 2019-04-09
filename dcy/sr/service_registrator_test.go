@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/mnu5/svckit/dcy"
+	"github.com/minus5/svckit/dcy"
 	"github.com/stretchr/testify/assert"
 )
 

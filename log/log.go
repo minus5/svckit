@@ -7,7 +7,7 @@ import (
 	"log/syslog"
 	"os"
 
-	"github.com/mnu5/svckit/env"
+	"github.com/minus5/svckit/env"
 
 	golog "log"
 )

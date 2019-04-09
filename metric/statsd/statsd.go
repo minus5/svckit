@@ -9,10 +9,10 @@ import (
 
 	golog "log"
 
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/log"
-	"github.com/mnu5/svckit/metric"
-	"github.com/mnu5/svckit/signal"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/metric"
+	"github.com/minus5/svckit/signal"
 	api "github.com/smira/go-statsd"
 )
 

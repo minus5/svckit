@@ -6,19 +6,19 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/mnu5/svckit/amp"
-	"github.com/mnu5/svckit/amp/broker"
-	"github.com/mnu5/svckit/amp/nsq"
-	"github.com/mnu5/svckit/amp/ws"
-	"github.com/mnu5/svckit/env"
+	"github.com/minus5/svckit/amp"
+	"github.com/minus5/svckit/amp/broker"
+	"github.com/minus5/svckit/amp/nsq"
+	"github.com/minus5/svckit/amp/ws"
+	"github.com/minus5/svckit/env"
 
-	"github.com/mnu5/svckit/amp/session"
-	"github.com/mnu5/svckit/health"
-	"github.com/mnu5/svckit/httpi"
-	"github.com/mnu5/svckit/log"
-	"github.com/mnu5/svckit/signal"
+	"github.com/minus5/svckit/amp/session"
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/httpi"
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/signal"
 
-	_ "github.com/mnu5/svckit" // adding svckit.stats to expvar
+	_ "github.com/minus5/svckit" // adding svckit.stats to expvar
 )
 
 var ( // jozo

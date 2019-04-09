@@ -4,7 +4,7 @@
 // Default is Noop driver which is doing nothing.
 //
 // For sending metrics to statsd application should do something like:
-//      import 	"github.com/mnu5/svckit/metric/statsd"
+//      import 	"github.com/minus5/svckit/metric/statsd"
 //  		err := statsd.Dial()
 // That will sent statsd driver.
 //

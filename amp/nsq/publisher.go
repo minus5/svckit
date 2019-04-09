@@ -1,8 +1,8 @@
 package nsq
 
 import (
-	"github.com/mnu5/svckit/amp"
-	"github.com/mnu5/svckit/nsq"
+	"github.com/minus5/svckit/amp"
+	"github.com/minus5/svckit/nsq"
 )
 
 func Publish(topic string, in <-chan *amp.Msg) chan *amp.Msg {

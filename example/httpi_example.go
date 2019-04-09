@@ -5,8 +5,8 @@ package main
 import (
 	"net/http"
 
-	"github.com/mnu5/svckit/health"
-	"github.com/mnu5/svckit/httpi"
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/httpi"
 )
 
 /* Navigiraj na:

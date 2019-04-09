@@ -10,7 +10,7 @@ import (
 
 	"github.com/gobwas/httphead"
 	"github.com/gobwas/ws"
-	"github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/log"
 	"github.com/pkg/errors"
 )
 

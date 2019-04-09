@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/mnu5/svckit/metric"
+	"github.com/minus5/svckit/metric"
 	"time"
 )
 

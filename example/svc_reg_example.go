@@ -6,10 +6,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/mnu5/svckit/dcy/sr"
-	"github.com/mnu5/svckit/health"
-	"github.com/mnu5/svckit/leader"
-	"github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/dcy/sr"
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/leader"
+	"github.com/minus5/svckit/log"
 )
 
 func main() {

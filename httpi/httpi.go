@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/health"
-	"github.com/mnu5/svckit/log"
-	"github.com/mnu5/svckit/signal"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/signal"
 
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"

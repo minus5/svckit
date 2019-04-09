@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mnu5/svckit/amp"
+	"github.com/minus5/svckit/amp"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,6 +1,6 @@
 package broker
 
-import "github.com/mnu5/svckit/amp"
+import "github.com/minus5/svckit/amp"
 
 type ReplayBroker struct {
 	messages chan *amp.Msg

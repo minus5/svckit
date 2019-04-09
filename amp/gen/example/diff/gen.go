@@ -9,8 +9,8 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/mnu5/svckit/amp/gen"
-	"github.com/mnu5/svckit/amp/gen/example/diff"
+	"github.com/minus5/svckit/amp/gen"
+	"github.com/minus5/svckit/amp/gen/example/diff"
 )
 
 func main() {

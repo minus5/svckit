@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mnu5/svckit/amp"
-	"github.com/mnu5/svckit/amp/broker"
-	"github.com/mnu5/svckit/amp/nsq"
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/health"
-	"github.com/mnu5/svckit/httpi"
-	"github.com/mnu5/svckit/signal"
+	"github.com/minus5/svckit/amp"
+	"github.com/minus5/svckit/amp/broker"
+	"github.com/minus5/svckit/amp/nsq"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/health"
+	"github.com/minus5/svckit/httpi"
+	"github.com/minus5/svckit/signal"
 )
 
 const (

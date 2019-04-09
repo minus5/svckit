@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/mnu5/svckit/amp"
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/log"
-	"github.com/mnu5/svckit/nsq"
+	"github.com/minus5/svckit/amp"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/nsq"
 	"github.com/pkg/errors"
 )
 

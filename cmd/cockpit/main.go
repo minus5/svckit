@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mnu5/svckit/env"
-	"github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/env"
+	"github.com/minus5/svckit/log"
 
 	yaml "gopkg.in/yaml.v2"
 )

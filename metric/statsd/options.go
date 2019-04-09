@@ -4,8 +4,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mnu5/svckit/dcy"
-	"github.com/mnu5/svckit/signal"
+	"github.com/minus5/svckit/dcy"
+	"github.com/minus5/svckit/signal"
 )
 
 // options is set of configurable options

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	golog "log"
 
-	"github.com/mnu5/svckit/env"
-	log "github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/env"
+	log "github.com/minus5/svckit/log"
 )
 
 func main() {
@@ -28,8 +28,8 @@ func main() {
 	// Kako dodati atribute
 	log.S("key1", "value2").S("key2", "value2 value2").I("keyi", 12345).Debug("neka poruka koja ide na kraju")
 	// Cak i neki duzi string
-	log.S("stack", `~/work/services/src/github.com/mnu5/svckit/example>go run pero.go
-/Users/ianic/work/services/src/github.com/mnu5/svckit/example/pero.go:13 (0x21e3)
+	log.S("stack", `~/work/services/src/github.com/minus5/svckit/example>go run pero.go
+/Users/ianic/work/services/src/github.com/minus5/svckit/example/pero.go:13 (0x21e3)
 	main.func1: debug.PrintStack()
 /usr/local/Cellar/go/1.5.2/libexec/src/runtime/asm_amd64.s:437 (0x598ee)
 	call32: CALLFN(·call32, 32)
@@ -39,7 +39,7 @@ func main() {
 	panicmem: panic(memoryError)
 /usr/local/Cellar/go/1.5.2/libexec/src/runtime/sigpanic_unix.go:24 (0x3fa49)
 	sigpanic: panicmem()
-/Users/ianic/work/services/src/github.com/mnu5/svckit/example/pero.go:25 (0x20ec)
+/Users/ianic/work/services/src/github.com/minus5/svckit/example/pero.go:25 (0x20ec)
 	main: log.Printf("%d", n.i)
 /usr/local/Cellar/go/1.5.2/libexec/src/runtime/proc.go:111 (0x2d2e0)
 	main: main_main()
@@ -47,9 +47,9 @@ func main() {
 	goexit: BYTE	$0x90	// NOP
 goroutine 1 [running]:
 main.main.func1()
-	/Users/ianic/work/services/src/github.com/mnu5/svckit/example/pero.go:17 +0x145
+	/Users/ianic/work/services/src/github.com/minus5/svckit/example/pero.go:17 +0x145
 main.main()
-	/Users/ianic/work/services/src/github.com/mnu5/svckit/example/pero.go:25 +0xac
+	/Users/ianic/work/services/src/github.com/minus5/svckit/example/pero.go:25 +0xac
 
 goroutine 17 [syscall, locked to thread]:
 runtime.goexit()

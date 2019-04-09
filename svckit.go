@@ -2,7 +2,7 @@ package svckit
 
 import (
 	"expvar"
-	"github.com/mnu5/svckit/env"
+	"github.com/minus5/svckit/env"
 	"time"
 )
 

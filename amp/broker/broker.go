@@ -5,8 +5,8 @@
 package broker
 
 import (
-	"github.com/mnu5/svckit/amp"
-	"github.com/mnu5/svckit/log"
+	"github.com/minus5/svckit/amp"
+	"github.com/minus5/svckit/log"
 )
 
 // Broker type
