@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/mnu5/svckit/amp"
 )
@@ -26,9 +27,6 @@ type connection interface {
 	Headers() map[string]string                // http headers we got on connection open
 	No() uint64                                // connection identifier (for grouping logs)
 	Close() error                              // close connection
-}
-
-type callbacks interface {
 }
 
 // Sessions is a session factory
@@ -75,4 +73,75 @@ func (s *Sessions) waitDone(ctx context.Context, cancelSessions func()) {
 // Wait blocks until all sessions are closed.
 func (s *Sessions) Wait() {
 	<-s.closed
+}
+
+var (
+	poolInterval     = 32 * time.Second
+	waitManyInterval = 2 * time.Millisecond
+)
+
+// Pool gets response messages for long pooling interface
+func (s *Sessions) Pool(m *amp.Msg) []*amp.Msg {
+	s.wg.Add(1)
+	defer s.wg.Done()
+
+	switch m.Type {
+	case amp.Ping:
+		return []*amp.Msg{m.Pong()}
+	case amp.Request:
+		p := newPooler()
+		s.requester.Send(p, m)
+		p.waitOne(s.cancelSig, poolInterval)
+		s.requester.Unsubscribe(p)
+		return p.msgs
+	case amp.Subscribe:
+		p := newPooler()
+		s.broker.Subscribe(p, m.Subscriptions)
+		p.wait(s.cancelSig, poolInterval)
+		s.broker.Unsubscribe(p)
+		return p.msgs
+	}
+	return nil
+}
+
+func newPooler() *pooler {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &pooler{
+		msgWait: ctx,
+		onMsg:   cancel,
+	}
+}
+
+type pooler struct {
+	msgs    []*amp.Msg
+	onMsg   func()
+	msgWait context.Context
+	sync.Mutex
+}
+
+func (p *pooler) Send(m *amp.Msg) {
+	p.Lock()
+	p.msgs = append(p.msgs, m)
+	p.Unlock()
+	p.onMsg()
+}
+
+func (p *pooler) waitOne(app context.Context, interval time.Duration) {
+	select {
+	case <-app.Done():
+	case <-time.After(interval):
+	case <-p.msgWait.Done():
+	}
+}
+
+func (p *pooler) wait(app context.Context, interval time.Duration) {
+	select {
+	case <-app.Done():
+	case <-time.After(interval):
+	case <-p.msgWait.Done():
+		select {
+		case <-app.Done():
+		case <-time.After(waitManyInterval):
+		}
+	}
 }

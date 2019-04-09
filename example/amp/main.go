@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"expvar"
+	"io/ioutil"
 	"net/http"
 
+	"github.com/mnu5/svckit/amp"
 	"github.com/mnu5/svckit/amp/broker"
 	"github.com/mnu5/svckit/amp/nsq"
 	"github.com/mnu5/svckit/amp/ws"
@@ -38,9 +41,51 @@ func main() {
 
 	go debugHTTP()
 	go demoServer()
+	go poolingHTTP(interupt, sessions)
 	expvar.Publish("svckit.amp.broker", expvar.Func(broker.Expvar))
 
 	ws.Listen(interupt, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
+}
+
+func poolingHTTP(interupt context.Context, sessions *session.Sessions) {
+	srv := &http.Server{Addr: ":9090", Handler: &server{sessions: sessions}}
+	go func() {
+		// returns ErrServerClosed on graceful close
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Error(err)
+		}
+	}()
+	go func() {
+		<-interupt.Done()
+		srv.Shutdown(context.Background())
+	}()
+}
+
+type server struct {
+	sessions *session.Sessions
+}
+
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	defer r.Body.Close()
+
+	m := amp.Parse(buf)
+	if m == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	rsp := s.sessions.Pool(m)
+	for i, r := range rsp {
+		w.Write(r.Marshal())
+		if i < len(rsp)-1 {
+			w.Write([]byte{10, 10})
+		}
+	}
 }
 
 func debugHTTP() {
