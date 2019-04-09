@@ -19,7 +19,7 @@ amp:
       name: api
       http_check: /health_check
       tags:
-        - urlprefix-sbk-server.localhost/
+        - urlprefix-/api-debug
     - 
       name: api-ws
       port_label: ws
