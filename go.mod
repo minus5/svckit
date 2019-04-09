@@ -1,4 +1,4 @@
-module github.com/mnu5/svckit
+module github.com/minus5/svckit
 
 go 1.12
 
@@ -28,7 +28,6 @@ require (
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/miekg/dns v1.1.6 // indirect
-	github.com/minus5/svckit v0.0.0-20181008072501-0b38e7a243d1
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
