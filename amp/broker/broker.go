@@ -235,18 +235,18 @@ func (s *Broker) waitClose() {
 	s.Wait()
 }
 
-func (s *Broker) Expvar() interface{} {
-	m := make(map[string]interface{})
-	s.inLoopWait(func() {
-		for k, t := range s.topics {
-			tm := make(map[string]interface{})
-			diffs, firstDiffTs, lastDiffTs, fullTs := t.metrics()
-			tm["diffs"] = diffs
-			tm["firstDiffTs"] = firstDiffTs
-			tm["lastDiffTs"] = lastDiffTs
-			tm["fullTs"] = fullTs
-			m[k] = tm
-		}
-	})
-	return m
-}
+// func (s *Broker) Expvar() interface{} {
+// 	m := make(map[string]interface{})
+// 	s.inLoopWait(func() {
+// 		for k, t := range s.topics {
+// 			tm := make(map[string]interface{})
+// 			diffs, firstDiffTs, lastDiffTs, fullTs := t.metrics()
+// 			tm["diffs"] = diffs
+// 			tm["firstDiffTs"] = firstDiffTs
+// 			tm["lastDiffTs"] = lastDiffTs
+// 			tm["fullTs"] = fullTs
+// 			m[k] = tm
+// 		}
+// 	})
+// 	return m
+// }

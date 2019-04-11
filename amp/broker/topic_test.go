@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTopicFindForSubscribe(t *testing.T) {
-	topic := &topic{
+func TestFullDiffCacheFindForSubscribe(t *testing.T) {
+	topic := &fullDiffCache{
 		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
 		diffs: []*amp.Msg{
 			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
@@ -19,41 +19,41 @@ func TestTopicFindForSubscribe(t *testing.T) {
 	}
 
 	// nema nista dobije full
-	msgs := topic.findForSubscribe(0)
+	msgs := topic.Find(0)
 	assert.NotNil(t, msgs)
 	assert.Len(t, msgs, 4)
 
 	// rubni dobije sve
-	msgs = topic.findForSubscribe(9)
+	msgs = topic.Find(9)
 	assert.NotNil(t, msgs)
 	assert.Len(t, msgs, 4)
 
 	// nadopunimo ga diff-ovima
-	msgs = topic.findForSubscribe(10)
+	msgs = topic.Find(10)
 	assert.Len(t, msgs, 3)
 	assert.Equal(t, int64(11), msgs[0].Ts)
 	assert.Equal(t, int64(12), msgs[1].Ts)
 	assert.Equal(t, int64(13), msgs[2].Ts)
 
-	msgs = topic.findForSubscribe(11)
+	msgs = topic.Find(11)
 	assert.Len(t, msgs, 2)
 	assert.Equal(t, int64(12), msgs[0].Ts)
 	assert.Equal(t, int64(13), msgs[1].Ts)
 
-	msgs = topic.findForSubscribe(13)
+	msgs = topic.Find(13)
 	assert.Len(t, msgs, 0)
 
 	// ovaj ima neki krivi, preveliki ts, ide od full
-	msgs = topic.findForSubscribe(14)
+	msgs = topic.Find(14)
 	assert.Len(t, msgs, 4)
 
-	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
-	msgs = topic.findForSubscribe(14)
+	topic.Add(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
+	msgs = topic.Find(14)
 	assert.Len(t, msgs, 1)
 }
 
-func TestTopicFindForSubscribeBeforeFull(t *testing.T) {
-	topic := &topic{
+func TestFullDiffCacheFindForSubscribeBeforeFull(t *testing.T) {
+	topic := &fullDiffCache{
 		diffs: []*amp.Msg{
 			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
 			&amp.Msg{Ts: 11, UpdateType: amp.Diff},
@@ -61,12 +61,12 @@ func TestTopicFindForSubscribeBeforeFull(t *testing.T) {
 			&amp.Msg{Ts: 13, UpdateType: amp.Diff},
 		},
 	}
-	msgs := topic.findForSubscribe(0)
+	msgs := topic.Find(0)
 	assert.Nil(t, msgs)
 }
 
-func TestTopicOnMessage(t *testing.T) {
-	topic := &topic{
+func TestFullDiffCacheAdd(t *testing.T) {
+	topic := &fullDiffCache{
 		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
 		diffs: []*amp.Msg{
 			&amp.Msg{Ts: 11, UpdateType: amp.Diff},
@@ -75,22 +75,22 @@ func TestTopicOnMessage(t *testing.T) {
 	}
 
 	// diff se dodaje
-	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
+	topic.Add(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
 	assert.Len(t, topic.diffs, 3)
 
 	// full postavlja novo stanje od kojeg krecemo
-	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Full})
+	topic.Add(&amp.Msg{Ts: 15, UpdateType: amp.Full})
 	assert.Len(t, topic.diffs, 3)
 
 	// diff koji je isti kao full, njega ne spremamo samo proslijedimo
-	topic.onMessage(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
+	topic.Add(&amp.Msg{Ts: 15, UpdateType: amp.Diff})
 	assert.Len(t, topic.diffs, 3)
 
 	// stari njega preskacemo
-	topic.onMessage(&amp.Msg{Ts: 14, UpdateType: amp.Diff})
+	topic.Add(&amp.Msg{Ts: 14, UpdateType: amp.Diff})
 	assert.Len(t, topic.diffs, 4)
 
-	topic.onMessage(&amp.Msg{Ts: 14, UpdateType: amp.Diff})
+	topic.Add(&amp.Msg{Ts: 14, UpdateType: amp.Diff})
 	assert.Len(t, topic.diffs, 4)
 }
 
@@ -114,7 +114,7 @@ func TestTopicReplay(t *testing.T) {
 }
 
 func TestSortPrevRemovesDuplicates(t *testing.T) {
-	topic := &topic{
+	topic := &fullDiffCache{
 		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
 		diffs: []*amp.Msg{
 			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
