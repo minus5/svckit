@@ -16,6 +16,7 @@ type Broker struct {
 	closed         chan struct{}
 	topics         map[string]*topic
 	consumerTopics map[amp.Subscriber]map[string]int64
+	current        func(string)
 }
 
 // Consume consumes all msgs from in channel.
@@ -34,13 +35,14 @@ func (s *Broker) Wait() {
 }
 
 // New creates new scatter
-func New() *Broker {
+func New(current func(string)) *Broker {
 	s := &Broker{
 		messages:       make(chan *amp.Msg, 1024),
 		loopWork:       make(chan func()),
 		closed:         make(chan struct{}),
 		topics:         make(map[string]*topic),
 		consumerTopics: make(map[amp.Subscriber]map[string]int64),
+		current:        current,
 	}
 	go s.loop()
 	return s
@@ -56,6 +58,7 @@ func copyMap(o map[string]int64) map[string]int64 {
 
 // Replay collects all current messages.
 func (s *Broker) Replay(topic string) []*amp.Msg {
+	log.Debug("replay start")
 	var msgs []*amp.Msg
 	s.inLoopWait(func() {
 		if topic == "" || topic == "*" {
@@ -69,6 +72,7 @@ func (s *Broker) Replay(topic string) []*amp.Msg {
 			msgs = append(msgs, t.replay()...)
 		}
 	})
+	log.I("msgs", len(msgs)).Debug("replay end")
 	return msgs
 }
 
@@ -81,7 +85,7 @@ func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
 
 		if !ok {
 			for topic, ts := range newTopics {
-				s.find(topic).subscribe(c, ts)
+				s.find(topic, true).subscribe(c, ts)
 			}
 			return
 		}
@@ -103,7 +107,7 @@ func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
 		// obradi mapu promjena
 		for t, v := range updMap {
 			if v == true {
-				s.find(t).subscribe(c, newTopics[t])
+				s.find(t, true).subscribe(c, newTopics[t])
 				continue
 			}
 			topic, ok := s.topics[t]
@@ -118,12 +122,15 @@ func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
 	})
 }
 
-func (s *Broker) find(topic string) *topic {
+func (s *Broker) find(topic string, currentOnNew bool) *topic {
 	t, ok := s.topics[topic]
 	if !ok {
 		log.S("topic", topic).Debug("new topic")
 		t = newTopic()
 		s.topics[topic] = t
+		if currentOnNew && s.current != nil {
+			go s.current(topic)
+		}
 	}
 	return t
 }
@@ -194,7 +201,7 @@ func (s *Broker) loop() {
 				return
 			}
 			t := m.URI
-			topic := s.find(t)
+			topic := s.find(t, !m.IsFull())
 			if m.IsTopicClose() {
 				log.S("topic", t).Debug("delete")
 				delete(s.topics, t)

@@ -14,13 +14,15 @@ import (
 
 // Message types
 const (
-	Publish uint8 = iota
-	Subscribe
-	Request
-	Response
-	Ping
-	Pong
-	Alive
+	Publish   uint8 = iota // stream updated message, view update types below
+	Subscribe              // subscribe on a topic or many topics
+	Request                // request for some data
+	Response               // response on request
+	Ping                   // query weather other side is there
+	Pong                   // replay to ping
+	Alive                  // signal that server side is still alive
+	Current                // request for current state of a stream
+	Event                  // TODO unused yet, just thinking
 )
 
 // Topic update types
@@ -240,6 +242,14 @@ func NewPong() *Msg {
 	return &Msg{Type: Pong}
 }
 
+// NewCurrent message for the uri
+func NewCurrent(uri string) *Msg {
+	return &Msg{
+		Type: Current,
+		URI:  uri,
+	}
+}
+
 // IsPing returns true is message is Ping type
 func (m *Msg) IsPing() bool {
 	return m.Type == Ping
@@ -284,6 +294,14 @@ func (m *Msg) IsTopicClose() bool {
 // IsReplay ...
 func (m *Msg) IsReplay() bool {
 	return m.Replay == Replay
+}
+
+func (m *Msg) IsCurrent() bool {
+	return m.Type == Current
+}
+
+func (m *Msg) IsRequest() bool {
+	return m.Type == Request
 }
 
 // IsFull ...

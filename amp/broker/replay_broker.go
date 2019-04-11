@@ -10,7 +10,7 @@ type ReplayBroker struct {
 func NewWithReplay() *ReplayBroker {
 	return &ReplayBroker{
 		messages: make(chan *amp.Msg),
-		broker:   New(),
+		broker:   New(nil),
 	}
 }
 
