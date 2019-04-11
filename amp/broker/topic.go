@@ -64,7 +64,7 @@ func (t *topic) subscribe(c amp.Subscriber, ts int64) {
 			ts = tsNone
 		}
 		t.consumers[c] = ts
-		t.sendAll(c, t.findForSubscribe(ts))
+		t.sendMany(c, t.findForSubscribe(ts))
 	}
 }
 
@@ -78,7 +78,7 @@ func (t *topic) unsubscribe(c amp.Subscriber) bool {
 	return <-empty
 }
 
-func (t *topic) sendAll(c amp.Subscriber, msgs []*amp.Msg) {
+func (t *topic) sendMany(c amp.Subscriber, msgs []*amp.Msg) {
 	for _, m := range msgs {
 		t.send(c, m)
 	}
@@ -168,8 +168,12 @@ func (t *topic) current() []*amp.Msg {
 }
 
 func (t *topic) onMessage(m *amp.Msg) {
-	ts := m.Ts
 	t.updateCache(m)
+	t.sendToConsumers(m)
+	t.updatedAt = time.Now()
+}
+
+func (t *topic) sendToConsumers(m *amp.Msg) {
 	if m.IsFull() {
 		var current []*amp.Msg
 		for c, cNo := range t.consumers {
@@ -179,12 +183,12 @@ func (t *topic) onMessage(m *amp.Msg) {
 			if current == nil {
 				current = t.current()
 			}
-			t.sendAll(c, current)
+			t.sendMany(c, current)
 		}
 		return
 	}
 	for c, cTs := range t.consumers {
-		if cTs == ts || cTs == tsNone {
+		if cTs == m.Ts || cTs == tsNone {
 			continue // ovaj consumer je vec dobio ovu ili jos nije dobio full
 		}
 		if m.IsReplay() && cTs >= m.Ts { // nemoj ponavljati replay poruke onima koji ih vec imaju
@@ -192,7 +196,6 @@ func (t *topic) onMessage(m *amp.Msg) {
 		}
 		t.send(c, m)
 	}
-	t.updatedAt = time.Now()
 }
 
 func (t *topic) replay() []*amp.Msg {

@@ -52,6 +52,19 @@ func TestTopicFindForSubscribe(t *testing.T) {
 	assert.Len(t, msgs, 1)
 }
 
+func TestTopicFindForSubscribeBeforeFull(t *testing.T) {
+	topic := &topic{
+		diffs: []*amp.Msg{
+			&amp.Msg{Ts: 10, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 11, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 12, UpdateType: amp.Diff},
+			&amp.Msg{Ts: 13, UpdateType: amp.Diff},
+		},
+	}
+	msgs := topic.findForSubscribe(0)
+	assert.Nil(t, msgs)
+}
+
 func TestTopicOnMessage(t *testing.T) {
 	topic := &topic{
 		full: &amp.Msg{Ts: 10, UpdateType: amp.Full},
