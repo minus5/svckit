@@ -103,8 +103,11 @@ func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
 
 func (t *topic) onMessage(m *amp.Msg) {
 	if t.cache == nil {
-		// TODO
-		t.cache = newFullDiffCache()
+		if m.UpdateType == amp.Append {
+			t.cache = newAppendCache()
+		} else {
+			t.cache = newFullDiffCache()
+		}
 	}
 
 	t.cache.Add(m)

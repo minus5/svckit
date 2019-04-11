@@ -66,22 +66,28 @@ func (t *fullDiffCache) compactDiffs(ts int64) {
 
 // sortDiffs sorts and removes duplicates in t.diffs
 func (t *fullDiffCache) sortDiffs() {
-	sort.Slice(t.diffs, func(i, j int) bool {
-		return t.diffs[i].Ts < t.diffs[j].Ts
+	t.diffs = sortMsgs(t.diffs)
+}
+
+// sortMsgs sorts and removes duplicates in t.diffs
+func sortMsgs(msgs []*amp.Msg) []*amp.Msg {
+	sort.Slice(msgs, func(i, j int) bool {
+		return msgs[i].Ts < msgs[j].Ts
 	})
 	// remove duplicates
-	for i := 0; i < len(t.diffs)-1; i++ {
-		m1 := t.diffs[i]
-		m2 := t.diffs[i+1]
+	for i := 0; i < len(msgs)-1; i++ {
+		m1 := msgs[i]
+		m2 := msgs[i+1]
 		if m1.Ts == m2.Ts {
 			if m1.IsReplay() {
-				t.diffs = append(t.diffs[:i], t.diffs[i+1:]...) //remove i
+				msgs = append(msgs[:i], msgs[i+1:]...) //remove i
 				continue
 			}
 			j := i + 1
-			t.diffs = append(t.diffs[:j], t.diffs[j+1:]...) //remove i+1
+			msgs = append(msgs[:j], msgs[j+1:]...) //remove i+1
 		}
 	}
+	return msgs
 }
 
 func (t *fullDiffCache) diffsAfter(ts int64) []*amp.Msg {

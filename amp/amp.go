@@ -73,6 +73,7 @@ type Msg struct {
 	UpdateType    uint8            `json:"p,omitempty"` // explains how to handle publish message
 	Replay        uint8            `json:"l,omitempty"` // is this a re-play message (repeated)
 	Subscriptions map[string]int64 `json:"b,omitempty"` // topics to subscribe to
+	CacheDepth    int              `json:"d,omitempty"` // cache depthh for append update type messages
 
 	body          []byte
 	noCompression bool
