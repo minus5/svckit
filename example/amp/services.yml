@@ -2,7 +2,8 @@ math:
   path: ~/work/mnu5/svckit/example/amp/math
   build: go build --race
   topics:
-    - math.output
+    - math.v1
+    - math.req
   consul:
     -
       http_check: /health_check

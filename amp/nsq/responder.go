@@ -15,14 +15,14 @@ type Responder struct {
 
 func NewResponder(ctx context.Context,
 	handler func(m *amp.Msg) (*amp.Msg, error),
-	topic string) *Responder {
+	topics []string) *Responder {
 
 	r := &Responder{
 		done:    make(chan struct{}),
 		handler: handler,
 	}
 
-	in := Subscribe(ctx, []string{topic})
+	in := Subscribe(ctx, topics)
 	go r.loop(in)
 	return r
 }

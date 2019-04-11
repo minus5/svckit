@@ -21,7 +21,7 @@ import (
 	_ "github.com/minus5/svckit" // adding svckit.stats to expvar
 )
 
-var ( // jozo
+var (
 	inputTopics   = []string{"math.v1"}
 	wsPortLabel   = "ws"
 	demoPortLabel = "demo"
@@ -34,7 +34,7 @@ func main() {
 	tcpListener := ws.MustOpen(env.Port(wsPortLabel))
 	interupt := signal.InteruptContext()
 	requester := nsq.MustRequester(interupt)
-	broker := broker.New()
+	broker := broker.New(requester.Current)
 	broker.Consume(nsq.Subscribe(interupt, inputTopics))
 	sessions := session.Factory(interupt, broker, requester)
 	defer sessions.Wait()

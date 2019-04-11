@@ -101,6 +101,13 @@ func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	}()
 }
 
+// Current send current message for the uri
+func (r *Requester) Current(uri string) {
+	m := amp.NewCurrent(uri)
+	topic := fmt.Sprintf("%s.%s", m.Topic(), "current")
+	r.producer.PublishTo(topic, m.Marshal())
+}
+
 func (r *Requester) Unsubscribe(e amp.Subscriber) {
 	r.Lock()
 	defer r.Unlock()

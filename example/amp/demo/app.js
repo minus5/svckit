@@ -14,15 +14,18 @@ api.subscribe(topic, function(data) {
   console.log(topic, prev, "=>", data.x);
 });
 
-var x = 1;
-setInterval(function() {
-  x++;
-  add(x, parseInt(Math.random() * 1000));
-} , 1000);
+
+function startPeriodicRequests() {
+  var x = 1;
+  setInterval(function() {
+    x++;
+    add(x, parseInt(Math.random() * 1000));
+  } , 1000);
+}
 
 function add(x, y) {
   var ok = function(rsp) {
-    console.log("add", x, "+", y, "=", rsp.z);
+    //console.log("add", x, "+", y, "=", rsp.z);
   };
   var fail = function(rsp, header) {
     console.log("add fail", rsp, header);

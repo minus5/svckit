@@ -15,11 +15,13 @@ import (
 )
 
 const (
-	v1Topic  = "math.v1"
-	reqTopic = "math.req"
+	v1Topic       = "math.v1"
+	methodAdd     = "add"
+	methodCurrent = "current"
+)
 
-	methodAdd    = "add"
-	methodReplay = "replay"
+var (
+	reqTopics = []string{"math.req", "math.v1.current"}
 )
 
 type params struct {
@@ -110,6 +112,15 @@ type requests struct {
 }
 
 func (r *requests) handler(m *amp.Msg) (*amp.Msg, error) {
+	if m.IsCurrent() {
+		r.broker.Replay(m.URI)
+		return nil, nil
+	}
+
+	if !m.IsRequest() {
+		return nil, nil
+	}
+
 	switch m.Path() {
 	case methodAdd:
 		p := &params{}
@@ -118,10 +129,8 @@ func (r *requests) handler(m *amp.Msg) (*amp.Msg, error) {
 		}
 		z := p.X + p.Y
 		return m.Response(amp.JSONMarshaler(&rsp{Z: z})), nil
-	case methodReplay:
-		r.broker.Replay("")
 	default:
-		return nil, fmt.Errorf("unknown method")
+		return nil, fmt.Errorf("unknown method %s", m.Path())
 	}
 	return nil, nil
 }
@@ -130,7 +139,7 @@ func main() {
 	interupt := signal.InteruptContext()
 
 	broker := broker.NewWithReplay()
-	responder := nsq.NewResponder(interupt, (&requests{broker: broker}).handler, reqTopic)
+	responder := nsq.NewResponder(interupt, (&requests{broker: broker}).handler, reqTopics)
 	defer responder.Wait()
 
 	pub := nsq.NewPublisher(broker.Pipe(msg2ampMsg(producer(interupt))))
