@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"expvar"
 	"io/ioutil"
 	"net/http"
 
@@ -22,7 +21,7 @@ import (
 )
 
 var (
-	inputTopics   = []string{"math.v1"}
+	inputTopics   = []string{"math.v1", "chat"}
 	wsPortLabel   = "ws"
 	demoPortLabel = "demo"
 )
@@ -42,8 +41,6 @@ func main() {
 	go debugHTTP()
 	go demoServer()
 	go poolingHTTP(interupt, sessions)
-	expvar.Publish("svckit.amp.broker", expvar.Func(broker.Expvar))
-
 	ws.Listen(interupt, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
 }
 

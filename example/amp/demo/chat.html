@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <script src="./sdk.js"></script>
+    </head>
+    <body></body>
+    <script>
+     var apiWsUri = "ws://" + location.hostname + "/api";
+     var api = mnu5.api(apiWsUri, function(status){
+         console.log("ws status changed to", status);
+     });
+
+     var topic = "chat/1";
+     api.subscribe(topic, function(data) {
+         console.log(topic, data);
+     });
+
+     function chat(nickname, comment) {
+         api.request("chat.req/add",
+                     {nickname: nickname, comment: comment},
+                     function() {console.log("ok")},
+                     function(rsp, header) {console.log("fail", rsp, header)}
+         );
+     }
+
+
+     function fillChat() {
+         for(var i=0; i<32; i++) {
+             chat("filler", "comment: " + i);
+         }
+     }
+    </script>
+</html>
