@@ -17,7 +17,6 @@ import (
 type listener struct {
 	ln        net.Listener
 	onNewConn func(*Conn)
-	conns     sync.WaitGroup
 }
 
 // Open opens new tcp port.
@@ -53,18 +52,23 @@ func Listen(ctx context.Context, ln net.Listener, h func(*Conn)) {
 		_ = l.ln.Close()
 	}()
 	l.loop()
-	l.conns.Wait()
 }
 
 func (l *listener) loop() {
+	var wg sync.WaitGroup
 	for {
 		tc, err := l.ln.Accept() // cekamo na novu tcp konekciju (tc)
 		if err != nil {
 			//log.Debug("listener end")
 			return
 		}
-		go l.onConn(tc)
+		wg.Add(1)
+		go func() {
+			l.onConn(tc)
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 }
 
 func (l *listener) onConn(tc net.Conn) {
@@ -74,8 +78,6 @@ func (l *listener) onConn(tc net.Conn) {
 		_ = tc.Close()
 		return
 	}
-	l.conns.Add(1)
-	defer l.conns.Done()
 	c := newConn(tc, cc)
 	l.onNewConn(c)
 	c.wait() // ovdje blocka do prekida komunikacije
