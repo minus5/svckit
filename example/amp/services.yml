@@ -1,5 +1,5 @@
 math:
-  path: ~/work/mnu5/svckit/example/amp/math
+  path: ~/work/minus5/svckit/example/amp/math
   build: go build --race
   topics:
     - math.v1
@@ -8,19 +8,30 @@ math:
     -
       http_check: /health_check
       tags:
-        - urlprefix-math.localhost/
+        - urlprefix-/math strip=/math
 
-amp:
-  path: ~/work/mnu5/svckit/example/amp
+chat:
+  path: ~/work/minus5/svckit/example/amp/chat
   build: go build --race
   topics:
-    - math.v1
+    - chat
+    - chat.req
+    - chat.current
+  consul:
+    -
+      http_check: /health_check
+      tags:
+        - urlprefix-/chat strip=/chat
+
+amp:
+  path: ~/work/minus5/svckit/example/amp
+  build: go build --race
   consul:
     - 
       name: api
       http_check: /health_check
       tags:
-        - urlprefix-/api-debug
+        - urlprefix-/api-debug strip=/api-debug
     - 
       name: api-ws
       port_label: ws

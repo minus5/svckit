@@ -1,11 +1,43 @@
+# math example notes
 
 cd ~/work/minus5/svckit/cmd/cockpit; go build; cd -
-
 cd ~/work/minus5/svckit/amp/sdk/js; webpack ; cp ./dist/sdk.js ../../../example/amp/demo ; cd -
-
-
 nsq_tail --nsqd-tcp-address=localhost:4150 --topic=math.v1
-
-
 cd ~/work/minus5/svckit/example/amp; ../../cmd/cockpit/cockpit
 
+
+
+
+# chat example
+
+# start application
+cd ~/work/minus5/svckit/cmd/cockpit; go build; cd -
+cd ~/work/minus5/svckit/example/amp; ../../cmd/cockpit/cockpit --config chat.yml
+
+# client demo application
+http://localhost/demo/chat.html
+# in console:
+chat("jozo", "comment 001")  // to send one comment
+fillChat()                   // to fill chat with many comments
+
+
+# useful urls to monitor
+http://fabio.localhost
+http://consul.localhost
+http://nsq.localhost
+
+http://localhost/chat/debug/pprof
+http://localhost/chat/debug/pprof
+
+# monitoring nsq topics
+nsq_tail --nsqd-tcp-address=localhost:4150 --topic=chat
+nsq_tail --nsqd-tcp-address=localhost:4150 --topic=chat.req
+nsq_tail --nsqd-tcp-address=localhost:4150 --topic=chat.current
+
+
+# start standalone (check ports in fabio)
+cd ~/work/minus5/svckit/example/amp/chat
+go build; PORT_default=9002 ./chat
+
+cd ~/work/minus5/svckit/example/amp
+go build; PORT_default=9003 PORT_ws=9004 PORT_demo=9005 ./amp

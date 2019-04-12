@@ -1,0 +1,11 @@
+services:
+  # infrastructure
+  - consul
+  - nsqlookupd
+  - nsqadmin
+  - nsqd
+  - fabio
+
+  # applications
+  - chat
+  - amp
