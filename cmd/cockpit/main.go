@@ -16,12 +16,12 @@ import (
 )
 
 var configFile string
-var clear bool
+var noClear bool
 var servicesFileName = "services.yml"
 
 func init() {
 	flag.StringVar(&configFile, "config", "./cockpit.yml", "config file name")
-	flag.BoolVar(&clear, "clear", false, "clear tmp directory")
+	flag.BoolVar(&noClear, "no-clear", false, "do not remove tmp directory")
 	flag.Parse()
 }
 
@@ -39,7 +39,7 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 
-	if clear {
+	if !noClear {
 		os.RemoveAll("./log")
 		os.RemoveAll("./tmp")
 	}

@@ -116,7 +116,7 @@ func (s *service) stop() {
 	select {
 	case <-s.done:
 		return
-	case <-time.After(3 * time.Second):
+	case <-time.After(20 * time.Second):
 		s.cmd.Process.Signal(os.Kill)
 		select {
 		case <-s.done:
