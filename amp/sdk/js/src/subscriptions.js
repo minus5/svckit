@@ -63,17 +63,19 @@ function publish(msg) {
   }
 
   s.ts = msg.ts;
-  if (msg.updateType === amp.updateType.full) {
+  if (msg.updateType === amp.updateType.full ||
+      msg.updateType === amp.updateType.append ||
+      msg.updateType === amp.updateType.update) {
     s.full = msg.body;
     s.diff = null;
-  } else {
+  }
+  if (msg.updateType === amp.updateType.diff) {
     if (!s.full) {
       s.full = {};
     }
     s.diff = msg.body;
     merge(s.full, msg.body);
   }
-
   s.handlers.forEach(function(handler){
     handler(s.full, s.diff);
   });
