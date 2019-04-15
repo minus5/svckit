@@ -25,7 +25,7 @@ function startPeriodicRequests() {
 
 function add(x, y) {
   var ok = function(rsp) {
-    //console.log("add", x, "+", y, "=", rsp.z);
+    console.log("add", x, "+", y, "=", rsp.z);
   };
   var fail = function(rsp, header) {
     console.log("add fail", rsp, header);
