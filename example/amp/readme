@@ -5,17 +5,20 @@ cd ~/work/minus5/svckit/amp/sdk/js; webpack ; cp ./dist/sdk.js ../../../example/
 nsq_tail --nsqd-tcp-address=localhost:4150 --topic=math.v1
 cd ~/work/minus5/svckit/example/amp; ../../cmd/cockpit/cockpit
 
-
+# client demo application
+http://localhost/
+# in console:
+add(1, 2)  // to send one comment
 
 
 # chat example
 
 # start application
 cd ~/work/minus5/svckit/cmd/cockpit; go build; cd -
-cd ~/work/minus5/svckit/example/amp; ../../cmd/cockpit/cockpit --config chat.yml
+cd ~/work/minus5/svckit/example/amp; ../../cmd/cockpit/cockpit 
 
 # client demo application
-http://localhost/demo/chat.html
+http://localhost/chat.html
 # in console:
 chat("jozo", "comment 001")  // to send one comment
 fillChat()                   // to fill chat with many comments
@@ -26,8 +29,8 @@ http://fabio.localhost
 http://consul.localhost
 http://nsq.localhost
 
-http://localhost/chat/debug/pprof
-http://localhost/chat/debug/pprof
+http://chat.localhost/debug/pprof
+http://api.localhost/debug/pprof
 
 # monitoring nsq topics
 nsq_tail --nsqd-tcp-address=localhost:4150 --topic=chat
@@ -41,3 +44,20 @@ go build; PORT_default=9002 ./chat
 
 cd ~/work/minus5/svckit/example/amp
 go build; PORT_default=9003 PORT_ws=9004 PORT_demo=9005 ./amp
+
+
+
+
+
+# dnsmasq configuration for forwaring all *.localhost to 127.0.0.1
+
+reference: https://medium.com/@kharysharpe/automatic-local-domains-setting-up-dnsmasq-for-macos-high-sierra-using-homebrew-caf767157e43
+
+brew install dnsmasq
+echo 'address=/.localhost/127.0.0.1' >> $(brew --prefix)/etc/dnsmasq.conf
+echo 'port=53' >> $(brew --prefix)/etc/dnsmasq.conf
+sudo mkdir -v /etc/resolver
+sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/localhost'
+scutil --dns # checking
+sudo brew services restart dnsmasq
+

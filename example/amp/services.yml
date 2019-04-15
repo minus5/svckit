@@ -8,7 +8,7 @@ math:
     -
       http_check: /health_check
       tags:
-        - urlprefix-/math strip=/math
+        - urlprefix-math.localhost
 
 chat:
   path: ~/work/minus5/svckit/example/amp/chat
@@ -21,7 +21,7 @@ chat:
     -
       http_check: /health_check
       tags:
-        - urlprefix-/chat strip=/chat
+        - urlprefix-chat.localhost/
 
 amp:
   path: ~/work/minus5/svckit/example/amp
@@ -31,15 +31,17 @@ amp:
       name: api
       http_check: /health_check
       tags:
-        - urlprefix-/api-debug strip=/api-debug
+        - urlprefix-api.localhost/
     - 
       name: api-ws
       port_label: ws
       tags:
         - urlprefix-/api
+#        - urlprefix-app.localhost/api
     - 
-      name: api-demo
+      name: demo-app
       port_label: demo
       http_check: /index.html
       tags:
-        - urlprefix-/demo strip=/demo
+        - urlprefix-/ 
+#        - urlprefix-app.localhost/
