@@ -10,7 +10,7 @@ describe('amp', function() {
   describe('message unpack', function() {
     it('should unpack header attirbutes', function() {
       var buf='{"u":"topic/method", "i":123, "s":234, "p": 3, "t": 3}\n{"no":1}';
-      var m = amp.unpack(buf);
+      var m = amp.unpackMsg(buf);
 
       assert.equal(m.type, amp.messageType.response);
       assert.equal(m.updateType, amp.updateType.update);
@@ -30,7 +30,7 @@ describe('amp', function() {
 
     it('should set messageType and updateType defaults', function() {
       var buf='{"o":"one"}\n{"no":1}';
-      var m = amp.unpack(buf);
+      var m = amp.unpackMsg(buf);
 
       assert.equal(m.type, amp.messageType.publish);
       assert.equal(m.updateType, amp.updateType.diff);
@@ -38,28 +38,57 @@ describe('amp', function() {
 
     it('should unmarshal json body', function() {
       var buf='{"u":"uri"}\n{"no":1}';
-      var m = amp.unpack(buf);
+      var m = amp.unpackMsg(buf);
       assert.equal(m.body.no, 1);
     });
 
     it('should handle non JSON body message', function() {
       var buf='{"u":"uri"}\nwrong';
-      var m = amp.unpack(buf);
+      var m = amp.unpackMsg(buf);
       assert.equal(m.body, undefined);
     });
 
     it('should handle message without separator', function() {
       var buf='{"u":"uri"}';
-      var m = amp.unpack(buf);
+      var m = amp.unpackMsg(buf);
       assert.equal(m.uri, "uri");
     });
 
     it('should handle message without header', function() {
       var buf='without header';
-      var m = amp.unpack(buf);
+      var m = amp.unpackMsg(buf);
       assert.equal(m, null);
     });
 
+    it('should unpack pooling message', function() {
+      var buf = '{"u":"math.v1/i","s":1555517084318,"p":1}\n{"x":2911,"y":2911}\n\n{"u":"math.v1/i","s":1555517085318}\n{"x":2912}\n\n{"u":"math.v1/i","s":1555517086323}\n{"x":2913}\n\n{"u":"math.v1/i","s":1555517087325}\n{"x":2914}\n\n{"u":"math.v1/i","s":1555517088317}\n{"x":2915}';
+
+      var msgs = amp.unpack(buf);
+      assert.equal(5, msgs.length);
+
+      for(var i=0; i<msgs.length; i++) {
+        var m = msgs[i];
+        assert.equal(m.type, amp.messageType.publish);
+        assert.equal(m.uri, "math.v1/i");
+        if (i==0) {
+          assert.equal(m.updateType, amp.updateType.full);
+        } else {
+          assert.equal(m.updateType, amp.updateType.diff);
+        }
+        //console.log(m);
+      }
+    });
+
+    it('should unpack one pooling message', function() {
+      var buf='{"u":"one"}\n{"no":1}';
+      var msgs = amp.unpack(buf);
+
+      assert.equal(1, msgs.length);
+      var m = msgs[0];
+      assert.equal(m.type, amp.messageType.publish);
+      assert.equal(m.updateType, amp.updateType.diff);
+      assert.equal(m.uri, "one");
+    });
   });
 
   describe('message pack', function() {

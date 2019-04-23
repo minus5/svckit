@@ -63,7 +63,7 @@ function pack(o) {
   return buf;
 }
 
-function unpack(data) {
+function unpackMsg(data) {
   var p = data.split("\n"),
       msg = null;
 
@@ -85,9 +85,20 @@ function unpack(data) {
   return msg;
 }
 
+function unpack(data) {
+  var p = data.split("\n\n");
+  var msgs = [];
+  for(var i=0; i<p.length; i++) {
+    var m = unpackMsg(p[i]);
+    msgs[i] = m;
+  }
+  return msgs;
+}
+
 module.exports = {
   messageType: messageType,
   updateType: updateType,
   unpack: unpack,
+  unpackMsg: unpackMsg,
   pack: pack,
 }

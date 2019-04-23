@@ -21,9 +21,10 @@ import (
 )
 
 var (
-	inputTopics   = []string{"math.v1", "chat"}
-	wsPortLabel   = "ws"
-	demoPortLabel = "demo"
+	inputTopics      = []string{"math.v1", "chat"}
+	wsPortLabel      = "ws"
+	poolingPortLabel = "pooling"
+	appPortLabel     = "app"
 )
 
 func main() {
@@ -45,7 +46,7 @@ func main() {
 }
 
 func poolingHTTP(interupt context.Context, sessions *session.Sessions) {
-	srv := &http.Server{Addr: ":9090", Handler: &server{sessions: sessions}}
+	srv := &http.Server{Addr: env.Address(poolingPortLabel), Handler: &server{sessions: sessions}}
 	go func() {
 		// returns ErrServerClosed on graceful close
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
@@ -63,6 +64,10 @@ type server struct {
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if p := r.URL.Path; p == "/ping" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err)
@@ -95,5 +100,5 @@ func debugHTTP() {
 func demoServer() {
 	fs := http.FileServer(http.Dir("./demo/"))
 	http.Handle("/", fs)
-	http.ListenAndServe(env.Address(demoPortLabel), nil)
+	http.ListenAndServe(env.Address(appPortLabel), nil)
 }

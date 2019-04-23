@@ -1,95 +1,58 @@
-var amp = require("./amp.js");
-var sub = require("./subscriptions.js");
-var req = require("./requests.js");
+var amp  = require("./amp.js");
+var sub  = require("./subscriptions.js");
+var req  = require("./requests.js");
+var ws   = require("./ws.js");
+var pool = require("./pooling.js");
 
-var sock = null,
-    wsURI = "",
-    wsOnChange = undefined,
-    connectInterval = 5 * 1000;
-
-var wsOpen = 1,
-    statusConnectionClosed = -256,
-    statusUnknown = -257;
+var _transport = undefined,
+    _onTransportChange = undefined,
+    //_pool,
+    statusUnknown = -257;          // TODO define/rethink this error codes
 
 function defaultFail(body, e) {
-  console.error(body, {error: e, errorCode: statusUnknown, wsReadyState: sock.readyState});
+  console.error(body, {error: e, errorCode: statusUnknown, transportState: _transport.state()});
 };
 
+function ignoreFail() {}
 
 function send(msg, fail) {
   if (fail === undefined) {
     fail = defaultFail;
   }
-  if (!sock) {
-    fail("connection uninitialized");
-    return;
-  }
-  if (sock.readyState !== wsOpen) {
-    fail("connection closed");
-    return;
-  }
-  var data = amp.pack(msg);
-  try {
-    sock.send(data);
-  } catch(e) {
-    fail(e);
-  }
+  _transport.send(msg, fail);
 }
 
 function subscribe(msg) {
   if (msg === undefined) {
     msg = sub.message();
   }
-  send(msg);
+  send(msg, ignoreFail);
+
+  //_pool.send(msg, ignoreFail);
 }
 
-function connect() {
-  sock = new WebSocket(wsURI);
-
-  sock.onopen = function() {
-    console.log("connected to " + wsURI);
-    subscribe();
-    if (wsOnChange) {
-      wsOnChange(sock.readyState);
+function onMessage(data) {
+  var msgs = amp.unpack(data);
+  for (var i=0; i<msgs.length; i++) {
+    var m = msgs[i];
+    if (m === null) {
+      return;
     }
-  };
-
-  sock.onclose = function(e) {
-    setTimeout(connect, connectInterval);
-    console.log("connection closed",  e.code , e);
-    if (wsOnChange) {
-      wsOnChange(sock.readyState);
+    switch (m.type) {
+    case amp.messageType.publish:
+      sub.publish(m);
+      break;
+    case amp.messageType.response:
+      req.response(m);
+      break;
+    case amp.messageType.alive:
+      break;
+    case amp.messageType.ping:
+      // TODO return pong message
+      break;
+    case amp.messageType.pong:
+      break;
     }
-  };
-
-  sock.onmessage = function(e) {
-    try{
-      onmessage(e.data);
-    }catch(e) {
-      console.log(e);
-    }
-  };
-};
-
-function onmessage(data) {
-  var m = amp.unpack(data);
-  if (m === null) {
-    return;
-  }
-  switch (m.type) {
-  case amp.messageType.publish:
-    sub.publish(m);
-    break;
-  case amp.messageType.response:
-    req.response(m);
-    break;
-  case amp.messageType.alive:
-    break;
-  case amp.messageType.ping:
-    // TODO return pong message
-    break;
-  case amp.messageType.pong:
-    break;
   }
 }
 
@@ -104,11 +67,23 @@ function request(uri, payload, ok, fail) {
   send(msg, fail);
 }
 
-export function api(uri, onChange) {
+function onChange(status) {
+  if (status == 1) {
+    subscribe();
+  }
+  if (_onTransportChange) {
+    _onTransportChange(status);
+  }
+}
+
+
+
+export function api(uri, onTransportChange) {
+  _onTransportChange = onTransportChange;
+  //_transport = ws.init(uri, onMessage, onChange);
+  _transport = pool.init("http://localhost/pooling", onMessage);
+
   sub.init(subscribe);
-  wsURI = uri;
-  wsOnChange = onChange;
-  connect();
   return {
     request: request,
     subscribe: sub.add,

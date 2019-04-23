@@ -37,11 +37,15 @@ amp:
       port_label: ws
       tags:
         - urlprefix-/api
-#        - urlprefix-app.localhost/api
     - 
-      name: demo-app
-      port_label: demo
+      name: app
+      port_label: app
       http_check: /index.html
       tags:
-        - urlprefix-/ 
-#        - urlprefix-app.localhost/
+        - urlprefix-/
+    - 
+      name: api-pooling
+      port_label: pooling
+      http_check: /health_check
+      tags:
+        - urlprefix-/pooling strip=/pooling

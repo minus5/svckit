@@ -1,2 +1,3 @@
-example/tmp
 .DS_Store
+example/tmp
+amp/sdk/js/node_modules/
