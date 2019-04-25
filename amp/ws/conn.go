@@ -123,11 +123,13 @@ func (c *Conn) receiveLoop() {
 		_, err = io.ReadFull(c.tcpConn, payload)
 		if err != nil {
 			c.receiveErr = errors.WithStack(err)
+			c.Close()
 			break
 		}
 
 		if header.OpCode == ws.OpClose {
 			c.receiveErr = errors.WithStack(io.EOF)
+			c.Close()
 			break
 		}
 		if header.OpCode == ws.OpContinuation {
