@@ -107,7 +107,7 @@ func (logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if path == "error" {
 		l.Error(nil)
 	} else {
-		l.Info(path)
+		l.Info("")
 	}
 
 	w.WriteHeader(http.StatusOK)
