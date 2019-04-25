@@ -94,7 +94,9 @@ func (a *Agregator) write() error {
 	for _, atr := range a.attrs {
 		a.s(atr.key, atr.val)
 	}
-	a.s("msg", a.msg)
+	if len(a.msg) > 2 {
+		a.s("msg", a.msg)
+	}
 	*a.buf = append(*a.buf, "}\n"...)
 	_, err := a.output.Write(*a.buf)
 	a.freeBuf()
