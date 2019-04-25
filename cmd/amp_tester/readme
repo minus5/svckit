@@ -1,0 +1,2 @@
+
+cd ~/work/minus5/svckit/amp/sdk/js; webpack ;  cd -;  cp ~/work/minus5/svckit/amp/sdk/js/dist/sdk.js ./app/

@@ -2,11 +2,12 @@ var amp  = require("./amp.js");
 var sub  = require("./subscriptions.js");
 var req  = require("./requests.js");
 var ws   = require("./ws.js");
-var pool = require("./pooling.js");
+var log   = require("./log.js");
+//var pool = require("./pooling.js");
 
 var _transport = undefined,
     _onTransportChange = undefined,
-    //_pool,
+    _log = undefined,
     statusUnknown = -257;          // TODO define/rethink this error codes
 
 function defaultFail(body, e) {
@@ -27,8 +28,6 @@ function subscribe(msg) {
     msg = sub.message();
   }
   send(msg, ignoreFail);
-
-  //_pool.send(msg, ignoreFail);
 }
 
 function onMessage(data) {
@@ -48,7 +47,7 @@ function onMessage(data) {
     case amp.messageType.alive:
       break;
     case amp.messageType.ping:
-      // TODO return pong message
+      send(amp.pong());
       break;
     case amp.messageType.pong:
       break;
@@ -68,20 +67,36 @@ function request(uri, payload, ok, fail) {
 }
 
 function onChange(status) {
-  if (status == 1) {
+  if (status.connected()) {
     subscribe();
+  }
+  if (status.messages > 0)  {
+    _log.info(status);
+  } else {
+    _log.error(status);
   }
   if (_onTransportChange) {
     _onTransportChange(status);
   }
 }
 
+function port() {
+  return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
+}
 
+function wsUrl() {
+  var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+  return protocol + location.hostname + port() + '/api';
+}
 
-export function api(uri, onTransportChange) {
+function logUrl() {
+  return location.protocol + "//" + location.hostname + port() + '/log';
+}
+
+export function api(onTransportChange) {
   _onTransportChange = onTransportChange;
-  //_transport = ws.init(uri, onMessage, onChange);
-  _transport = pool.init("http://localhost/pooling", onMessage);
+  _transport = ws.init(wsUrl(), onMessage, onChange);
+  _log = log.init(logUrl());
 
   sub.init(subscribe);
   return {

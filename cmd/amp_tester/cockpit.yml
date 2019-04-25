@@ -1,0 +1,10 @@
+services:
+  # infrastructure
+  - consul
+  - fabio
+  - nsqlookupd
+  - nsqadmin
+  - nsqd
+
+  # applications
+  - amp_tester

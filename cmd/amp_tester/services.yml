@@ -1,0 +1,26 @@
+amp_tester:
+  path: ~/work/minus5/svckit/cmd/amp_tester
+  build: go build --race
+  consul:
+    - 
+      name: api-tester
+      http_check: /health_check
+      tags:
+        - urlprefix-api.localhost/
+    - 
+      name: amp-tester-ws
+      port_label: ws
+      tags:
+        - urlprefix-/api
+    - 
+      name: amp-tester-app
+      port_label: app
+      http_check: /index.html
+      tags:
+        - urlprefix-/
+    - 
+      name: amp-tester-log
+      port_label: log
+      http_check: /health_check
+      tags:
+        - urlprefix-/log strip=/log

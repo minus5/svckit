@@ -95,10 +95,16 @@ function unpack(data) {
   return msgs;
 }
 
+function now() {
+  return (new Date()).getTime();
+}
+
 module.exports = {
   messageType: messageType,
   updateType: updateType,
   unpack: unpack,
   unpackMsg: unpackMsg,
   pack: pack,
+  ping: function(ts) {return {type: messageType.ping, ts: (ts || now()) }; },
+  pong: function() {return {type: messageType.pong}; }
 }
