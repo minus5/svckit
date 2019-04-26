@@ -91,7 +91,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 		ExtensionCustom: func(f []byte, os []httphead.Option) ([]httphead.Option, bool) {
 			os = make([]httphead.Option, 0)
 			field := string(f)
-			if strings.Contains(field, "permessage-deflate") {
+			if strings.Contains(field, "permessage-deflate") && !cc.deflateSupported {
 				params := map[string]string{
 					"client_no_context_takeover": "",
 					"server_no_context_takeover": "",
@@ -100,7 +100,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 				cc.deflateSupported = true
 			}
 			// iPhone (WebKit) salje po starom standardu
-			if strings.Contains(field, "x-webkit-deflate-frame") {
+			if strings.Contains(field, "x-webkit-deflate-frame") && !cc.deflateSupported {
 				params := map[string]string{
 					"no_context_takeover": "",
 				}
