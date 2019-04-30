@@ -102,6 +102,7 @@ func (s *session) writeLoop() {
 			}
 		}
 	}()
+	defer close(out)
 
 	// timer for alive messages, if there is no other messages we send alive
 	alive := aliveInterval
