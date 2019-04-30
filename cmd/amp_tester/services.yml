@@ -4,6 +4,7 @@ amp_tester:
   consul:
     - 
       name: api-tester
+      port_label: debug
       http_check: /health_check
       tags:
         - urlprefix-api.localhost/

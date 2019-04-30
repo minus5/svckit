@@ -1,2 +1,40 @@
 
 cd ~/work/minus5/svckit/amp/sdk/js; webpack ;  cd -;  cp ~/work/minus5/svckit/amp/sdk/js/dist/sdk.js ./app/
+
+
+# frontend logovi
+{ ($.body.success is false) }
+
+
+{ ($.level=error) && ($.body.opened is true) }
+
+# ove ne ocekujem; nakon opened nije dobio niti jednu poruku
+{ ($.body.success is false) && ($.body.opened is true) }
+
+# upit za backend logove, ovo ne vrati nista
+{ ($.level=error) && ($.body not exists) &&  ($.Connection != close) &&  ($.Sec-Websocket-Key1 not exists)   }
+
+dva su razloga zbog kojih bude odbijen na server strani
+Sec-Websocket-Key1 exists to je stari pretpotopni websocket standard
+Connection = close za ws mora biti upgrade, ovo mu je netko po putu (firewall, proxy) promjenio
+
+
+# ovo su oni koji se ne uspiju spojit
+monit grep -d s2 amp_tester -f '{ ($.body.success is false) }'  -p -s "2019-04-26T21:42:00+02:00"  | grep User-Agent | sort | uniq -c | sort -n
+
+
+monit grep -d s2 amp_tester -f '{ ($.body.success is false) }' -p -s "2019-04-26T21:42:00+02:00"  -t header
+
+
+#insight koliko ih ima koji se ne uspiju spojiti na ws po satu
+filter @logStream = "amp_tester"  and body.success=0
+| stats count(*) as exceptionCount by bin(1h)
+| sort exceptionCount
+
+
+
+# nakon koliko dobiju prvu poruku
+fields floor(body.firstMessage/1000) as sec
+| filter @logStream = "amp_tester"  and body.success=1 and body.firstMessage < 1056321064311 #and body.firstMessage > 1000
+| stats count(*) by sec
+| sort sec 

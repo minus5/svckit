@@ -31,11 +31,12 @@ function subscribe(msg) {
 }
 
 function onMessage(data) {
-  var msgs = amp.unpack(data);
+  var msgs = amp.unpack(data),
+      pongReceived = false;
   for (var i=0; i<msgs.length; i++) {
     var m = msgs[i];
     if (m === null) {
-      return;
+      return pongReceived;
     }
     switch (m.type) {
     case amp.messageType.publish:
@@ -50,9 +51,11 @@ function onMessage(data) {
       send(amp.pong());
       break;
     case amp.messageType.pong:
+      pongReceived = true;
       break;
     }
   }
+  return pongReceived;
 }
 
 function request(uri, payload, ok, fail) {
@@ -67,13 +70,13 @@ function request(uri, payload, ok, fail) {
 }
 
 function onChange(status) {
-  if (status.connected()) {
-    subscribe();
-  }
   if (status.messages > 0)  {
     _log.info(status);
   } else {
     _log.error(status);
+  }
+  if (status.connected()) {
+    subscribe();
   }
   if (_onTransportChange) {
     _onTransportChange(status);
@@ -84,19 +87,29 @@ function port() {
   return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
 }
 
+function path() {
+  var pn = location.pathname;
+  var path = pn.substring(0, pn.lastIndexOf('/') + 1);
+  if (path.length === 0)  {
+    path = "/";
+  }
+  return path;
+}
+
 function wsUrl() {
   var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-  return protocol + location.hostname + port() + '/api';
+  return protocol + location.hostname + port() + path() + 'api';
 }
 
 function logUrl() {
-  return location.protocol + "//" + location.hostname + port() + '/log';
+  return location.protocol + "//" + location.hostname + port() + path() + 'log';
 }
 
 export function api(onTransportChange) {
   _onTransportChange = onTransportChange;
-  _transport = ws.init(wsUrl(), onMessage, onChange);
+
   _log = log.init(logUrl());
+  _transport = ws.init(wsUrl(), onMessage, onChange);
 
   sub.init(subscribe);
   return {

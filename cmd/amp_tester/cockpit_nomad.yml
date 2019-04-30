@@ -1,0 +1,8 @@
+services:
+  # infrastructure
+  - consul
+  - nomad
+  - fabio
+  - nsqlookupd
+  - nsqadmin
+  - nsqd

@@ -21,10 +21,11 @@ import (
 )
 
 var (
-	inputTopics  = []string{}
-	wsPortLabel  = "ws"
-	logPortLabel = "log"
-	appPortLabel = "app"
+	inputTopics    = []string{}
+	debugPortLabel = "debug"
+	wsPortLabel    = "ws"
+	logPortLabel   = "log"
+	appPortLabel   = "app"
 )
 
 func main() {
@@ -49,7 +50,7 @@ func debugHTTP() {
 	health.Set(func() (health.Status, []byte) {
 		return health.Passing, []byte("OK")
 	})
-	httpi.Start(env.Address(""))
+	httpi.Start(env.Address(debugPortLabel))
 }
 
 func logHTTP(interupt context.Context) {
@@ -75,13 +76,13 @@ func (logger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err)
+		//log.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
 	if len(body) == 0 {
 		w.WriteHeader(http.StatusNoContent)
