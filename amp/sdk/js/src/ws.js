@@ -3,69 +3,95 @@ var amp  = require("./amp.js");
 function now() {
   return (new Date()).getTime();
 }
-var wsOPEN = 1;
-var _sock = null,
-    _uri = "",
 
-    _onChange = function(){},
-    _onMessage = function(){},
+var ws = null,
+    uri = "",
+    onChange = function(){},
+    onMessage = function(){},
 
-    _pongMessage = {
+    pong = {
       timer: undefined,
       schedule: function(handler) {
         var interval = 16 * 1000;
-        _pongMessage.timer = setTimeout(handler, interval);
+        pong.timer = setTimeout(handler, interval);
       },
       clear: function() {
-        clearTimeout(_pongMessage.timer);
-      }
-    },
-    _ping = {
-      timer: undefined,
-      no: 0,
-      schedule: function(handler) {
-        var interval = 16 * 1000;
-        _ping.timer = setTimeout(handler, interval);
-      },
-      clear: function() {
-        clearTimeout(_ping.timer);
-      }
-    },
-    _status = {
-      success: false,
-      opened: false,
-      start: now(),
-      startConnect: now(),
-      firstMessage: 0,
-      lastMessage: 0,
-      readyState: 0,
-      messages: 0,
-      connects: 0,
-      pings: 0,
-      retries: 0,
-      changes: [],
-      errors: [],
-      closes: [],
-      opens: [],
-      connected: function() {
-        return _status.messages > 0 && _status.readyState === wsOPEN;
+        clearTimeout(pong.timer);
       },
       onMessage: function(isPong) {
-        _status.messages++;
-        _status.lastMessage = now();
-        if (isPong && !_status.success) {
+        if (isPong) {
+          pong.clear();
+        }
+      },
+      start: function() {
+        pong.schedule(function() {
+          if (ws.readyState != WebSocket.OPEN) { // connection is closed
+            return;
+          }
+          status.event("pongTimeout");
+          ws.close();
+        });
+      }
+    },
+    ping = {
+      timer: undefined,
+      no: 0,
+      lastMessage: 0,
+      afterPongInterval: 16 * 1000,
+      beforePongInterval: 4 * 1000,
+      interval: 4 * 1000,
+      clear: function() {
+        clearTimeout(ping.timer);
+      },
+      start: function() {
+        ping.interval = ping.beforePongInterval;
+        ping.lastMessage = 0;
+        ping.loop();
+      },
+      loop: function() {
+        if (now() - ping.lastMessage > ping.interval / 2) {
+          ping.no++;
+          send(amp.ping(ping.no), function(e) {
+            status.event("pingError", e);
+          });
+        }
+        ping.timer = setTimeout(ping.loop, ping.interval);
+      },
+      onMessage: function(isPong) {
+        ping.lastMessage = now();
+        if (isPong) {
+          ping.interval = ping.afterPongInterval;
+        }
+      }
+    },
+    status = {
+      success: false,
+      opened: false,
+      fallback: false,
+      giveup: false,
+      connected: false,
+      supported: false,
+      start: now(),
+      startConnect: now(),
+      messages: 0,
+      connects: 0,
+      retries: 0,
+      events: [],
+      onMessage: function(isPong) {
+        status.messages++;
+        if (isPong && !status.connected) {
           // handle first pong message
           // pong messages are only send as reply to ping
           // indicates that connection works in both directions
-          _pongMessage.clear();
-          _status.firstMessage = now() - _status.start;
-          _status.success = true;
-          _status.retries = _status.connects;
-          _status.log();
+          status.event("pong");
+          status.success = true;
+          status.connected = true;
+          status.retries = status.connects;
+          status.change(); // signal success
         }
       },
-      error: function(method, e) {
-        var o = {method: method, ts: now()-_status.start};
+      event: function(name, e) {
+        var o = {name: name, sinceStart: now() - status.start, sinceConnect: now() - status.startConnect};
         if (e) {
           if (e.code) {
             o["code"] = e.code;
@@ -79,37 +105,36 @@ var _sock = null,
           if (e.message) {
             o["message"] = e.message;
           }
-        }
-        _status.errors.push(o);
-      },
-      log: function() {
-        if (_sock) {
-          _status.readyState = _sock.readyState;
-          _status.changes.push(_sock.readyState);
-          if (_sock.readyState === wsOPEN && _status.messages === 0) {
-            return; // wait for pong message
+          if (e.name) {
+            o["name"] = e.name;
           }
+          o["error"] = e.toString();
         }
-        _onChange(_status);
+        status.events.push(o);
       },
-      giveUp: function() {
-        if (_status.success) { // ako je ikada uspio
+      change: function() {
+        onChange(status);
+      },
+      shouldQuit: function() {
+        status.connects++;
+        status.startConnect = now();
+        if (status.success) {
           return false;
         }
-        return _status.connects > 16;
-      },
-      quit: function() {
-        _status.connects++;
-        if (_status.giveUp()) {
-          _status.log();
+        if (status.connects > 32) {
+          status.giveup = true;
+          status.change(); // signal give up
           return true;
         }
-        _status.startConnect = now();
+        if (status.connects === 5) {
+          status.fallback = true;
+          status.change(); // signal fallback
+        }
         return false;
       },
-      // calculates exponential increasing interval
+      // calculates exponential increasing interval based on number of connects
       connectInterval: function() {
-        var p = _status.connects || 1;
+        var p = status.connects || 1;
         if (p > 12) {
           p = 12; // 4096 max
         }
@@ -117,97 +142,92 @@ var _sock = null,
       }
     };
 
+
 function send(msg, fail) {
-  if (!_sock) {
+  if (!ws) {
     fail("connection uninitialized");
+    status.event("sendError1");
     return;
   }
-  if (_sock.readyState !== wsOPEN) {
-    fail("connection closed readyState:" + _sock.readyState);
+  if (ws.readyState !== WebSocket.OPEN) {
+    fail("connection closed readyState:" + ws.readyState);
+    status.event("sendError2");
     return;
   }
   var data = amp.pack(msg);
   try {
-    _sock.send(data);
+    ws.send(data);
   } catch(e) {
     fail(e);
+    status.event("sendError3", e);
   }
-}
-
-function pingLoop() {
-  if (now() - _status.lastMessage > _ping.interval / 2) {
-    _ping.no++;
-    _status.pings++;
-    send(amp.ping(_ping.no), function(e) {
-      _status.error("pingError", e);
-      _status.log();
-    });
-  }
-  _ping.schedule(pingLoop);
 }
 
 function connect() {
-  if (_status.quit()) {
+  if (status.shouldQuit()) {
     return;
+  }
+
+  function reconnect() {
+    pong.clear();
+    ping.clear();
+    setTimeout(connect, status.connectInterval());
+    status.connected = false;
   }
 
   try {
-    _sock = new WebSocket(_uri);
+    ws = new WebSocket(uri);
   } catch (e) {
-    _status.error("wsConnectError", e);
-    _status.log();
+    reconnect();
+    status.event("wsError", e);
     return;
   }
 
-  _sock.onopen = function() {
-    _status.opened = true;
-    if (!_status.success) {
-      _status.lastMessage = 0;
-      _status.opens.push(now() - _status.start);
-      _pongMessage.schedule(function() {
-        if (_sock.readyState != wsOPEN) { // connection is closed
-          return;
-        }
-        _status.error("firstMessageTimeout");
-        _status.log();
-        _sock.close();
-      });
-    }
-    pingLoop();
-  }; 
-
-  _sock.onclose = function(e) {
-    _ping.clear();
-    _pongMessage.clear();
-    setTimeout(connect, _status.connectInterval());
-    _status.error("onclose", e);
-    _status.closes.push(now() - _status.startConnect);
+  ws.onopen = function() {
+    status.opened = true;
+    pong.start();
+    ping.start();
+    status.event("open");
   };
 
-  _sock.onmessage = function(e) {
-    var isPong = _onMessage(e.data);
-    _status.onMessage(isPong);
+  ws.onclose = function(e) {
+    reconnect();
+    status.event("close", e);
+  };
+
+  ws.onmessage = function(e) {
+    var isPong = onMessage(e.data);
+    status.onMessage(isPong);
+    ping.onMessage(isPong);
+    pong.onMessage(isPong);
   };
 
 };
 
-export function init(uri, onMessage, onChange) {
-  _uri = uri;
-  _onChange = function(status) {
+export function init(uri_, onMessage_, onChange_) { // TODO get rid of this suffix_
+  uri = uri_;
+  onChange = function(status) {
     try{
-      onChange(status);
+      onChange_(status);
     } catch(e) {
       console.log(e);
     }
   };
-  _onMessage = function(data) {
+  onMessage = function(data) { // expecting that onMessage returns true if it is a pong message
     try{
-      return onMessage(data);
+      return onMessage_(data);
     } catch(e) {
       console.log(e);
     }
     return false;
   };
+
+  status.supported = ("WebSocket" in window && window.WebSocket != undefined);
+  if (!status.supported) {
+    onChange();
+    return undefined;
+  }
+
   connect();
 
   return {

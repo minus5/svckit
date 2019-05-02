@@ -70,12 +70,12 @@ function request(uri, payload, ok, fail) {
 }
 
 function onChange(status) {
-  if (status.messages > 0)  {
+  if (status.connected)  {
     _log.info(status);
   } else {
     _log.error(status);
   }
-  if (status.connected()) {
+  if (status.connected) {
     subscribe();
   }
   if (_onTransportChange) {

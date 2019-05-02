@@ -37,4 +37,8 @@ filter @logStream = "amp_tester"  and body.success=0
 fields floor(body.firstMessage/1000) as sec
 | filter @logStream = "amp_tester"  and body.success=1 and body.firstMessage < 1056321064311 #and body.firstMessage > 1000
 | stats count(*) by sec
-| sort sec 
+| sort sec
+
+
+
+
