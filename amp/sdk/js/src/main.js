@@ -1,26 +1,40 @@
-var amp  = require("./amp.js");
-var sub  = require("./subscriptions.js");
-var req  = require("./requests.js");
-var ws   = require("./ws.js");
-var log   = require("./log.js");
-//var pool = require("./pooling.js");
+var amp     = require("./amp.js");
+var sub     = require("./subscriptions.js");
+var req     = require("./requests.js");
+var ws      = require("./ws.js");
+var log     = require("./log.js");
+var pooling = require("./pooling.js");
 
-var _transport = undefined,
-    _onTransportChange = undefined,
-    _log = undefined,
-    statusUnknown = -257;          // TODO define/rethink this error codes
+var logger = undefined,
+    transport = {
+      current: undefined,
+      previous: undefined,
+      ws: undefined,
+      pooling: undefined,
+      onChange: function(){},
+      name: function(t) {
+        return t === transport.ws ? "ws" : t === transport.pooling ? "pooling" : "none";
+      },
+      send: function(msg, fail)  {
+        if (fail === undefined) {
+          fail = defaultFail;
+        }
+        if (transport.current === undefined) {  // TODO
+          fail("connecting...");
+          return;
+        }
+        transport.current.send(msg, fail);
+      }
+    };
 
 function defaultFail(body, e) {
-  console.error(body, {error: e, errorCode: statusUnknown, transportState: _transport.state()});
+  console.error(body, {error: e});
 };
 
 function ignoreFail() {}
 
 function send(msg, fail) {
-  if (fail === undefined) {
-    fail = defaultFail;
-  }
-  _transport.send(msg, fail);
+  transport.send(msg, fail);
 }
 
 function subscribe(msg) {
@@ -69,18 +83,28 @@ function request(uri, payload, ok, fail) {
   send(msg, fail);
 }
 
-function onChange(status) {
+function onWsChange(status) {
   if (status.connected)  {
-    _log.info(status);
+    logger.info(status);
   } else {
-    _log.error(status);
+    logger.error(status);
   }
-  if (status.connected) {
+
+  transport.previous = transport.current;
+  transport.current = status.success ?  transport.ws : transport.pooling;
+  if ((transport.current === transport.ws && status.connected) ||
+    (transport.current === transport.pooling)) {
     subscribe();
   }
-  if (_onTransportChange) {
-    _onTransportChange(status);
+  if (transport.previous === transport.pooling && transport.current=== transport.ws) {
+    transport.pooling.stop();
   }
+
+  transport.onChange( {
+    transport: transport.name(transport.current),
+    previousTransport: transport.name(transport.previous),
+    status: status});
+
 }
 
 function port() {
@@ -105,11 +129,25 @@ function logUrl() {
   return location.protocol + "//" + location.hostname + port() + path() + 'log';
 }
 
-export function api(onTransportChange) {
-  _onTransportChange = onTransportChange;
+function poolingUrl() {
+  return location.protocol + "//" + location.hostname + port() + path() + 'pooling';
+}
 
-  _log = log.init(logUrl());
-  _transport = ws.init(wsUrl(), onMessage, onChange);
+export function api(onTransportChange) {
+  logger = log.init(logUrl());
+
+  transport.onChange = function(status) {
+    if (onTransportChange) {
+      try {
+        onTransportChange(status);
+      }catch(e){
+        console.error(e);
+      }
+    }
+  };
+  transport.ws = ws.init(wsUrl(), onMessage, onWsChange);
+  transport.pooling = pooling.init(poolingUrl(), onMessage);
+
 
   sub.init(subscribe);
   return {

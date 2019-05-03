@@ -3,9 +3,8 @@ var amp  = require("./amp.js");
 var nanoajax = require('nanoajax');
 var _processes = {},
     _uri,
-    _onMessages = undefined;
-    ;
-
+    _onMessages = undefined,
+    _stopped = false;
 
 function ajax(msg, success, fail) {
   var data = amp.pack(msg);
@@ -24,7 +23,6 @@ function ajax(msg, success, fail) {
   });
 }
 
-
 function subscribe(msg) {
   for (var key in  msg.subscriptions) {
     if (_processes[key] !== undefined) {
@@ -38,7 +36,9 @@ function subscribe(msg) {
     ajax(m, function(data) {
       delete _processes[key];
       _onMessages(data);
-      subscribe(sub.message());
+      if (!_stopped) {
+        subscribe(sub.message());
+      }
     },function(code, rsp) {
       delete _processes[key];
       console.error(code, rsp);
@@ -46,7 +46,6 @@ function subscribe(msg) {
     });
   }
 }
-
 
 function send(msg, fail) {
   if (msg.type == amp.messageType.subscribe) {
@@ -62,6 +61,6 @@ export function init(uri, onMessages) {
 
   return {
     send: send,
-    state: function() { return 0; } // TODO napravi ping prvi put
+    stop: function() { _stopped = true; }
   };
 }
