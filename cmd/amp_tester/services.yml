@@ -19,15 +19,5 @@ amp_tester:
       http_check: /index.html
       tags:
         - urlprefix-/
-    - 
-      name: amp-tester-log
-      port_label: log
-      http_check: /health_check
-      tags:
-        - urlprefix-/log strip=/log
-    - 
-      name: amp-tester-pooling
-      port_label: pooling
-      http_check: /health_check
-      tags:
-        - urlprefix-/pooling strip=/pooling
+
+

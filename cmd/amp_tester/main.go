@@ -1,9 +1,6 @@
 package main
 
 import (
-	"context"
-	"net/http"
-
 	"github.com/minus5/svckit/amp/broker"
 	"github.com/minus5/svckit/amp/nsq"
 	"github.com/minus5/svckit/amp/ws"
@@ -19,12 +16,11 @@ import (
 )
 
 var (
-	inputTopics      = []string{}
-	debugPortLabel   = "debug"
-	wsPortLabel      = "ws"
-	logPortLabel     = "log"
-	appPortLabel     = "app"
-	poolingPortLabel = "pooling"
+	inputTopics    = []string{}
+	debugPortLabel = "debug"
+	wsPortLabel    = "ws"
+	appPortLabel   = "app"
+	appRoot        = "./app/"
 )
 
 func main() {
@@ -40,9 +36,7 @@ func main() {
 	defer sessions.Wait()
 
 	go debugHTTP()
-	go logHTTP(interupt)
-	go poolingHTTP(interupt, sessions)
-	go appServer()
+	go appServer(interupt, appPortLabel, appRoot, sessions)
 	ws.Listen(interupt, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
 }
 
@@ -51,32 +45,4 @@ func debugHTTP() {
 		return health.Passing, []byte("OK")
 	})
 	httpi.Start(env.Address(debugPortLabel))
-}
-
-func logHTTP(interupt context.Context) {
-	srv := &http.Server{Addr: env.Address(logPortLabel), Handler: &logger{}}
-	go func() {
-		<-interupt.Done()
-		srv.Shutdown(context.Background())
-	}()
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Error(err)
-	}
-}
-
-func poolingHTTP(interupt context.Context, sessions *session.Sessions) {
-	srv := &http.Server{Addr: env.Address(poolingPortLabel), Handler: &pooling{sessions: sessions}}
-	go func() {
-		<-interupt.Done()
-		srv.Shutdown(context.Background())
-	}()
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Error(err)
-	}
-}
-
-func appServer() {
-	fs := http.FileServer(http.Dir("./app/"))
-	http.Handle("/", fs)
-	http.ListenAndServe(env.Address(appPortLabel), nil)
 }

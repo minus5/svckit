@@ -39,24 +39,14 @@ job "amp_tester" {
         port = "app"
         check {
 					type		 = "http"
-					path		 = "/index.html"
-					interval = "10s"
-					timeout	 = "1s"
-				}
-      }
-      service {
-        name = "amp-tester-log"
-        port = "log"
-        check {
-					type		 = "http"
-					path		 = "/health_check"
+          path		 = "/health_check"
 					interval = "10s"
 					timeout	 = "1s"
 				}
       }
 
 			config {
-				image = "registry.dev.minus5.hr/amp_tester:v0.0.23"
+				image = "registry.dev.minus5.hr/amp_tester:v0.0.24"
 				dns_servers = ["${attr.unique.network.ip-address}", "8.8.8.8"]
 				hostname = "${node.unique.id}"
 
@@ -86,7 +76,6 @@ job "amp_tester" {
 					port "debug" {}
           port "ws" {}
           port "app" {}
-          port "log" {}
 				}
 			}
 		}

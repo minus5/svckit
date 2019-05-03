@@ -1,25 +1,58 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/minus5/svckit/amp"
 	"github.com/minus5/svckit/amp/session"
+	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 )
 
+func appServer(interupt context.Context, portLabel, appRoot string, sessions *session.Sessions) {
+	srv := &http.Server{
+		Addr: env.Address(portLabel),
+		Handler: &pooling{
+			sessions:   sessions,
+			fileServer: http.FileServer(http.Dir(appRoot)),
+		},
+	}
+	go func() {
+		<-interupt.Done()
+		srv.Shutdown(context.Background())
+	}()
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Error(err)
+	}
+}
+
 type pooling struct {
-	sessions *session.Sessions
+	sessions   *session.Sessions
+	fileServer http.Handler
 }
 
 func (s *pooling) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
-	if path == "health_check" || path == "ping" {
+	switch path {
+	case "pooling":
+		s.pooling(w, r)
+	case "health_check":
 		w.WriteHeader(http.StatusOK)
-		return
+	case "ping":
+		w.WriteHeader(http.StatusOK)
+	case "log/info":
+		s.info(w, r)
+	case "log/error":
+		s.error(w, r)
+	default:
+		s.fileServer.ServeHTTP(w, r)
 	}
+}
 
+func (s *pooling) pooling(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -42,4 +75,51 @@ func (s *pooling) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte{10, 10})
 		}
 	}
+}
+
+func (s *pooling) info(w http.ResponseWriter, r *http.Request) {
+	s.log(w, r, false)
+}
+
+func (s *pooling) error(w http.ResponseWriter, r *http.Request) {
+	s.log(w, r, true)
+}
+
+func (s *pooling) log(w http.ResponseWriter, r *http.Request, isError bool) {
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		//log.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if len(body) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	hm := make(map[string]interface{})
+	for k, v := range r.Header {
+		if len(v) == 1 {
+			hm[k] = v[0]
+		} else {
+			hm[k] = v
+		}
+	}
+	h, err := json.Marshal(hm)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	l := log.Jc("body", body).
+		Jc("header", h)
+	if isError {
+		l.Error(nil)
+	} else {
+		l.Info("")
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
