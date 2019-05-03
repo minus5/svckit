@@ -36,7 +36,7 @@ func main() {
 	defer sessions.Wait()
 
 	go debugHTTP()
-	go appServer(interupt, appPortLabel, appRoot, sessions)
+	go appHTTPServer(interupt, appPortLabel, appRoot, sessions)
 	ws.Listen(interupt, tcpListener, func(c *ws.Conn) { sessions.Serve(c) })
 }
 

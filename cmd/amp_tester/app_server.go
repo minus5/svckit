@@ -12,10 +12,10 @@ import (
 	"github.com/minus5/svckit/log"
 )
 
-func appServer(interupt context.Context, portLabel, appRoot string, sessions *session.Sessions) {
+func appHTTPServer(interupt context.Context, portLabel, appRoot string, sessions *session.Sessions) {
 	srv := &http.Server{
 		Addr: env.Address(portLabel),
-		Handler: &pooling{
+		Handler: &appServer{
 			sessions:   sessions,
 			fileServer: http.FileServer(http.Dir(appRoot)),
 		},
@@ -29,12 +29,12 @@ func appServer(interupt context.Context, portLabel, appRoot string, sessions *se
 	}
 }
 
-type pooling struct {
+type appServer struct {
 	sessions   *session.Sessions
 	fileServer http.Handler
 }
 
-func (s *pooling) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *appServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	switch path {
 	case "pooling":
@@ -52,7 +52,7 @@ func (s *pooling) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *pooling) pooling(w http.ResponseWriter, r *http.Request) {
+func (s *appServer) pooling(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -77,15 +77,15 @@ func (s *pooling) pooling(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *pooling) info(w http.ResponseWriter, r *http.Request) {
+func (s *appServer) info(w http.ResponseWriter, r *http.Request) {
 	s.log(w, r, false)
 }
 
-func (s *pooling) error(w http.ResponseWriter, r *http.Request) {
+func (s *appServer) error(w http.ResponseWriter, r *http.Request) {
 	s.log(w, r, true)
 }
 
-func (s *pooling) log(w http.ResponseWriter, r *http.Request, isError bool) {
+func (s *appServer) log(w http.ResponseWriter, r *http.Request, isError bool) {
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
