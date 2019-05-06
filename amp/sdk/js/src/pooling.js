@@ -1,6 +1,8 @@
 var sub  = require("./subscriptions.js");
 var amp  = require("./amp.js");
+var errors  = require("./errors.js");
 var nanoajax = require('nanoajax');
+
 var _processes = {},
     _uri,
     _onMessages = undefined,
@@ -17,8 +19,7 @@ function ajax(msg, success, fail) {
     if (code>=200&&code<300) {
       success(responseText);
     }else {
-      fail(code, responseText);
-      console.error(code, responseText);
+      fail(errors.pooling(code, responseText));
     }
   });
 }
@@ -35,14 +36,25 @@ function subscribe(msg) {
     m.subscriptions[key] = ts;
     ajax(m, function(data) {
       delete _processes[key];
-      _onMessages(data);
-      if (!_stopped) {
-        subscribe(sub.message());
+      if (data) {
+        _onMessages(data);
       }
+      if (_stopped) {
+        return;
+      }
+      subscribe(sub.message());
     },function(code, rsp) {
       delete _processes[key];
+      if (code >= 400 && code < 500){
+        return; // bad request and friends
+      }
       console.error(code, rsp);
-      //subscribe(sub.message());
+      if (_stopped) {
+        return;
+      }
+      setTimeout(function() {
+        subscribe(sub.message());
+      }, 4 * 1000);
     });
   }
 }

@@ -1,4 +1,5 @@
 var amp  = require("./amp.js");
+var errors  = require("./errors.js");
 
 function now() {
   return (new Date()).getTime();
@@ -144,22 +145,24 @@ var ws = null,
 
 
 function send(msg, fail) {
+  function err(no, msg, e) {
+    fail(errors.ws(msg));
+    status.event("sendError"+no, e);
+  }
+
   if (!ws) {
-    fail("connection uninitialized");
-    status.event("sendError1");
+    err(1, "connection uninitialized");
     return;
   }
   if (ws.readyState !== WebSocket.OPEN) {
-    fail("connection closed readyState:" + ws.readyState);
-    status.event("sendError2");
+    err(2, "connection closed readyState: " + ws.readyState);
     return;
   }
   var data = amp.pack(msg);
   try {
     ws.send(data);
   } catch(e) {
-    fail(e);
-    status.event("sendError3", e);
+    err(3, e.toString(), e);
   }
 }
 

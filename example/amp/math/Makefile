@@ -1,6 +1,6 @@
-version           := 0.0.27
+version           := 0.0.1
 docker_registry   := registry.dev.minus5.hr
-docker_image_name := $(docker_registry)/amp_tester:v$(version)
+docker_image_name := $(docker_registry)/amp_tester_math:v$(version)
 
 .PHONY: help
 help:
@@ -9,8 +9,7 @@ help:
 .PHONY: build
 build:
 	mkdir -p ./build/bin ./build/app
-	cp -r ./app/* ./build/app
-	env GOOS=linux GOARCH=amd64 go build -o ./build/bin/amp_tester
+	env GOOS=linux GOARCH=amd64 go build -o ./build/bin/math
 	docker build -t $(docker_image_name) ./build
 	docker push $(docker_image_name)
 

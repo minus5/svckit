@@ -6,7 +6,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'sdk.js',
-    library: 'mnu5',
+    library: 'minus5',
     libraryTarget: 'window'
   },
   mode: "development"

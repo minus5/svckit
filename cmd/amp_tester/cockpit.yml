@@ -8,3 +8,4 @@ services:
 
   # applications
   - amp_tester
+  - math

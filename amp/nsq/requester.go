@@ -96,7 +96,7 @@ func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	go func() {
 		err := r.producer.PublishTo(m.Topic(), buf)
 		if err != nil {
-			r.reply(correlationID, m.ResponseTransportError())
+			r.reply(correlationID, m.ResponseTransportError(err))
 		}
 	}()
 }

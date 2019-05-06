@@ -1,3 +1,3 @@
-var api = mnu5.api(function(status){
+var api = minus5.api(function(status){
   console.log("ws status", status);
 });

@@ -20,4 +20,15 @@ amp_tester:
       tags:
         - urlprefix-/
 
-
+math:
+  path: ~/work/minus5/svckit/example/amp/math
+  build: go build --race
+  topics:
+    - math.v1
+    - math.req
+  consul:
+    -
+      port_label: debug
+      http_check: /health_check
+      tags:
+        - urlprefix-math.localhost

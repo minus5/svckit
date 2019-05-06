@@ -1,4 +1,4 @@
-job "amp_tester" {
+job "amp_tester_math" {
 	region = "s2"
 	datacenters = ["s2"]
 	
@@ -10,13 +10,13 @@ job "amp_tester" {
 		auto_revert = true
 	}
 	
-	group "amp_tester" {
+	group "amp_tester_math" {
 
-		task "amp_tester" {
+		task "amp_tester_math" {
 			driver = "docker"
 			
 			service {
-				name = "amp-tester"				
+				name = "amp-tester-math"				
 				port = "debug"
 				check {
 					type		 = "http"
@@ -25,28 +25,9 @@ job "amp_tester" {
 					timeout	 = "1s"
 				}
 			}
-      service {
-        name = "amp-tester-ws"
-        port = "ws"
-        check {
-					type		 = "tcp"
-					interval = "10s"
-					timeout	 = "1s"
-				}
-      }
-      service {
-        name = "amp-tester-app"
-        port = "app"
-        check {
-					type		 = "http"
-          path		 = "/health_check"
-					interval = "10s"
-					timeout	 = "1s"
-				}
-      }
 
 			config {
-				image = "registry.dev.minus5.hr/amp_tester:v0.0.27"
+				image = "registry.dev.minus5.hr/amp_tester_math:v0.0.1"
 				dns_servers = ["${attr.unique.network.ip-address}", "8.8.8.8"]
 				hostname = "${node.unique.id}"
 
@@ -54,7 +35,7 @@ job "amp_tester" {
 					type = "syslog"
 					config {
 						syslog-address = "udp://${attr.unique.network.ip-address}:514"
-						tag = "amp_tester"
+						tag = "amp_tester_math"
 						syslog-format = "rfc3164"
 					}
 				}
@@ -70,12 +51,10 @@ job "amp_tester" {
 
 			resources {
 				cpu = 100
-				memory = 384
+				memory = 32
 				network {
 					mbits = 1
 					port "debug" {}
-          port "ws" {}
-          port "app" {}
 				}
 			}
 		}

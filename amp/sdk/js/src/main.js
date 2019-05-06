@@ -12,39 +12,43 @@ var logger = undefined,
       ws: undefined,
       pooling: undefined,
       onChange: function(){},
+      ready() { return !!transport.current; },
       name: function(t) {
         return t === transport.ws ? "ws" : t === transport.pooling ? "pooling" : "none";
       },
       send: function(msg, fail)  {
-        if (fail === undefined) {
-          fail = defaultFail;
-        }
-        if (transport.current === undefined) {  // TODO
-          fail("connecting...");
-          return;
-        }
-        transport.current.send(msg, fail);
+        // pooling is always available
+        // use it while ws-pooling handshake is done
+        var tr = transport.current || transport.pooling;
+        tr.send(msg, fail);
       }
     };
 
-function defaultFail(body, e) {
-  console.error(body, {error: e});
+var failHandlers = {
+  default: function(e) { console.error(e);},
+  ignore:  function(e) {}
 };
 
-function ignoreFail() {}
-
 function send(msg, fail) {
+  fail = fail || failHandlers.default;
   transport.send(msg, fail);
 }
 
 function subscribe(msg) {
-  if (msg === undefined) {
-    msg = sub.message();
+  if (!transport.ready()) {
+    // skip if not ready, will be send later
+    // when transport is set
+    // console.info("subscribe while transport not ready, queueing...");
+    return;
   }
-  send(msg, ignoreFail);
+  msg = msg || sub.message();
+  send(msg, failHandlers.ignore);
 }
 
 function onMessage(data) {
+  if (!data) {
+    return false;
+  }
   var msgs = amp.unpack(data),
       pongReceived = false;
   for (var i=0; i<msgs.length; i++) {
@@ -62,7 +66,7 @@ function onMessage(data) {
     case amp.messageType.alive:
       break;
     case amp.messageType.ping:
-      send(amp.pong());
+      send(amp.pong(), failHandlers.ignore);
       break;
     case amp.messageType.pong:
       pongReceived = true;
@@ -73,23 +77,13 @@ function onMessage(data) {
 }
 
 function request(uri, payload, ok, fail) {
-  if (ok === undefined) {
-    ok = function(){};
-  }
-  if (fail === undefined) {
-    fail = defaultFail;
-  }
+  ok = ok ||  function(){};
+  fail = fail || failHandlers.default;
   var msg = req.request(uri, payload, ok, fail);
   send(msg, fail);
 }
 
 function onWsChange(status) {
-  if (status.connected)  {
-    logger.info(status);
-  } else {
-    logger.error(status);
-  }
-
   transport.previous = transport.current;
   transport.current = status.success ?  transport.ws : transport.pooling;
   if ((transport.current === transport.ws && status.connected) ||
@@ -100,41 +94,47 @@ function onWsChange(status) {
     transport.pooling.stop();
   }
 
+  if (status.connected)  {
+    logger.info(status);
+  } else {
+    logger.error(status);
+  }
+
   transport.onChange( {
     transport: transport.name(transport.current),
     previousTransport: transport.name(transport.previous),
     status: status});
-
 }
 
-function port() {
-  return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
-}
-
-function path() {
-  var pn = location.pathname;
-  var path = pn.substring(0, pn.lastIndexOf('/') + 1);
-  if (path.length === 0)  {
-    path = "/";
+var urls = {
+  port: function() {
+    return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
+  },
+  path: function() {
+    var pn = location.pathname;
+    var path = pn.substring(0, pn.lastIndexOf('/') + 1);
+    if (path.length === 0)  {
+      path = "/";
+    }
+    return path;
+  },
+  ws() {
+    var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+    return protocol + location.hostname + urls.port() + urls.path() + 'api';
+  },
+  log: function() {
+    return location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'log';
+  },
+  pooling: function() {
+    return location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'pooling';
+  },
+  forcePooling: function() {
+    return location.search.search("forcePooling") > -1;
   }
-  return path;
-}
-
-function wsUrl() {
-  var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-  return protocol + location.hostname + port() + path() + 'api';
-}
-
-function logUrl() {
-  return location.protocol + "//" + location.hostname + port() + path() + 'log';
-}
-
-function poolingUrl() {
-  return location.protocol + "//" + location.hostname + port() + path() + 'pooling';
-}
+};
 
 export function api(onTransportChange) {
-  logger = log.init(logUrl());
+  logger = log.init(urls.log());
 
   transport.onChange = function(status) {
     if (onTransportChange) {
@@ -145,9 +145,13 @@ export function api(onTransportChange) {
       }
     }
   };
-  transport.ws = ws.init(wsUrl(), onMessage, onWsChange);
-  transport.pooling = pooling.init(poolingUrl(), onMessage);
 
+  transport.pooling = pooling.init(urls.pooling(), onMessage);
+  if (urls.forcePooling()) {
+    transport.current = transport.pooling;
+  } else {
+    transport.ws = ws.init(urls.ws(), onMessage, onWsChange);
+  }
 
   sub.init(subscribe);
   return {

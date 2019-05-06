@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	inputTopics    = []string{}
+	inputTopics    = []string{"math.v1"}
 	debugPortLabel = "debug"
 	wsPortLabel    = "ws"
 	appPortLabel   = "app"

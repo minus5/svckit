@@ -20,7 +20,7 @@ var keys = {
   "t": "type",
   "i": "correlationID",
   "e": "error",
-  "c": "errorCode",
+  "c": "errorSource",
   "u": "uri",
   "s": "ts",
   "p": "updateType",
@@ -86,6 +86,9 @@ function unpackMsg(data) {
 }
 
 function unpack(data) {
+  if (!data) {
+    return null;
+  }
   var p = data.split("\n\n");
   var msgs = [];
   for(var i=0; i<p.length; i++) {

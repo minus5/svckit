@@ -104,7 +104,7 @@ func debugHTTP() {
 	health.Set(func() (health.Status, []byte) {
 		return health.Passing, []byte("OK")
 	})
-	httpi.Start(env.Address(""))
+	httpi.Start(env.Address("debug"))
 }
 
 type requests struct {
@@ -128,6 +128,10 @@ func (r *requests) handler(m *amp.Msg) (*amp.Msg, error) {
 			return nil, err
 		}
 		z := p.X + p.Y
+		if z == 42 {
+			// example of the error returned
+			return nil, fmt.Errorf("42 is not the number it is THE ANSWER")
+		}
 		return m.Response(amp.JSONMarshaler(&rsp{Z: z})), nil
 	default:
 		return nil, fmt.Errorf("unknown method %s", m.Path())

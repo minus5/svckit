@@ -1,4 +1,5 @@
 var amp = require("./amp.js");
+var errors  = require("./errors.js");
 
 var correlationID=0,
     requests = {};
@@ -6,17 +7,18 @@ var correlationID=0,
 // find response handlers and call them
 function response(m) {
   var r = requests[m.correlationID];
-  if (r) {
-    delete requests[m.correlationID];
-    if (m.error) {
-      r.fail(m.body, m);
-    } else {
-      r.ok(m.body);
-    }
+  if (!r) {
+  }
+
+  delete requests[m.correlationID];
+  if (m.error) {
+    r.fail(errors.server(m));
+  } else {
+    r.ok(m.body);
   }
 }
 
-// create request message
+// create request message and store handlers (ok, fail) into requests
 function request(uri, payload, ok, fail) {
   correlationID++;
   var msg = {
