@@ -69,4 +69,5 @@ const (
 	PortPromo       = "8620"
 	PortChatApi     = "8630"
 	PortChatApiWs   = "8631"
+	PortWallet      = "8640" // definiram da se zna da je zauzet od strane casino walleta
 )

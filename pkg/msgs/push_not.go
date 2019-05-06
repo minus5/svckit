@@ -1,15 +1,17 @@
 package msgs
 
+import "strings"
+
 // Tipovi push not poruka
 const (
-	PushNotMsgTipPrivatna	= 1
-	PushNotMsgTipBroadcast	= 2
-	PushNotMsgTipListic		= 3
+	PushNotMsgTipPrivatna  = 1
+	PushNotMsgTipBroadcast = 2
+	PushNotMsgTipListic    = 3
 )
 
 // Poruka za slanje na push notifikacije
 type PushNot struct {
-	Id         int `json:"push_not_id"`
+	Id         int            `json:"push_not_id"`
 	GcmId      string         //obsolete
 	AppleId    string         //obsolete
 	FcmId      string         //token za identifikaciju uredjaja
@@ -39,7 +41,13 @@ func (m *PushNot) Serialize() map[string]interface{} {
 		d["listic"] = l
 	}
 	if m.Tekst != "" {
-		d["tekst"] = m.Tekst
+		articles := strings.Split(m.Tekst, "\n")
+		if len(articles) == 2 {
+			d["title"] = articles[0]
+			d["tekst"] = articles[1]
+		} else {
+			d["tekst"] = m.Tekst
+		}
 	}
 	return d
 }
