@@ -47,7 +47,7 @@ func NewEnvelope(buf []byte) (*Envelope, error) {
 func (e *Envelope) Filename() string {
 	t := strings.Replace(e.Type, "/", "_", -1)
 	if e.No == 0 {
-		return fmt.Sprintf("%s_%s.json", t, e.No)
+		return fmt.Sprintf("%s_%d.json", t, e.No)
 	}
 	return fmt.Sprintf("%s.json", t)
 }
