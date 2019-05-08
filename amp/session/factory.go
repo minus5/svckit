@@ -29,13 +29,47 @@ type connection interface {
 	Close() error                              // close connection
 }
 
+type counter struct {
+	value int
+	max   int
+	sync.Mutex
+}
+
+func (c *counter) Up() {
+	c.Lock()
+	defer c.Unlock()
+	c.value++
+	if c.value > c.max {
+		c.max = c.value
+	}
+}
+
+func (c *counter) Down() {
+	c.Lock()
+	defer c.Unlock()
+	c.value--
+}
+
+func (c *counter) Count() int {
+	c.Lock()
+	defer c.Unlock()
+	v := c.value
+	if c.max > c.value {
+		v = c.max
+	}
+	c.max = 0
+	return v
+}
+
 // Sessions is a session factory
 type Sessions struct {
-	broker    broker
-	requester requester
-	cancelSig context.Context
-	closed    chan struct{}
-	wg        sync.WaitGroup
+	broker             broker
+	requester          requester
+	cancelSig          context.Context
+	closed             chan struct{}
+	wg                 sync.WaitGroup
+	wsConnections      counter
+	poolingConnections counter
 }
 
 // Factory creates new seessions factory.
@@ -55,9 +89,11 @@ func Factory(ctx context.Context, broker broker, requester requester) *Sessions 
 // Serve creates new session for connection.
 func (s *Sessions) Serve(conn connection) {
 	s.wg.Add(1)
+	s.wsConnections.Up()
 	go func() {
 		serve(s.cancelSig, conn, s.requester, s.broker)
 		s.wg.Done()
+		s.wsConnections.Down()
 	}()
 }
 
@@ -83,7 +119,9 @@ var (
 // Pool gets response messages for long pooling interface
 func (s *Sessions) Pool(m *amp.Msg) []*amp.Msg {
 	s.wg.Add(1)
+	s.poolingConnections.Up()
 	defer s.wg.Done()
+	defer s.poolingConnections.Down()
 
 	switch m.Type {
 	case amp.Ping:
@@ -102,6 +140,10 @@ func (s *Sessions) Pool(m *amp.Msg) []*amp.Msg {
 		return p.msgs
 	}
 	return nil
+}
+
+func (s *Sessions) ConnectionsCount() (int, int) {
+	return s.wsConnections.Count(), s.poolingConnections.Count()
 }
 
 func newPooler() *pooler {

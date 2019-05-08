@@ -16,10 +16,9 @@ var sources = {
   transport: 1
 };
 
-function create(source, desc, msg) {
+function create(source, message) {
   return {
-    error: desc,
-    msg: msg,
+    message: message,
     isTransport: source == sources.transport,
     isApplication: source == sources.application,
   };
@@ -35,9 +34,8 @@ function ws(desc) {
 }
 
 function server(msg) {
-  var desc = msg ? msg.error : "";
-  var source = (msg && msg.errorSource !== undefined) ? msg.errorSource : sources.application;
-  return create(source, desc, msg && msg.body);
+  var e = msg ? msg.error : {};
+  return create((e.source || sources.application), e.message);
 }
 
 module.exports = {

@@ -46,7 +46,7 @@ job "amp_tester" {
       }
 
 			config {
-				image = "registry.dev.minus5.hr/amp_tester:v0.0.27"
+				image = "registry.dev.minus5.hr/amp_tester:v0.0.32"
 				dns_servers = ["${attr.unique.network.ip-address}", "8.8.8.8"]
 				hostname = "${node.unique.id}"
 

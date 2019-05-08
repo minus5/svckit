@@ -20,27 +20,43 @@ var keys = {
   "t": "type",
   "i": "correlationID",
   "e": "error",
-  "c": "errorSource",
   "u": "uri",
   "s": "ts",
   "p": "updateType",
   "b": "subscriptions"
 };
 
+var errorKeys = {
+  "s": "source",
+  "m": "message",
+  "c": "code"
+};
+
 function unpackHeader(o) {
   var header = {
     // setting defaults
     type: messageType.publish,
-    updateType: updateType.diff
   };
-  for (var short in keys) {
-    var long = keys[short];
-    if (o[short] !== undefined) {
-      header[long] = o[short];
-    }
+
+  unpackObject(o, header, keys);
+  if (header.error) {
+    header.error = {};
+    unpackObject(o.e, header.error, errorKeys);
   }
 
+  if (header.type == messageType.publish && header.updateType === undefined)  {
+    header["updateType"] = updateType.diff;
+  }
   return header;
+}
+
+function unpackObject(source, dest, keys) {
+  for (var short in keys) {
+    var long = keys[short];
+    if (source[short] !== undefined) {
+      dest[long] = source[short];
+    }
+  }
 }
 
 function pack(o) {

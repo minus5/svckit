@@ -72,8 +72,7 @@ type Msg struct {
 	Type          uint8            `json:"t,omitempty"` // message type
 	ReplyTo       string           `json:"r,omitempty"` // topic to send replay to
 	CorrelationID uint64           `json:"i,omitempty"` // correlationID between request and response
-	Error         string           `json:"e,omitempty"` // error description in response message
-	ErrorSource   uint8            `json:"c,omitempty"` // error source
+	Error         *Error           `json:"e,omitempty"` // error description in response message
 	URI           string           `json:"u,omitempty"` // has structure: topic/path
 	Ts            int64            `json:"s,omitempty"` // timestamp unix milli
 	UpdateType    uint8            `json:"p,omitempty"` // explains how to handle publish message
@@ -89,6 +88,13 @@ type Msg struct {
 	path          string
 
 	sync.Mutex
+}
+
+// Error related attributes in the message
+type Error struct {
+	Source  uint8  `json:"s,omitempty"`
+	Message string `json:"m,omitempty"`
+	Code    int    `json:"c,omitempty"`
 }
 
 // Parse decodes Msg from []byte
@@ -214,8 +220,10 @@ func (m *Msg) ResponseTransportError(err error) *Msg {
 	return &Msg{
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
-		Error:         err.Error(),
-		ErrorSource:   TransportError,
+		Error: &Error{
+			Source:  TransportError,
+			Message: err.Error(),
+		},
 	}
 }
 
@@ -223,8 +231,10 @@ func (m *Msg) ResponseError(err error) *Msg {
 	return &Msg{
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
-		Error:         err.Error(),
-		ErrorSource:   ApplicationError,
+		Error: &Error{
+			Source:  ApplicationError,
+			Message: err.Error(),
+		},
 	}
 }
 
