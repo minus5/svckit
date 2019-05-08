@@ -1,6 +1,9 @@
 amp_tester:
   path: ~/work/minus5/svckit/cmd/amp_tester
   build: go build --race
+  topics:
+    - math.v1
+    - z...rsp-amp_tester-dev1
   consul:
     - 
       name: api-tester
@@ -24,7 +27,6 @@ math:
   path: ~/work/minus5/svckit/example/amp/math
   build: go build --race
   topics:
-    - math.v1
     - math.req
   consul:
     -
