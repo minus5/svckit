@@ -82,10 +82,10 @@ again:
 }
 
 func TryDial(opts ...Option) {
-	if err := Dial(opts...); err == nil {
-		return
-	}
 	go func() {
+		if err := Dial(opts...); err == nil {
+			return
+		}
 		ctx := context.Background()
 		signal.WithBackoff(ctx, func() error {
 			return Dial(opts...)
@@ -117,7 +117,7 @@ func Dial(opts ...Option) error {
 	}
 
 	// validate options
-	if err := o.Validate(); nil != err {
+	if err := o.Validate(); err != nil {
 		logger().Error(err)
 		return err
 	}
@@ -172,7 +172,7 @@ func (i *Statsd) Counter(name string, values ...int) {
 
 // Close client connection and flush all metric
 func Close() {
-	if nil == currentClient {
+	if currentClient == nil {
 		return
 	}
 	//usageSent.Close()
