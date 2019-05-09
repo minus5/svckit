@@ -14,11 +14,11 @@ import (
 
 // Conn handles sending and reciving on websocket connection
 type Conn struct {
-	tcpConn    net.Conn
-	cap        connCap
-	receive    chan []byte
-	receiveErr error
-	no         uint64
+	tcpConn net.Conn
+	cap     connCap
+	no      uint64
+	//	receive    chan []byte
+	//	receiveErr error
 }
 
 // connCap connection capabilities and usefull atributes
@@ -47,8 +47,8 @@ func newConn(tc net.Conn, cap connCap) *Conn {
 	c := &Conn{
 		tcpConn: tc,
 		cap:     cap,
-		receive: make(chan []byte),
 		no:      no(),
+		// receive: make(chan []byte),
 	}
 	return c
 }
@@ -82,11 +82,43 @@ func (c *Conn) Write(payload []byte, deflated bool) error {
 
 // Read reads message from the connection.
 func (c *Conn) Read() ([]byte, error) {
-	buf, ok := <-c.receive
-	if !ok {
-		return nil, c.receiveErr
+	header, err := ws.ReadHeader(c.tcpConn)
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
-	return buf, nil
+
+	payload := make([]byte, header.Length)
+	_, err = io.ReadFull(c.tcpConn, payload)
+	if err != nil {
+		c.Close()
+		return nil, errors.WithStack(err)
+	}
+
+	if header.OpCode == ws.OpClose {
+		c.Close()
+		return nil, errors.WithStack(io.EOF)
+	}
+	if header.OpCode == ws.OpContinuation {
+		return nil, errors.WithStack(io.ErrUnexpectedEOF)
+	}
+	if header.OpCode == ws.OpPing {
+		header.OpCode = ws.OpPong
+		header.Masked = false
+		_ = ws.WriteHeader(c.tcpConn, header)
+		return nil, nil
+	}
+	if header.OpCode == ws.OpPong {
+		return nil, nil
+	}
+	if header.Masked {
+		ws.Cipher(payload, header.Mask, 0)
+	}
+	if header.Rsv1() {
+		payload = undeflate(payload)
+	}
+
+	setDeadline(c.tcpConn)
+	return payload, nil
 }
 
 // No returns connection identificator.
@@ -99,10 +131,10 @@ func (c *Conn) DeflateSupported() bool {
 	return c.cap.deflateSupported
 }
 
-// wait blocks until connection is closed
-func (c *Conn) wait() {
-	c.receiveLoop()
-}
+// // wait blocks until connection is closed
+// func (c *Conn) wait() {
+// 	c.receiveLoop()
+// }
 
 // Close starts clearing connection.
 // Closes tcpConn, that will raise error on reading and break receiveLoop.
@@ -110,53 +142,53 @@ func (c *Conn) Close() error {
 	return c.tcpConn.Close()
 }
 
-func (c *Conn) receiveLoop() {
-	defer close(c.receive)
-	for {
-		header, err := ws.ReadHeader(c.tcpConn)
-		if err != nil {
-			c.receiveErr = errors.WithStack(err)
-			break
-		}
+// func (c *Conn) receiveLoop() {
+// 	defer close(c.receive)
+// 	for {
+// 		header, err := ws.ReadHeader(c.tcpConn)
+// 		if err != nil {
+// 			c.receiveErr = errors.WithStack(err)
+// 			break
+// 		}
 
-		payload := make([]byte, header.Length)
-		_, err = io.ReadFull(c.tcpConn, payload)
-		if err != nil {
-			c.receiveErr = errors.WithStack(err)
-			c.Close()
-			break
-		}
+// 		payload := make([]byte, header.Length)
+// 		_, err = io.ReadFull(c.tcpConn, payload)
+// 		if err != nil {
+// 			c.receiveErr = errors.WithStack(err)
+// 			c.Close()
+// 			break
+// 		}
 
-		if header.OpCode == ws.OpClose {
-			c.receiveErr = errors.WithStack(io.EOF)
-			c.Close()
-			break
-		}
-		if header.OpCode == ws.OpContinuation {
-			// TODO not implemented
-			c.receiveErr = errors.WithStack(io.ErrUnexpectedEOF)
-			break
-		}
-		if header.OpCode == ws.OpPing {
-			header.OpCode = ws.OpPong
-			header.Masked = false
-			_ = ws.WriteHeader(c.tcpConn, header)
-			continue
-		}
-		if header.OpCode == ws.OpPong {
-			continue
-		}
-		if header.Masked {
-			ws.Cipher(payload, header.Mask, 0)
-		}
-		if header.Rsv1() {
-			payload = undeflate(payload)
-		}
+// 		if header.OpCode == ws.OpClose {
+// 			c.receiveErr = errors.WithStack(io.EOF)
+// 			c.Close()
+// 			break
+// 		}
+// 		if header.OpCode == ws.OpContinuation {
+// 			// TODO not implemented
+// 			c.receiveErr = errors.WithStack(io.ErrUnexpectedEOF)
+// 			break
+// 		}
+// 		if header.OpCode == ws.OpPing {
+// 			header.OpCode = ws.OpPong
+// 			header.Masked = false
+// 			_ = ws.WriteHeader(c.tcpConn, header)
+// 			continue
+// 		}
+// 		if header.OpCode == ws.OpPong {
+// 			continue
+// 		}
+// 		if header.Masked {
+// 			ws.Cipher(payload, header.Mask, 0)
+// 		}
+// 		if header.Rsv1() {
+// 			payload = undeflate(payload)
+// 		}
 
-		c.receive <- payload
-		setDeadline(c.tcpConn)
-	}
-}
+// 		c.receive <- payload
+// 		setDeadline(c.tcpConn)
+// 	}
+// }
 
 // undeflate uncomresses websocket payload
 func undeflate(data []byte) []byte {

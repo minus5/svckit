@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/minus5/svckit/amp"
@@ -9,41 +10,105 @@ import (
 )
 
 var (
-	maxWriteQueueDepth = 128              // max number of messages in client write queue
-	aliveInterval      = 32 * time.Second // interval for sending alive messages to the client
+	maxWriteQueueDepth = 128              // max number of messages in output write queue
+	aliveInterval      = 32 * time.Second // interval for sending alive messages
 )
 
 type session struct {
-	conn        connection    // client websocket connection
-	broker      broker        // broker for subscribe on published messages
-	requester   requester     // requester for request / response messages
-	outMessages chan *amp.Msg // messages to send to the client
+	conn            connection      // client websocket connection
+	broker          broker          // broker for subscribe on published messages
+	requester       requester       // requester for request / response messages
+	outQueue        []*amp.Msg      // output messages queue
+	outQueueChanged chan (struct{}) // signal that queue changed
+	stats           struct {        // sessions stats counters
+		start         time.Time
+		outMessages   int
+		inMessages    int
+		aliveMessages int
+		maxQueueLen   int
+	}
+	sync.Mutex
 }
 
 // serve starts new session
 // Blocks until session is finished.
 func serve(cancelSig context.Context, conn connection, req requester, brk broker) {
 	s := &session{
-		conn:        conn,
-		requester:   req,
-		broker:      brk,
-		outMessages: make(chan *amp.Msg),
+		conn:            conn,
+		requester:       req,
+		broker:          brk,
+		outQueue:        make([]*amp.Msg, 0),
+		outQueueChanged: make(chan struct{}),
 	}
+	s.stats.start = time.Now()
 	s.loop(cancelSig)
 }
 
 func (s *session) loop(cancelSig context.Context) {
-	go s.writeLoop()
-	readDone := s.readLoop()
-	// wait and cleanup
-	select {
-	case <-readDone: // if connection if broken
-		s.unsubscribe()
-	case <-cancelSig.Done(): // if aplication is closing
-		_ = s.conn.Close()
-		<-readDone
+	inMessages := s.readLoop()            // messages from the client
+	outMessages := make(chan *amp.Msg, 1) // messages to the client
+	exitSig := cancelSig.Done()           // aplication exit signal
+
+	// timer for alive messages
+	alive := time.NewTimer(aliveInterval)
+	// if there is no other messages send alive
+	sendAlive := func() {
+		s.Lock()
+		defer s.Unlock()
+		if len(s.outQueue) == 0 {
+			s.outQueue = append(s.outQueue, amp.NewAlive())
+			s.stats.aliveMessages++
+		}
 	}
-	close(s.outMessages)
+
+	// if there is anything in queue waiting for sending put it inot outMessages chan
+	tryPopQueue := func() {
+		s.Lock()
+		defer s.Unlock()
+		if len(s.outQueue) > 0 {
+			select { /// non blocking write
+			case outMessages <- s.outQueue[0]:
+				s.outQueue = s.outQueue[1:]
+			default:
+			}
+		}
+	}
+
+	// log session stats
+	defer func() {
+		s.Lock()
+		defer s.Unlock()
+		s.log().I("inMessages", s.stats.inMessages).
+			I("outMessages", s.stats.outMessages).
+			I("aliveMessages", s.stats.aliveMessages).
+			I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
+			Debug("stats")
+	}()
+
+	for {
+		tryPopQueue()
+
+		select {
+		case <-s.outQueueChanged:
+			// just start another loop iteration
+		case <-alive.C:
+			sendAlive()
+		case msg := <-outMessages:
+			s.connWrite(msg)
+			alive.Reset(aliveInterval)
+			s.stats.outMessages++
+		case msg, ok := <-inMessages:
+			if !ok {
+				s.unsubscribe()
+				return
+			}
+			s.receive(msg)
+			s.stats.inMessages++
+		case <-exitSig:
+			_ = s.conn.Close()
+			exitSig = nil // fire once
+		}
+	}
 }
 
 func (s *session) unsubscribe() {
@@ -51,28 +116,28 @@ func (s *session) unsubscribe() {
 	s.requester.Unsubscribe(s)
 }
 
-func (s *session) readLoop() chan struct{} {
-	done := make(chan struct{})
+func (s *session) readLoop() chan *amp.Msg {
+	in := make(chan *amp.Msg)
 	go func() {
-		defer close(done)
+		defer close(in)
 		for {
 			buf, err := s.conn.Read()
 			if err != nil {
 				return
 			}
 			if m := amp.Parse(buf); m != nil {
-				s.receive(m)
+				in <- m
 			}
 		}
 	}()
-	return done
+	return in
 }
 
 // receive gets client messages
 func (s *session) receive(m *amp.Msg) {
 	switch m.Type {
 	case amp.Ping:
-		s.outMessages <- m.Pong()
+		s.Send(m.Pong())
 	case amp.Request:
 		// TODO what URI-a are ok, make filter
 		s.requester.Send(s, m)
@@ -84,75 +149,27 @@ func (s *session) receive(m *amp.Msg) {
 // Send message to the clinet
 // Implements amp.Subscriber interface.
 func (s *session) Send(m *amp.Msg) {
-	s.outMessages <- m
-}
-
-// writeLoop is all about not blocking outMessages chan.
-// It ensures that one slow client is not blocking the rest of the app.
-func (s *session) writeLoop() {
-	queue := make([]*amp.Msg, 0)   // we are queuing messges in slice so chan is not blocked
-	out := make(chan *amp.Msg)     // out is processin messages from the queue
-	outDone := make(chan struct{}) // signal that out loop is done
-
-	go func() { // out loop
-		defer close(outDone)
-		for m := range out {
-			if err := s.connWrite(m); err != nil {
-				return
-			}
-		}
-	}()
-	defer close(out)
-
-	// timer for alive messages, if there is no other messages we send alive
-	alive := aliveInterval
-	t := time.NewTimer(alive)
-
-	stopQueueing := func() {
-		queue = nil
+	// add to queue
+	s.Lock()
+	defer s.Unlock()
+	s.outQueue = append(s.outQueue, m)
+	// signal queue changed
+	select {
+	case s.outQueueChanged <- struct{}{}:
+	default:
 	}
-	enqueue := func(m *amp.Msg) {
-		if queue == nil {
-			return
-		}
-		queue = append(queue, m)
-		if len(queue) > maxWriteQueueDepth {
-			s.log().I("queue", len(queue)).Debug("queue overflow")
-			_ = s.conn.Close()
-			stopQueueing()
-		}
+	// check for queue overflow
+	queueLen := len(s.outQueue)
+	if queueLen > maxWriteQueueDepth {
+		s.conn.Close()
+		s.log().I("len", queueLen).Info("out queue overflow")
 	}
-
-	// main loop
-	for {
-		if len(queue) > 0 { // if there is messages in the queue
-			select {
-			case out <- queue[0]: // try to send to out
-				queue = queue[1:]
-			case m, ok := <-s.outMessages: // or receive new
-				if !ok {
-					return
-				}
-				enqueue(m)
-			case <-outDone:
-				stopQueueing()
-			}
-		} else { // if the queue is empty
-			select {
-			case m, ok := <-s.outMessages: // receive new
-				if !ok {
-					return
-				}
-				enqueue(m)
-			case <-t.C: // or react to timer
-				enqueue(amp.NewAlive())
-			}
-		}
-		t.Reset(alive)
+	if s.stats.maxQueueLen < queueLen {
+		s.stats.maxQueueLen = queueLen
 	}
 }
 
-func (s *session) connWrite(m *amp.Msg) error {
+func (s *session) connWrite(m *amp.Msg) {
 	var payload []byte
 	deflated := false
 	if s.conn.DeflateSupported() {
@@ -160,7 +177,10 @@ func (s *session) connWrite(m *amp.Msg) error {
 	} else {
 		payload = m.Marshal()
 	}
-	return s.conn.Write(payload, deflated)
+	err := s.conn.Write(payload, deflated)
+	if err != nil {
+		s.conn.Close()
+	}
 }
 
 func (s *session) log() *log.Agregator {

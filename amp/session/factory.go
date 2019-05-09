@@ -87,14 +87,13 @@ func Factory(ctx context.Context, broker broker, requester requester) *Sessions 
 }
 
 // Serve creates new session for connection.
+// Blocks until connection is closed
 func (s *Sessions) Serve(conn connection) {
 	s.wg.Add(1)
 	s.wsConnections.Up()
-	go func() {
-		serve(s.cancelSig, conn, s.requester, s.broker)
-		s.wg.Done()
-		s.wsConnections.Down()
-	}()
+	serve(s.cancelSig, conn, s.requester, s.broker)
+	s.wg.Done()
+	s.wsConnections.Down()
 }
 
 func (s *Sessions) waitDone(ctx context.Context, cancelSessions func()) {

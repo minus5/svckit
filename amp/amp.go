@@ -99,6 +99,9 @@ type Error struct {
 
 // Parse decodes Msg from []byte
 func Parse(buf []byte) *Msg {
+	if buf == nil {
+		return nil
+	}
 	parts := bytes.SplitN(buf, separtor, 2)
 	m := &Msg{}
 	if err := json.Unmarshal(parts[0], m); err != nil {
