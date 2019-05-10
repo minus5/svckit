@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -86,12 +85,8 @@ func (util *TestMSSQLUtility) LogDumpStruct(t *testing.T, msg string, value inte
 func (util *TestMSSQLUtility) TestDbConnStr() string {
 	s := os.Getenv("GO_SS_TEST_DB")
 	if s == "" {
-		log.Fatal(` fali connection string za testnu bazu
-           nije postavljena env varijabla GO_SS_TEST_DB
-           zapisi u ~/.bash_profile (ili slicno) nesto ovako:
-           export GO_SS_TEST_DB="user=minus5;password=minus5;server=mssql.s.minus5.hr;database=SuperSportTest_usernameUnit"
-           umjesto username treba ici naziv korisnickog racuna (npr. za pero je baza "SuperSportTest_peroUnit")
-`)
+		user := os.Getenv("USER")
+		s = "user=minus5;password=minus5;server=mssql.s.minus5.hr;database=SuperSportTest_" + user + "Unit"
 	}
 	return s
 }
