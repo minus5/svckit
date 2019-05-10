@@ -29,12 +29,12 @@ func TestCount(t *testing.T) {
 			c := qc.Count()
 			fmt.Printf("count: %d\n", c)
 			return c > 5 && c < 15
-		}())
+		}(), "count %d", i)
 		assert.True(t, func() bool {
 			lastDelta := qc.Last().Sub(time.Now())
 			fmt.Printf("last delta: %v\n", lastDelta)
 			return lastDelta > -time.Millisecond*20 && lastDelta < 0
-		}())
+		}(), "delta: %d", i)
 	}
 	assert.Equal(t, true, qc.Any())
 	ticker.Stop()
