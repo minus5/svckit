@@ -176,7 +176,8 @@ func (s *service) start() error {
 	}
 	cmd := exec.Command(e, strings.Split(s.Command, " ")...)
 	if len(s.Env) != 0 {
-		//fmt.Println("setting env", s.Env)
+		path := os.Getenv("PATH")
+		s.Env = append(s.Env, "PATH="+path)
 		cmd.Env = s.Env
 	}
 	cmd.Stdin = nil
