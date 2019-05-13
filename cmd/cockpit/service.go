@@ -38,6 +38,7 @@ type service struct {
 	watcher    *fsnotify.Watcher
 	Kill       string
 	Env        []string
+	KV         map[string]string
 }
 
 type serviceConsul struct {
@@ -45,6 +46,7 @@ type serviceConsul struct {
 	PortLabel string `yaml:"port_label"`
 	Port      int
 	Tags      []string
+	Address   string
 	HTTPCheck string `yaml:"http_check"`
 }
 
@@ -227,6 +229,27 @@ func (s *service) register() error {
 	return nil
 }
 
+func (s *service) kv() error {
+	config := api.DefaultConfig()
+	consul, err := api.NewClient(config)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	for k, v := range s.KV {
+		p := api.KVPair{
+			Key:   k,
+			Value: []byte(v),
+		}
+		_, err := consul.KV().Put(&p, nil)
+		if err != nil {
+			return err
+		}
+		log.S("key", k).S("value", v).Debug("kv")
+	}
+	return nil
+}
+
 func (s *service) prepare() error {
 	if s.Build == "" {
 		return nil
@@ -263,6 +286,9 @@ func (s *service) Go() error {
 	if err := s.register(); err != nil {
 		return err
 	}
+	if err := s.kv(); err != nil {
+		return err
+	}
 	if err := s.start(); err != nil {
 		return err
 	}
@@ -280,10 +306,11 @@ func register(c *serviceConsul) error {
 	agent := consul.Agent()
 
 	service := &api.AgentServiceRegistration{
-		ID:   c.Name,
-		Name: c.Name,
-		Port: c.Port,
-		Tags: c.Tags,
+		ID:      c.Name,
+		Name:    c.Name,
+		Port:    c.Port,
+		Tags:    c.Tags,
+		Address: c.Address,
 	}
 	if err := agent.ServiceRegister(service); err != nil {
 		log.Error(err)
@@ -293,6 +320,9 @@ func register(c *serviceConsul) error {
 
 	if c.HTTPCheck == "" {
 		tcp := fmt.Sprintf("localhost:%d", c.Port)
+		if c.Address != "" {
+			tcp = fmt.Sprintf("%s:%d", c.Address, c.Port)
+		}
 		check := &api.AgentCheckRegistration{
 			ID:        c.Name,
 			Name:      fmt.Sprintf("Service '%s' TCP health check", c.Name),

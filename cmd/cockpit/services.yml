@@ -47,7 +47,7 @@ nsqd:
 
 fabio:
   entrypoint: fabio
-  command: -proxy.addr :80 -insecure -log.level TRACE -registry.consul.register.tags urlprefix-fabio.localhost/
+  command: -proxy.addr :80 -insecure -log.level TRACE -log.routes.format all -registry.consul.register.tags urlprefix-fabio.localhost/
   consul:
     -
       # register consul route
