@@ -29,6 +29,7 @@ type service struct {
 	Entrypoint string
 	Command    string
 	Path       string
+	WatchPath  bool `yaml:"watch_path"`
 	Build      string
 	Topics     []string
 	done       chan struct{}
@@ -156,6 +157,27 @@ func terminateProc(p *os.Process) error {
 	return err
 }
 
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func (s *service) entrypoint() string {
+	//cs := p.cmdLine() //[]string{"/bin/sh", "-c", "exec " + p.cmd + p.logLine()}
+	//cmd := exec.Command(cs[0], cs[1:]...)
+	// fmt.Println("exec", s.Entrypoint, s.Command)
+	e := s.Entrypoint
+	if s.Path != "" &&
+		!strings.HasPrefix(s.Entrypoint, "/") &&
+		!strings.Contains(s.Entrypoint, "=") &&
+		fileExists(s.Path+"/"+e) {
+		e = "./" + e
+	}
+	return e
+}
+
 func (s *service) start() error {
 	if s.Entrypoint == "_" || strings.HasSuffix(s.Name, "_build") {
 		info("Done %s\n", s)
@@ -167,16 +189,7 @@ func (s *service) start() error {
 	}
 	defer logFile.Close()
 
-	//cs := p.cmdLine() //[]string{"/bin/sh", "-c", "exec " + p.cmd + p.logLine()}
-	//cmd := exec.Command(cs[0], cs[1:]...)
-	// fmt.Println("exec", s.Entrypoint, s.Command)
-	e := s.Entrypoint
-	if s.Path != "" &&
-		!strings.HasPrefix(s.Entrypoint, "/") &&
-		!strings.Contains(s.Entrypoint, "=") {
-		e = "./" + e
-	}
-	cmd := exec.Command(e, strings.Split(s.Command, " ")...)
+	cmd := exec.Command(s.entrypoint(), strings.Split(s.Command, " ")...)
 	if len(s.Env) != 0 {
 		path := os.Getenv("PATH")
 		s.Env = append(s.Env, "PATH="+path)
@@ -410,9 +423,12 @@ func (s *service) Watch() error {
 			return err
 		}
 	} else {
+		if !s.WatchPath {
+			return nil
+		}
 		// watch path recursively
 		err := filepath.Walk(s.Path, func(path string, f os.FileInfo, err error) error {
-			if f.IsDir() {
+			if f.IsDir() && !(strings.Contains(path, "/tmp/") || strings.Contains(path, "/log/")) {
 				log.S("path", path).S("service", s.Name).Info("added folder watcher")
 				return watcher.Add(path)
 			}
