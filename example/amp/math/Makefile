@@ -1,4 +1,4 @@
-version           := 0.0.2
+version           := 0.0.3
 docker_registry   := registry.dev.minus5.hr
 docker_image_name := $(docker_registry)/amp_tester_math:v$(version)
 

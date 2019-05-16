@@ -1,6 +1,9 @@
 var assert = require("assert");
 var amp = require("../src/amp.js");
-var sub = require("../src/subscriptions.js");
+var Sub = require("../src/subscriptions.js");
+
+//import Sub from '../src/subscriptions.js';
+var sub = new Sub();
 
 describe('subscriptions', function() {
 
@@ -59,22 +62,24 @@ describe('subscriptions', function() {
 
   describe("onChange handler", function() {
     var called = 0;
+    var sub2 = new Sub(function(){ called++; });
     var threeHandler = function(){};
 
     it("should be called on new topics", function(){
-      sub.init(function(){ called++; });
-      assert.equal(called, 0);
-      
-      sub.add("two", function(){}); // this is not a new topic
+
+      //sub.init(function(){ called++; });
       assert.equal(called, 0);
 
-      sub.add("three",threeHandler);
+      // sub.add("two", function(){}); // this is not a new topic
+      // assert.equal(called, 0);
+
+      sub2.add("three",threeHandler);
       assert.equal(called, 1);
     });
 
 
     it("and on remove of the handler", function(){
-      sub.remove("three", threeHandler);
+      sub2.remove("three", threeHandler);
       assert.equal(called, 2);
     });
   });

@@ -15,7 +15,7 @@ function ajax(url, msg, success, fail) {
   });
 }
 
-export function init(uri) {
+module.exports = function(uri) {
   return {
     info:  function(msg) { ajax(uri+"/info", msg); },
     error: function(msg) { ajax(uri+"/error", msg); },

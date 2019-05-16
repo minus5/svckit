@@ -46,7 +46,7 @@ job "amp_tester" {
       }
 
 			config {
-				image = "registry.dev.minus5.hr/amp_tester:v0.0.32"
+				image = "registry.dev.minus5.hr/amp_tester:v0.0.35"
 				dns_servers = ["${attr.unique.network.ip-address}", "8.8.8.8"]
 				hostname = "${node.unique.id}"
 
@@ -70,7 +70,7 @@ job "amp_tester" {
 
 			resources {
 				cpu = 100
-				memory = 384
+				memory = 256
 				network {
 					mbits = 1
 					port "debug" {}

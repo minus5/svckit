@@ -27,7 +27,7 @@ job "amp_tester_math" {
 			}
 
 			config {
-				image = "registry.dev.minus5.hr/amp_tester_math:v0.0.2"
+				image = "registry.dev.minus5.hr/amp_tester_math:v0.0.3"
 				dns_servers = ["${attr.unique.network.ip-address}", "8.8.8.8"]
 				hostname = "${node.unique.id}"
 
