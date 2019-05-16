@@ -79,8 +79,7 @@ func (l *listener) onConn(tc net.Conn) {
 		return
 	}
 	c := newConn(tc, cc)
-	l.onNewConn(c)
-	c.wait() // ovdje blocka do prekida komunikacije
+	l.onNewConn(c) // ovdje blocka do prekida komunikacije
 }
 
 func (l *listener) upgrade(tc net.Conn) (connCap, error) {

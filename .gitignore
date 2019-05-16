@@ -1,3 +1,8 @@
 .DS_Store
 example/tmp
 amp/sdk/js/node_modules/
+tmp
+log
+/cmd/amp_tester/amp_tester
+cmd/amp_tester/build/app
+cmd/amp_tester/build/bin

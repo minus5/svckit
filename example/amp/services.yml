@@ -6,6 +6,7 @@ math:
     - math.req
   consul:
     -
+      port_label: debug
       http_check: /health_check
       tags:
         - urlprefix-math.localhost

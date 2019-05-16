@@ -1,0 +1,130 @@
+
+cd ~/work/minus5/svckit/amp/sdk/js; webpack ;  cd -;  cp ~/work/minus5/svckit/amp/sdk/js/dist/sdk.js ./app/
+
+
+# frontend logovi
+{ ($.body.success is false) }
+
+
+{ ($.level=error) && ($.body.opened is true) }
+
+# ove ne ocekujem; nakon opened nije dobio niti jednu poruku
+{ ($.body.success is false) && ($.body.opened is true) }
+
+# upit za backend logove, ovo ne vrati nista
+{ ($.level=error) && ($.body not exists) &&  ($.Connection != close) &&  ($.Sec-Websocket-Key1 not exists)   }
+
+dva su razloga zbog kojih bude odbijen na server strani
+Sec-Websocket-Key1 exists to je stari pretpotopni websocket standard
+Connection = close za ws mora biti upgrade, ovo mu je netko po putu (firewall, proxy) promjenio
+
+
+# ovo su oni koji se ne uspiju spojit
+monit grep -d s2 amp_tester -f '{ ($.body.success is false) }'  -p -s "2019-04-26T21:42:00+02:00"  | grep User-Agent | sort | uniq -c | sort -n
+
+
+monit grep -d s2 amp_tester -f '{ ($.body.success is false) }' -p -s "2019-04-26T21:42:00+02:00"  -t header
+
+
+#insight koliko ih ima koji se ne uspiju spojiti na ws po satu
+filter @logStream = "amp_tester"  and body.success=0
+| stats count(*) as exceptionCount by bin(1h)
+| sort exceptionCount
+
+
+
+# nakon koliko dobiju prvu poruku
+fields floor(body.firstMessage/1000) as sec
+| filter @logStream = "amp_tester"  and body.success=1 and body.firstMessage < 1056321064311 #and body.firstMessage > 1000
+| stats count(*) by sec
+| sort sec
+
+
+
+
+
+Date race oko sessions s.outMessages koji nisam rijesio
+
+==================
+WARNING: DATA RACE
+Write at 0x00c00020a070 by goroutine 124:
+  runtime.closechan()
+      /usr/local/opt/go/libexec/src/runtime/chan.go:334 +0x0
+  github.com/minus5/svckit/amp/session.(*session).loop()
+      /Users/ianic/work/minus5/svckit/amp/session/session.go:46 +0x1b1
+  github.com/minus5/svckit/amp/session.(*Sessions).Serve.func1()
+      /Users/ianic/work/minus5/svckit/amp/session/session.go:32 +0x1b1
+
+Previous read at 0x00c00020a070 by goroutine 21:
+  runtime.chansend()
+      /usr/local/opt/go/libexec/src/runtime/chan.go:142 +0x0
+  github.com/minus5/svckit/amp/session.(*session).Send()
+      /Users/ianic/work/minus5/svckit/amp/session/session.go:87 +0x64
+  github.com/minus5/svckit/amp/nsq.(*Requester).reply()
+      /Users/ianic/work/minus5/svckit/amp/nsq/requester.go:80 +0x16f
+  github.com/minus5/svckit/amp/nsq.(*Requester).responses()
+      /Users/ianic/work/minus5/svckit/amp/nsq/requester.go:64 +0xa0
+  github.com/minus5/svckit/amp/nsq.(*Requester).responses-fm()
+      /Users/ianic/work/minus5/svckit/amp/nsq/requester.go:62 +0x4b
+  github.com/minus5/svckit/nsq.(*nsqHandler).HandleMessage()
+      /Users/ianic/work/minus5/svckit/nsq/consumer.go:28 +0x2e9
+  github.com/nsqio/go-nsq.(*Consumer).handlerLoop()
+      /Users/ianic/work/gocode/pkg/mod/github.com/nsqio/go-nsq@v1.0.7/consumer.go:1119 +0x145
+
+Goroutine 124 (running) created at:
+  github.com/minus5/svckit/amp/session.(*Sessions).Serve()
+      /Users/ianic/work/minus5/svckit/amp/session/factory.go:58 +0x7d
+  main.main.func1()
+      /Users/ianic/work/minus5/svckit/cmd/amp_tester/main.go:40 +0x57
+  github.com/minus5/svckit/amp/ws.(*listener).onConn()
+      /Users/ianic/work/minus5/svckit/amp/ws/listener.go:82 +0x184
+  github.com/minus5/svckit/amp/ws.(*listener).loop.func1()
+      /Users/ianic/work/minus5/svckit/amp/ws/listener.go:67 +0x4c
+
+Goroutine 21 (running) created at:
+  github.com/nsqio/go-nsq.(*Consumer).AddConcurrentHandlers()
+      /Users/ianic/work/gocode/pkg/mod/github.com/nsqio/go-nsq@v1.0.7/consumer.go:1101 +0xa9
+  github.com/minus5/svckit/nsq.NewConsumer()
+      /Users/ianic/work/minus5/svckit/nsq/consumer.go:57 +0x32e
+  github.com/minus5/svckit/amp/nsq.NewRequester()
+      /Users/ianic/work/minus5/svckit/amp/nsq/requester.go:49 +0x4e0
+  github.com/minus5/svckit/amp/nsq.MustRequester()
+      /Users/ianic/work/minus5/svckit/amp/nsq/requester.go:31 +0x42
+  main.main()
+      /Users/ianic/work/minus5/svckit/cmd/amp_tester/main.go:32 +0x11a
+==================
+
+
+
+// ovo dodajem u app za subscribe ili za add
+
+var topic = "math.v1/i";
+api.subscribe(topic, function(data) {
+  var prev;
+  if (data._xChange) {
+    prev = data._xChange.previous;
+  }
+  //console.log("sub", topic, data);
+  console.log(topic, prev, "=>", data.x);
+});
+
+function add(x, y) {
+  var ok = function(rsp) {
+    console.log("add", x, "+", y, "=", rsp.z);
+  };
+  var fail = function(e) {
+    console.log("add fail", e);
+  };
+  api.request("math.req/add", {x: x, y: y}, ok, fail);
+}
+
+// ovo zovem da izadjem na pooling prije nego se uspostavi ws
+add(1, 2);
+//add(1, 3);
+//add(1, 4);
+
+// setTimeout(function() {
+//   for (var i=0; i<10; i++) {
+//     add(i, i);
+//   }
+// }, 100);

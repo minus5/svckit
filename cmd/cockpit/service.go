@@ -29,6 +29,7 @@ type service struct {
 	Entrypoint string
 	Command    string
 	Path       string
+	WatchPath  bool `yaml:"watch_path"`
 	Build      string
 	Topics     []string
 	done       chan struct{}
@@ -38,6 +39,7 @@ type service struct {
 	watcher    *fsnotify.Watcher
 	Kill       string
 	Env        []string
+	KV         map[string]string
 }
 
 type serviceConsul struct {
@@ -45,6 +47,7 @@ type serviceConsul struct {
 	PortLabel string `yaml:"port_label"`
 	Port      int
 	Tags      []string
+	Address   string
 	HTTPCheck string `yaml:"http_check"`
 }
 
@@ -154,6 +157,27 @@ func terminateProc(p *os.Process) error {
 	return err
 }
 
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func (s *service) entrypoint() string {
+	//cs := p.cmdLine() //[]string{"/bin/sh", "-c", "exec " + p.cmd + p.logLine()}
+	//cmd := exec.Command(cs[0], cs[1:]...)
+	// fmt.Println("exec", s.Entrypoint, s.Command)
+	e := s.Entrypoint
+	if s.Path != "" &&
+		!strings.HasPrefix(s.Entrypoint, "/") &&
+		!strings.Contains(s.Entrypoint, "=") &&
+		fileExists(s.Path+"/"+e) {
+		e = "./" + e
+	}
+	return e
+}
+
 func (s *service) start() error {
 	if s.Entrypoint == "_" || strings.HasSuffix(s.Name, "_build") {
 		info("Done %s\n", s)
@@ -165,18 +189,10 @@ func (s *service) start() error {
 	}
 	defer logFile.Close()
 
-	//cs := p.cmdLine() //[]string{"/bin/sh", "-c", "exec " + p.cmd + p.logLine()}
-	//cmd := exec.Command(cs[0], cs[1:]...)
-	// fmt.Println("exec", s.Entrypoint, s.Command)
-	e := s.Entrypoint
-	if s.Path != "" &&
-		!strings.HasPrefix(s.Entrypoint, "/") &&
-		!strings.Contains(s.Entrypoint, "=") {
-		e = "./" + e
-	}
-	cmd := exec.Command(e, strings.Split(s.Command, " ")...)
+	cmd := exec.Command(s.entrypoint(), strings.Split(s.Command, " ")...)
 	if len(s.Env) != 0 {
-		//fmt.Println("setting env", s.Env)
+		path := os.Getenv("PATH")
+		s.Env = append(s.Env, "PATH="+path)
 		cmd.Env = s.Env
 	}
 	cmd.Stdin = nil
@@ -226,6 +242,27 @@ func (s *service) register() error {
 	return nil
 }
 
+func (s *service) kv() error {
+	config := api.DefaultConfig()
+	consul, err := api.NewClient(config)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	for k, v := range s.KV {
+		p := api.KVPair{
+			Key:   k,
+			Value: []byte(v),
+		}
+		_, err := consul.KV().Put(&p, nil)
+		if err != nil {
+			return err
+		}
+		log.S("key", k).S("value", v).Debug("kv")
+	}
+	return nil
+}
+
 func (s *service) prepare() error {
 	if s.Build == "" {
 		return nil
@@ -262,6 +299,9 @@ func (s *service) Go() error {
 	if err := s.register(); err != nil {
 		return err
 	}
+	if err := s.kv(); err != nil {
+		return err
+	}
 	if err := s.start(); err != nil {
 		return err
 	}
@@ -279,10 +319,11 @@ func register(c *serviceConsul) error {
 	agent := consul.Agent()
 
 	service := &api.AgentServiceRegistration{
-		ID:   c.Name,
-		Name: c.Name,
-		Port: c.Port,
-		Tags: c.Tags,
+		ID:      c.Name,
+		Name:    c.Name,
+		Port:    c.Port,
+		Tags:    c.Tags,
+		Address: c.Address,
 	}
 	if err := agent.ServiceRegister(service); err != nil {
 		log.Error(err)
@@ -292,6 +333,9 @@ func register(c *serviceConsul) error {
 
 	if c.HTTPCheck == "" {
 		tcp := fmt.Sprintf("localhost:%d", c.Port)
+		if c.Address != "" {
+			tcp = fmt.Sprintf("%s:%d", c.Address, c.Port)
+		}
 		check := &api.AgentCheckRegistration{
 			ID:        c.Name,
 			Name:      fmt.Sprintf("Service '%s' TCP health check", c.Name),
@@ -379,9 +423,12 @@ func (s *service) Watch() error {
 			return err
 		}
 	} else {
+		if !s.WatchPath {
+			return nil
+		}
 		// watch path recursively
 		err := filepath.Walk(s.Path, func(path string, f os.FileInfo, err error) error {
-			if f.IsDir() {
+			if f.IsDir() && !(strings.Contains(path, "/tmp/") || strings.Contains(path, "/log/")) {
 				log.S("path", path).S("service", s.Name).Info("added folder watcher")
 				return watcher.Add(path)
 			}

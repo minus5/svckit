@@ -1,5 +1,8 @@
+consul_nomad:
+  command: agent -dev -ui -domain=sd -bind=0.0.0.0 -client=0.0.0.0 -datacenter=dev -node=dev1
+
 consul:
-  command: agent -dev -bootstrap -server -ui -domain=sd -bind=127.0.0.1 -datacenter=dev -data-dir=./tmp/consul/ -node=dev01
+  command: agent -dev -ui -domain=sd -bind=127.0.0.1 -datacenter=dev -node=dev1
   
 mongo:
   entrypoint: mongod
@@ -44,7 +47,7 @@ nsqd:
 
 fabio:
   entrypoint: fabio
-  command: -proxy.addr :80 -insecure -log.level TRACE -registry.consul.register.tags urlprefix-fabio.localhost/
+  command: -proxy.addr :80 -insecure -log.level TRACE -log.routes.format all -registry.consul.register.tags urlprefix-fabio.localhost/
   consul:
     -
       # register consul route
@@ -53,3 +56,6 @@ fabio:
       port: 8500
       tags:
         - urlprefix-consul.localhost/
+
+nomad:
+  command: agent -dev -region=dev -dc=dev -network-interface=en0 -bind=0.0.0.0

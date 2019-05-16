@@ -59,10 +59,9 @@ func testSession(outLen, inLen int) (chan []byte, chan []byte, func(), chan stru
 	done := make(chan struct{})
 
 	s := &session{
-		conn:        conn,
-		requester:   &mockRequester{},
-		broker:      &mockBroker{},
-		outMessages: make(chan *amp.Msg),
+		conn:      conn,
+		requester: &mockRequester{},
+		broker:    &mockBroker{},
 	}
 	go func() {
 		s.loop(ctx)
@@ -99,7 +98,7 @@ func msgCID(buf []byte) int {
 }
 
 func TestOrderedMessages(t *testing.T) {
-	out, _, cancel, done, send := testSession(0, 0)
+	out, _, cancel, done, send := testSession(3, 3)
 
 	send(ping(1))
 	send(ping(2))
@@ -113,7 +112,7 @@ func TestOrderedMessages(t *testing.T) {
 }
 
 func TestPingPong(t *testing.T) {
-	out, in, cancel, done, _ := testSession(0, 0)
+	out, in, cancel, done, _ := testSession(3, 3)
 
 	in <- ping(1).Marshal()
 	in <- ping(2).Marshal()

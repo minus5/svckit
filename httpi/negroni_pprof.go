@@ -21,37 +21,45 @@ func init() {
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
-	// pathove kopiram iz init libexec/src/net/http/pprof/pprof.go
-	if strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") {
-		pprof.Cmdline(w, r)
-		return
-	}
-	if strings.HasPrefix(r.URL.Path, "/debug/pprof/profile") {
-		pprof.Profile(w, r)
-		return
-	}
-	if strings.HasPrefix(r.URL.Path, "/debug/pprof/symbol") {
-		pprof.Symbol(w, r)
-		return
-	}
-	if strings.HasPrefix(r.URL.Path, "/debug/pprof/trace") {
-		pprof.Trace(w, r)
-		return
-	}
-	if strings.HasPrefix(r.URL.Path, "/debug/pprof") {
-		pprof.Index(w, r)
-		return
-	}
+	if strings.HasPrefix(r.URL.Path, "/debug") {
 
-	if strings.HasPrefix(r.URL.Path, "/debug/block") ||
-		strings.HasPrefix(r.URL.Path, "/debug/goroutine") ||
-		strings.HasPrefix(r.URL.Path, "/debug/heap") ||
-		strings.HasPrefix(r.URL.Path, "/debug/threadcreate") {
-		parts := strings.Split(r.URL.Path, "/")
-		handler := profileHandlers[parts[2]]
-		if handler != nil {
-			handler.ServeHTTP(w, r)
+		// pathove kopiram iz init libexec/src/net/http/pprof/pprof.go
+		if strings.HasPrefix(r.URL.Path, "/debug/pprof/cmdline") ||
+			strings.HasPrefix(r.URL.Path, "/debug/cmdline") {
+			pprof.Cmdline(w, r)
 			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/debug/pprof/profile") ||
+			strings.HasPrefix(r.URL.Path, "/debug/profile") {
+			pprof.Profile(w, r)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/debug/pprof/symbol") {
+			pprof.Symbol(w, r)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/debug/pprof/trace") ||
+			strings.HasPrefix(r.URL.Path, "/debug/trace") {
+			pprof.Trace(w, r)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/debug/pprof") {
+			pprof.Index(w, r)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/debug/block") ||
+			strings.HasPrefix(r.URL.Path, "/debug/goroutine") ||
+			strings.HasPrefix(r.URL.Path, "/debug/heap") ||
+			strings.HasPrefix(r.URL.Path, "/debug/mutex") ||
+			strings.HasPrefix(r.URL.Path, "/debug/allocs") ||
+			strings.HasPrefix(r.URL.Path, "/debug/threadcreate") {
+			parts := strings.Split(r.URL.Path, "/")
+			handler := profileHandlers[parts[2]]
+			if handler != nil {
+				handler.ServeHTTP(w, r)
+				return
+			}
 		}
 	}
 

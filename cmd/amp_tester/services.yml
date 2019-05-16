@@ -1,0 +1,36 @@
+amp_tester:
+  path: ~/work/minus5/svckit/cmd/amp_tester
+  build: go build --race
+  topics:
+    - math.v1
+    - z...rsp-amp_tester-dev1
+  consul:
+    - 
+      name: api-tester
+      port_label: debug
+      http_check: /health_check
+      tags:
+        - urlprefix-api.localhost/
+    - 
+      name: amp-tester-ws
+      port_label: ws
+      tags:
+        - urlprefix-/api
+    - 
+      name: amp-tester-app
+      port_label: app
+      http_check: /index.html
+      tags:
+        - urlprefix-/
+
+math:
+  path: ~/work/minus5/svckit/example/amp/math
+  build: go build --race
+  topics:
+    - math.req
+  consul:
+    -
+      port_label: debug
+      http_check: /health_check
+      tags:
+        - urlprefix-math.localhost

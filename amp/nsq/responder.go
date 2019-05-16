@@ -36,8 +36,7 @@ func (r *Responder) loop(in <-chan *amp.Msg) {
 	for m := range in {
 		rm, err := r.handler(m)
 		if err != nil {
-			log.Error(err)
-			continue
+			rm = m.ResponseError(err)
 		}
 		if rm == nil || m.ReplyTo == "" {
 			continue

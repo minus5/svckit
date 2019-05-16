@@ -89,6 +89,16 @@ describe('amp', function() {
       assert.equal(m.updateType, amp.updateType.diff);
       assert.equal(m.uri, "one");
     });
+
+    it('should unpack error message', function() {
+      var buf='{"t":3,"e":{"m":"message","c":123}}';
+      var msgs = amp.unpack(buf);
+
+      var m = msgs[0];
+      //console.log(m);
+      assert.equal(m.error.message, "message");
+      assert.equal(m.error.code, 123);
+    });
   });
 
   describe('message pack', function() {

@@ -34,6 +34,12 @@ const (
 	Close               // last message for the topic, topic is closed after this
 )
 
+// Error sources
+const (
+	ApplicationError uint8 = iota
+	TransportError
+)
+
 // Replay types
 const (
 	Original uint8 = iota // original message
@@ -66,8 +72,7 @@ type Msg struct {
 	Type          uint8            `json:"t,omitempty"` // message type
 	ReplyTo       string           `json:"r,omitempty"` // topic to send replay to
 	CorrelationID uint64           `json:"i,omitempty"` // correlationID between request and response
-	Error         string           `json:"e,omitempty"` // error description in response message
-	ErrorCode     int64            `json:"c,omitempty"` // error code in response message
+	Error         *Error           `json:"e,omitempty"` // error description in response message
 	URI           string           `json:"u,omitempty"` // has structure: topic/path
 	Ts            int64            `json:"s,omitempty"` // timestamp unix milli
 	UpdateType    uint8            `json:"p,omitempty"` // explains how to handle publish message
@@ -85,8 +90,18 @@ type Msg struct {
 	sync.Mutex
 }
 
+// Error related attributes in the message
+type Error struct {
+	Source  uint8  `json:"s,omitempty"`
+	Message string `json:"m,omitempty"`
+	Code    int    `json:"c,omitempty"`
+}
+
 // Parse decodes Msg from []byte
 func Parse(buf []byte) *Msg {
+	if buf == nil {
+		return nil
+	}
 	parts := bytes.SplitN(buf, separtor, 2)
 	m := &Msg{}
 	if err := json.Unmarshal(parts[0], m); err != nil {
@@ -204,12 +219,25 @@ func (m *Msg) Response(o interface{}) *Msg {
 }
 
 // ResponseTransportError creates response message with error set to transport error
-func (m *Msg) ResponseTransportError() *Msg {
+func (m *Msg) ResponseTransportError(err error) *Msg {
 	return &Msg{
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
-		Error:         "transport error", // TODO
-		ErrorCode:     -128,
+		Error: &Error{
+			Source:  TransportError,
+			Message: err.Error(),
+		},
+	}
+}
+
+func (m *Msg) ResponseError(err error) *Msg {
+	return &Msg{
+		Type:          Response,
+		CorrelationID: m.CorrelationID,
+		Error: &Error{
+			Source:  ApplicationError,
+			Message: err.Error(),
+		},
 	}
 }
 
