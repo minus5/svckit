@@ -9,7 +9,6 @@ package nsq
 
 import (
 	"strings"
-	"time"
 
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/log"
@@ -48,14 +47,13 @@ func (n *nsqLogger) Output(calldepth int, s string) error {
 }
 
 type options struct {
-	maxInFlight         int
-	concurrency         int
-	outputBufferTimeout *time.Duration
-	channel             string
-	nsqdTCPAddr         string
-	logger              *nsqLogger
-	logLevel            gonsq.LogLevel
-	lookupds            dcy.Addresses
+	maxInFlight int
+	concurrency int
+	channel     string
+	nsqdTCPAddr string
+	logger      *nsqLogger
+	logLevel    gonsq.LogLevel
+	lookupds    dcy.Addresses
 }
 
 func (o *options) clone() *options {
@@ -106,12 +104,5 @@ func Concurrency(c int) func(*options) {
 func Ordered() func(*options) {
 	return func(o *options) {
 		o.concurrency = 1
-	}
-}
-
-// OutputBufferTimeout time before flushing buffered writes (set to 0 to disable).
-func OutputBufferTimeout(t time.Duration) func(*options) {
-	return func(o *options) {
-		o.outputBufferTimeout = &t
 	}
 }

@@ -47,12 +47,8 @@ func NewConsumer(topic string, handler func(*Message) error,
 	cfg := gonsq.NewConfig()
 	cfg.MaxInFlight = o.maxInFlight
 	cfg.LookupdPollInterval = 10 * time.Second
-	if o.outputBufferTimeout != nil {
-		cfg.OutputBufferTimeout = *o.outputBufferTimeout
-	} else {
-		cfg.OutputBufferTimeout = -1
-		cfg.OutputBufferSize = -1
-	}
+	cfg.OutputBufferTimeout = -1
+	cfg.OutputBufferSize = -1
 
 	c, err := gonsq.NewConsumer(topic, o.channel, cfg)
 	if err != nil {
