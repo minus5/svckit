@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -19,6 +20,12 @@ var (
 
 func init() {
 	appName = path.Base(os.Args[0])
+	if appName == "main" { // when running with go run, get directory name instead of main
+		wd, err := os.Getwd()
+		if err == nil {
+			_, appName = path.Split(wd)
+		}
+	}
 
 	hostname, _ = os.Hostname()
 	if strings.Contains(hostname, ".") {
@@ -100,6 +107,28 @@ func InstanceId() string {
 		return NodeName()
 	}
 	return env
+}
+
+// Port gets port for label from evn variables
+func Port(name string) int {
+	if name == "" {
+		name = "default"
+	}
+	for _, v := range []string{"NOMAD_PORT_", "PORT_"} {
+		env, ok := os.LookupEnv(v + name)
+		if ok {
+			if p, err := strconv.Atoi(env); err == nil {
+				return p
+			}
+		}
+	}
+	// TODO mybe return random port
+	return 0
+}
+
+// Address gets addres for label
+func Address(label string) string {
+	return fmt.Sprintf(":%d", Port(label))
 }
 
 func Deployment() string {
