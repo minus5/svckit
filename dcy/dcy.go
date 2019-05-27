@@ -384,22 +384,6 @@ func srv(tag, name string, dc string) (Addresses, error) {
 func LocalServices(name string) (Addresses, error) {
 	sn, ldc := serviceName(name, domain)
 	services, err := srv("", sn, ldc)
-	if err == nil && len(services) != 0 {
-		return services, err
-	}
-
-	// loop through all datacenters until desired service is found
-	for _, fdc := range federatedDcs {
-		// skip local dc since it was already checked
-		if fdc == dc {
-			continue
-		}
-		services, err = srv("", sn, fdc)
-		if err == nil && len(services) != 0 {
-			break
-		}
-	}
-
 	return services, err
 }
 
@@ -419,15 +403,40 @@ func Services(name string) (Addresses, error) {
 	return services, nil
 }
 
-// Service will find one service in Consul cluster.
+// Service will find one service in Consul cluster giving priority to local datacenter.
 // Will randomly choose one if there are multiple register in Consul.
 func Service(name string) (Address, error) {
-	srvs, err := Services(name)
+	srvs, err := servicesWithLocalPriority(name)
 	if err != nil {
 		return Address{}, err
 	}
 	srv := srvs[rand.Intn(len(srvs))]
 	return srv, nil
+
+}
+
+// returns services from one of the datacenters giving priority to the local dc
+func servicesWithLocalPriority(name string) (Addresses, error) {
+	sn, ldc := serviceName(name, domain)
+	services, err := srv("", sn, ldc)
+	if err == nil && len(services) != 0 {
+		return services, err
+	}
+
+	// loop through all datacenters until desired service is found
+	for _, fdc := range federatedDcs {
+		// skip local dc since it was already checked
+		if fdc == dc {
+			continue
+		}
+		services, err = srv("", sn, fdc)
+		if err == nil && len(services) != 0 {
+			break
+		}
+	}
+
+	return services, err
+
 }
 
 // ServiceInDc will find one service in Consul claster for specified datacenter
@@ -609,19 +618,6 @@ func packURL(scheme, host, port, path string, query url.Values) (url string) {
 	}
 
 	return url
-}
-
-// MongoConnStr finds service mongo in consul and returns it in mongo connection string format.
-func MongoConnStr(names ...string) (string, error) {
-	name := "mongo"
-	if len(names) > 0 {
-		name = names[0]
-	}
-	addrs, err := Services(name)
-	if err != nil {
-		return "", err
-	}
-	return strings.Join(addrs.String(), ","), nil
 }
 
 // Agent returns ref to consul agent.
