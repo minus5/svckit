@@ -385,8 +385,8 @@ func srv(tag, name string, dc string) (Addresses, error) {
 	return srvs, nil
 }
 
-// Services returns all services registered in Consul in specifed, or if not set, local datacenter
-func Services(name string) (Addresses, error) {
+// LocalServices returns all services registered in Consul in specifed, or if not set, local datacenter
+func LocalServices(name string) (Addresses, error) {
 	sn, ldc := serviceName(name, domain)
 	services, err := srv("", sn, ldc)
 	if err == nil && len(services) != 0 {
@@ -408,8 +408,8 @@ func Services(name string) (Addresses, error) {
 	return services, err
 }
 
-// FederatedServices returns all services registered in Consul from all of the datacenters
-func FederatedServices(name string) (Addresses, error) {
+// Services returns all services registered in Consul from all of the datacenters
+func Services(name string) (Addresses, error) {
 	sn, _ := serviceName(name, domain)
 	services := []Address{}
 	for _, fdc := range federatedDcs {
@@ -641,7 +641,7 @@ func MustConnect() {
 // Subscribe on service changes over all federated datacenters.
 // Changes in Consul for service `name` will be passed to handler.
 func Subscribe(name string, handler func(Addresses)) {
-	_, err := FederatedServices(name) // query for service in all of the datacenters so monitor goroutines start
+	_, err := Services(name) // query for service in all of the datacenters so monitor goroutines start
 	if err != nil {
 		log.Error(err)
 	}
