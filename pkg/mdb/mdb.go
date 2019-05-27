@@ -221,7 +221,7 @@ func DefaultConnStr() string {
 
 	// trazi registrirani servis
 	connStr := "mongo.service.sd"
-	if addrs, err := dcy.Services(connStr); err == nil {
+	if addrs, err := dcy.LocalServices(connStr); err == nil {
 		connStr = strings.Join(addrs.String(), ",")
 	}
 	return connStr
