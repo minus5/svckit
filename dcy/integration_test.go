@@ -21,6 +21,8 @@ func TestDcy(t *testing.T) {
 	err := cmd.Start()
 	assert.Nil(t, err)
 
+	os.Setenv(dcy.EnvFederatedDcs, "dev")
+
 	tests := map[string]func(*testing.T){
 		"integration": testIntegration,
 	}
@@ -48,6 +50,16 @@ func testIntegration(t *testing.T) {
 		assert.Len(t, a, len(as))
 		assert.Equal(t, as, a.String())
 		assert.Equal(t, as, srvsBySubscribe.String())
+
+		a, err = dcy.LocalServices(name)
+		if len(as) == 0 {
+			assert.NotNil(t, err)
+		} else {
+			assert.Nil(t, err)
+		}
+		assert.Len(t, a, len(as))
+		assert.Equal(t, as, a.String())
+
 	}
 	wait := func() {
 		time.Sleep(100 * time.Millisecond)

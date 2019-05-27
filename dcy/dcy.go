@@ -259,13 +259,8 @@ func updateCache(tag, name, dc string, srvs Addresses) {
 
 	// cache is updated only with services from specific datacenter
 	// but when notifying subscribers services from all of the datacenters are used
-	allServices := make([]Address, len(srvs))
-	copy(allServices, srvs)
-
+	allServices := []Address{}
 	for _, fdc := range federatedDcs {
-		if fdc == dc {
-			continue
-		}
 		services, _, err := service(name, tag, &api.QueryOptions{Datacenter: fdc})
 		if err != nil {
 			continue
@@ -417,6 +412,9 @@ func Services(name string) (Addresses, error) {
 		if err == nil {
 			services = append(services, s...)
 		}
+	}
+	if len(services) == 0 {
+		return services, fmt.Errorf("service %s not found in consul", name)
 	}
 	return services, nil
 }
