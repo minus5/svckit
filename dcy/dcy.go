@@ -194,10 +194,11 @@ func connect() error {
 		return err
 	}
 
-	// if federatedDcs are not set use local datacenter
-	if len(federatedDcs) == 0 {
+	// add local dc if it's not set
+	if !contains(federatedDcs, dc) {
 		federatedDcs = append(federatedDcs, dc)
 	}
+
 	// wait for dependencies to apear in consul
 	if e, ok := os.LookupEnv(EnvWait); ok && e != "" {
 		services := strings.Split(e, ",")
@@ -256,7 +257,6 @@ func updateCache(tag, name, dc string, srvs Addresses) {
 		}
 	}
 	cache[key] = srvs
-
 	// cache is updated only with services from specific datacenter
 	// but when notifying subscribers services from all of the datacenters are used
 	allServices := []Address{}
@@ -677,4 +677,13 @@ func Unsubscribe(name string, handler func(Addresses)) {
 		}
 	}
 	subscribers[name] = a
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
