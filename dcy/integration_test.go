@@ -21,8 +21,6 @@ func TestDcy(t *testing.T) {
 	err := cmd.Start()
 	assert.Nil(t, err)
 
-	os.Setenv(dcy.EnvFederatedDcs, "dev")
-
 	tests := map[string]func(*testing.T){
 		"localIntegration":   testLocalIntegration,
 		"federatedIngration": testFederatedIntegration,
