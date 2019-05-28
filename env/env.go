@@ -130,3 +130,11 @@ func Port(name string) int {
 func Address(label string) string {
 	return fmt.Sprintf(":%d", Port(label))
 }
+
+func Deployment() string {
+	dep, ok := os.LookupEnv("deployment")
+	if !ok {
+		return dc
+	}
+	return dep
+}

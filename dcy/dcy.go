@@ -26,6 +26,9 @@ const (
 	// EnvWait if defined dcy will not start until those services are not found in consul.
 	// Usefull in development environment to controll start order.
 	EnvWait = "SVCKIT_DCY_CHECK_SVCS"
+
+	// EnvFederatedDcs is list of all datacenters
+	EnvFederatedDcs = "SVCKIT_FEDERATED_DCS"
 )
 
 const (
@@ -41,10 +44,11 @@ var (
 	cache       = map[string]Addresses{}
 	subscribers = map[string][]func(Addresses){}
 
-	domain     string
-	dc         string
-	nodeName   string
-	consulAddr = localConsulAdr
+	domain       string
+	dc           string
+	nodeName     string
+	consulAddr   = localConsulAdr
+	federatedDcs []string
 )
 
 // Address is service address returned from Consul.
@@ -121,6 +125,9 @@ func init() {
 	if _, _, err := net.SplitHostPort(consulAddr); err != nil {
 		consulAddr = consulAddr + ":8500"
 	}
+	if e, ok := os.LookupEnv(EnvFederatedDcs); ok {
+		federatedDcs = strings.Fields(e)
+	}
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	mustConnect()
@@ -186,6 +193,11 @@ func connect() error {
 		log.S("addr", consulAddr).Error(err)
 		return err
 	}
+
+	// if federatedDcs are not set use local datacenter
+	if len(federatedDcs) == 0 {
+		federatedDcs = append(federatedDcs, dc)
+	}
 	// wait for dependencies to apear in consul
 	if e, ok := os.LookupEnv(EnvWait); ok && e != "" {
 		services := strings.Split(e, ",")
@@ -244,8 +256,19 @@ func updateCache(tag, name, dc string, srvs Addresses) {
 		}
 	}
 	cache[key] = srvs
-	notify(name, srvs)
 
+	// cache is updated only with services from specific datacenter
+	// but when notifying subscribers services from all of the datacenters are used
+	allServices := []Address{}
+	for _, fdc := range federatedDcs {
+		services, _, err := service(name, tag, &api.QueryOptions{Datacenter: fdc})
+		if err != nil {
+			continue
+		}
+		allServices = append(allServices, parseConsulServiceEntries(services)...)
+	}
+
+	notify(name, allServices)
 }
 
 func invalidateCache(tag, name, dc string) {
@@ -276,6 +299,7 @@ func monitor(tag, name, dc string, startIndex uint64) {
 			RequireConsistent: false,
 			Datacenter:        dc,
 		}
+
 		ses, qm, err := service(name, tag, qo)
 		if err != nil {
 			tries++
@@ -356,21 +380,63 @@ func srv(tag, name string, dc string) (Addresses, error) {
 	return srvs, nil
 }
 
-// Services retruns all services register in Consul.
-func Services(name string) (Addresses, error) {
-	sn, dc := serviceName(name, domain)
-	return srv("", sn, dc)
+// LocalServices returns all services registered in Consul in specifed, or if not set, local datacenter
+func LocalServices(name string) (Addresses, error) {
+	sn, ldc := serviceName(name, domain)
+	services, err := srv("", sn, ldc)
+	return services, err
 }
 
-// Service will find one service in Consul cluster.
+// Services returns all services registered in Consul from all of the datacenters
+func Services(name string) (Addresses, error) {
+	sn, _ := serviceName(name, domain)
+	services := []Address{}
+	for _, fdc := range federatedDcs {
+		s, err := srv("", sn, fdc)
+		if err == nil {
+			services = append(services, s...)
+		}
+	}
+	if len(services) == 0 {
+		return services, fmt.Errorf("service %s not found in consul", name)
+	}
+	return services, nil
+}
+
+// Service will find one service in Consul cluster giving priority to local datacenter.
 // Will randomly choose one if there are multiple register in Consul.
 func Service(name string) (Address, error) {
-	srvs, err := Services(name)
+	srvs, err := servicesWithLocalPriority(name)
 	if err != nil {
 		return Address{}, err
 	}
 	srv := srvs[rand.Intn(len(srvs))]
 	return srv, nil
+
+}
+
+// returns services from one of the datacenters giving priority to the local dc
+func servicesWithLocalPriority(name string) (Addresses, error) {
+	sn, ldc := serviceName(name, domain)
+	services, err := srv("", sn, ldc)
+	if err == nil && len(services) != 0 {
+		return services, err
+	}
+
+	// loop through all datacenters until desired service is found
+	for _, fdc := range federatedDcs {
+		// skip local dc since it was already checked
+		if fdc == dc {
+			continue
+		}
+		services, err = srv("", sn, fdc)
+		if err == nil && len(services) != 0 {
+			break
+		}
+	}
+
+	return services, err
+
 }
 
 // ServiceInDc will find one service in Consul claster for specified datacenter
@@ -554,19 +620,6 @@ func packURL(scheme, host, port, path string, query url.Values) (url string) {
 	return url
 }
 
-// MongoConnStr finds service mongo in consul and returns it in mongo connection string format.
-func MongoConnStr(names ...string) (string, error) {
-	name := "mongo"
-	if len(names) > 0 {
-		name = names[0]
-	}
-	addrs, err := Services(name)
-	if err != nil {
-		return "", err
-	}
-	return strings.Join(addrs.String(), ","), nil
-}
-
 // Agent returns ref to consul agent.
 // Only for use in sr package below.
 func Agent() *api.Agent {
@@ -579,21 +632,23 @@ func MustConnect() {
 	mustConnect()
 }
 
-// Subscribe on service changes.
+// Subscribe on service changes over all federated datacenters.
 // Changes in Consul for service `name` will be passed to handler.
 func Subscribe(name string, handler func(Addresses)) {
-	_, err := Service(name) // query for service so monitor goroutine starts
+	_, err := Services(name) // query for service in all of the datacenters so monitor goroutines start
 	if err != nil {
 		log.Error(err)
 	}
+
+	sn, _ := serviceName(name, domain)
 	l.Lock()
 	defer l.Unlock()
-	a := subscribers[name]
+	a := subscribers[sn]
 	if a == nil {
 		a = make([]func(Addresses), 0)
 	}
 	a = append(a, handler)
-	subscribers[name] = a
+	subscribers[sn] = a
 }
 
 func notify(name string, srvs Addresses) {
@@ -606,9 +661,10 @@ func notify(name string, srvs Addresses) {
 
 // Unsubscribe from service changes.
 func Unsubscribe(name string, handler func(Addresses)) {
+	sn, _ := serviceName(name, domain)
 	l.Lock()
 	defer l.Unlock()
-	a := subscribers[name]
+	a := subscribers[sn]
 	if a == nil {
 		return
 	}
