@@ -247,20 +247,28 @@ func parseConsulServiceEntries(ses []*api.ServiceEntry) Addresses {
 	return srvs
 }
 
-func updateCache(tag, name, dc string, srvs Addresses) {
+func updateCache(tag, name, ldc string, srvs Addresses) {
 	l.Lock()
 	defer l.Unlock()
-	key := cacheKey(tag, name, dc)
+	key := cacheKey(tag, name, ldc)
 	if srvs2, ok := cache[key]; ok {
 		if srvs2.Equal(srvs) {
 			return
 		}
 	}
 	cache[key] = srvs
+	cdc := ldc
+	if cdc == "" { // if not set, local dc is default
+		cdc = dc
+	}
 	// cache is updated only with services from specific datacenter
 	// but when notifying subscribers services from all of the datacenters are used
-	allServices := []Address{}
+	allServices := make([]Address, len(srvs))
+	copy(allServices, srvs)
 	for _, fdc := range federatedDcs {
+		if fdc == cdc {
+			continue
+		}
 		services, _, err := service(name, tag, &api.QueryOptions{Datacenter: fdc})
 		if err != nil {
 			continue
