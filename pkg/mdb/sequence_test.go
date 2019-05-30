@@ -1,7 +1,7 @@
 package mdb
 
 import (
-	"pkg/testu/mongo"
+	"github.com/minus5/services/pkg/testu/mongo"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

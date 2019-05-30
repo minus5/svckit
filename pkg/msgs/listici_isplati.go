@@ -2,7 +2,7 @@ package msgs
 
 import (
 	"encoding/json"
-	"lib/listic"
+	"github.com/minus5/services/pkg/lib/listic"
 )
 
 // Konstante potrebne za isplate listica i gotovinskih ostava

@@ -2,7 +2,7 @@ package jsonu
 
 import (
 	"encoding/json"
-	"pkg/testu"
+	"github.com/minus5/services/pkg/testu"
 	"testing"
 
 	"github.com/minus5/go-simplejson"
