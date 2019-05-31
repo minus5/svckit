@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"pkg/testu"
+	"github.com/minus5/services/pkg/testu"
 	"testing"
 
 	simplejson "github.com/minus5/go-simplejson"
