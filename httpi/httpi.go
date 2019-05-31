@@ -40,6 +40,10 @@ func (r *Router) HandlePath(path string, handler http.Handler) *mux.Route {
 	return r.muxRouter.PathPrefix(path).Handler(handler)
 }
 
+func (r *Router) NewRoute() *mux.Route {
+	return r.muxRouter.NewRoute()
+}
+
 func (r *Router) Subrouter(path string) *Router {
 	return &Router{
 		muxRouter: r.muxRouter.PathPrefix(path).Subrouter(),
@@ -126,6 +130,10 @@ func Handle(path string, handler http.Handler) *mux.Route {
 
 func HandlePath(path string, handler http.Handler) *mux.Route {
 	return defaultRouter.HandlePath(path, handler)
+}
+
+func NewRoute() *mux.Route {
+	return defaultRouter.NewRoute()
 }
 
 func Subrouter(path string) *Router {
