@@ -47,6 +47,7 @@ job "amp_tester_math" {
         SVCKIT_LOG_SYSLOG = "${attr.unique.network.ip-address}:514"
 				STATSD_LOGGER_ADDRESS = "${attr.unique.network.ip-address}:18125"
 				SVCKIT_LOG_DISABLE_DEBUG = 1
+        SERVICE_IGNORE = 1
 			}
 
 			resources {
