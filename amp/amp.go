@@ -52,6 +52,11 @@ const (
 	CompressionDeflate
 )
 
+const (
+	CompatibilityVersionDefault uint8 = iota
+	CompatibilityVersion1
+)
+
 var (
 	compressionLenLimit = 8 * 1024 // do not compress messages smaller than
 	separtor            = []byte{10}
@@ -78,7 +83,7 @@ type Msg struct {
 	UpdateType    uint8            `json:"p,omitempty"` // explains how to handle publish message
 	Replay        uint8            `json:"l,omitempty"` // is this a re-play message (repeated)
 	Subscriptions map[string]int64 `json:"b,omitempty"` // topics to subscribe to
-	CacheDepth    int              `json:"d,omitempty"` // cache depthh for append update type messages
+	CacheDepth    int              `json:"d,omitempty"` // cache depth for append update type messages
 
 	body          []byte
 	noCompression bool
@@ -127,17 +132,17 @@ func Undeflate(data []byte) []byte {
 
 // Marshal packs message for sending on the wire
 func (m *Msg) Marshal() []byte {
-	buf, _ := m.marshal(CompressionNone)
+	buf, _ := m.marshal(CompressionNone, CompatibilityVersionDefault)
 	return buf
 }
 
 // MarshalDeflate packs and compress message
 func (m *Msg) MarshalDeflate() ([]byte, bool) {
-	return m.marshal(CompressionDeflate)
+	return m.marshal(CompressionDeflate, CompatibilityVersionDefault)
 }
 
 // marshal encodes message into []byte
-func (m *Msg) marshal(supportedCompression uint8) ([]byte, bool) {
+func (m *Msg) marshal(supportedCompression, version uint8) ([]byte, bool) {
 	m.Lock()
 	defer m.Unlock()
 	compression := supportedCompression
@@ -145,12 +150,12 @@ func (m *Msg) marshal(supportedCompression uint8) ([]byte, bool) {
 		compression = CompressionNone
 	}
 	// check if we already have payload
-	key := payloadKey(compression)
+	key := payloadKey(compression, version)
 	if payload, ok := m.payloads[key]; ok {
 		return payload, compression != CompressionNone
 	}
 
-	payload := m.payload()
+	payload := m.payload(version)
 	// decide wather we need compression
 	if len(payload) < compressionLenLimit {
 		m.noCompression = true
@@ -169,8 +174,13 @@ func (m *Msg) marshal(supportedCompression uint8) ([]byte, bool) {
 	return payload, compression != CompressionNone
 }
 
-func (m *Msg) payload() []byte {
-	header, _ := json.Marshal(m)
+func (m *Msg) payload(version uint8) []byte {
+	var header []byte
+	if version == CompatibilityVersion1 {
+		header = m.marshalV1header()
+	} else {
+		header, _ = json.Marshal(m)
+	}
 	buf := bytes.NewBuffer(header)
 	buf.Write(separtor)
 	if m.body != nil {
@@ -183,8 +193,8 @@ func (m *Msg) payload() []byte {
 	return buf.Bytes()
 }
 
-func payloadKey(compression uint8) uint8 {
-	return compression
+func payloadKey(compression, version uint8) uint8 {
+	return version*4 + compression
 }
 
 func deflate(src []byte) []byte {

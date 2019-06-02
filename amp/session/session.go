@@ -27,18 +27,21 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
+	compatibilityVersion uint8
 	sync.Mutex
 }
 
 // serve starts new session
 // Blocks until session is finished.
-func serve(cancelSig context.Context, conn connection, req requester, brk broker) {
+func serve(cancelSig context.Context, conn connection, req requester, brk broker,
+	compatibilityVersion uint8) {
 	s := &session{
-		conn:            conn,
-		requester:       req,
-		broker:          brk,
-		outQueue:        make([]*amp.Msg, 0),
-		outQueueChanged: make(chan struct{}),
+		conn:                 conn,
+		requester:            req,
+		broker:               brk,
+		outQueue:             make([]*amp.Msg, 0),
+		outQueueChanged:      make(chan struct{}),
+		compatibilityVersion: compatibilityVersion,
 	}
 	s.stats.start = time.Now()
 	s.loop(cancelSig)
@@ -125,7 +128,7 @@ func (s *session) readLoop() chan *amp.Msg {
 			if err != nil {
 				return
 			}
-			if m := amp.Parse(buf); m != nil {
+			if m := amp.ParseCompatibility(buf, s.compatibilityVersion); m != nil {
 				in <- m
 			}
 		}
@@ -173,9 +176,9 @@ func (s *session) connWrite(m *amp.Msg) {
 	var payload []byte
 	deflated := false
 	if s.conn.DeflateSupported() {
-		payload, deflated = m.MarshalDeflate()
+		payload, deflated = m.MarshalDeflateCompatiblity(s.compatibilityVersion)
 	} else {
-		payload = m.Marshal()
+		payload = m.MarshalCompatiblity(s.compatibilityVersion)
 	}
 	err := s.conn.Write(payload, deflated)
 	if err != nil {

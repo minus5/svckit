@@ -46,3 +46,45 @@ func TestParse(t *testing.T) {
 	m := Parse(nil)
 	assert.Nil(t, m)
 }
+
+func TestParseV1Subscribe(t *testing.T) {
+	buf := `{"t":1,"u":[{"s":"m","n":93601933},{"s":"d_174626231","n":10},{"s":"s_2","n":11},{"s":"s_4","n":12}]}`
+	m := ParseV1([]byte(buf))
+	assert.NotNil(t, m)
+	assert.Len(t, m.Subscriptions, 4)
+	assert.Equal(t, m.Subscriptions["sportsbook/m"], int64(93601933))
+	assert.Equal(t, m.Subscriptions["sportsbook/s_2"], int64(11))
+	assert.Equal(t, m.Subscriptions["sportsbook/s_4"], int64(12))
+	assert.Equal(t, m.Subscriptions["sportsbook/d_174626231"], int64(10))
+}
+
+func TestParseV1Ping(t *testing.T) {
+	buf := `{"t":4}`
+	m := ParseV1([]byte(buf))
+	assert.NotNil(t, m)
+	assert.Equal(t, m.Type, Ping)
+}
+
+func TestMarshalV1(t *testing.T) {
+	m := &Msg{
+		Type:       Publish,
+		URI:        "sportsbook/m",
+		Ts:         123,
+		UpdateType: Full,
+		body:       []byte(`{"First":"jozo","Last":"bozo"}`),
+	}
+	buf := m.MarshalV1()
+	assert.Equal(t, string(buf), `{"s":"m","n":123,"f":1}
+{"First":"jozo","Last":"bozo"}`)
+
+	m.payloads = nil
+	m.UpdateType = Diff
+	buf = m.MarshalV1()
+	assert.Equal(t, string(buf), `{"s":"m","n":123}
+{"First":"jozo","Last":"bozo"}`)
+
+	buf = m.Marshal()
+	assert.Equal(t, string(buf), `{"u":"sportsbook/m","s":123}
+{"First":"jozo","Last":"bozo"}`)
+
+}
