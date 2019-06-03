@@ -83,9 +83,6 @@ func (s *service) init(name string) {
 		if c.Name == "" {
 			c.Name = name
 		}
-		if c.PortLabel == "" {
-			c.PortLabel = "default"
-		}
 		if c.Port == 0 {
 			c.Port = netPort()
 		}
@@ -231,6 +228,9 @@ func (s *service) register() error {
 		if c.Name == "" {
 			c.Name = s.Name
 		}
+		if c.PortLabel != "" {
+			c.Tags = append(c.Tags, c.PortLabel)
+		}
 		r := func() error {
 			return register(c)
 		}
@@ -318,8 +318,13 @@ func register(c *serviceConsul) error {
 
 	agent := consul.Agent()
 
+	checkID := c.Name
+	if c.PortLabel != "" {
+		checkID = checkID + "-" + c.PortLabel
+	}
+
 	service := &api.AgentServiceRegistration{
-		ID:      c.Name,
+		ID:      checkID,
 		Name:    c.Name,
 		Port:    c.Port,
 		Tags:    c.Tags,
@@ -332,13 +337,13 @@ func register(c *serviceConsul) error {
 	log.S("service", c.Name).I("port", c.Port).Info("registerd service")
 
 	if c.HTTPCheck == "" {
-		tcp := fmt.Sprintf("localhost:%d", c.Port)
+		tcp := fmt.Sprintf("127.0.0.1:%d", c.Port)
 		if c.Address != "" {
 			tcp = fmt.Sprintf("%s:%d", c.Address, c.Port)
 		}
 		check := &api.AgentCheckRegistration{
-			ID:        c.Name,
-			Name:      fmt.Sprintf("Service '%s' TCP health check", c.Name),
+			ID:        checkID,
+			Name:      fmt.Sprintf("Service '%s' TCP health check", checkID),
 			Notes:     fmt.Sprintf("tcp: %s", tcp),
 			ServiceID: service.ID,
 			AgentServiceCheck: api.AgentServiceCheck{
@@ -352,7 +357,7 @@ func register(c *serviceConsul) error {
 			log.Error(err)
 			return err
 		}
-		log.S("service", c.Name).S("tcp", tcp).Info("registerd health check")
+		log.S("service", c.Name).S("checkID", checkID).S("tcp", tcp).Info("registerd health check")
 		return nil
 	}
 
@@ -361,8 +366,8 @@ func register(c *serviceConsul) error {
 		url = fmt.Sprintf("http://127.0.0.1:%d%s", c.Port, c.HTTPCheck)
 	}
 	check := &api.AgentCheckRegistration{
-		ID:        c.Name,
-		Name:      fmt.Sprintf("Service '%s' HTTP health check", c.Name),
+		ID:        checkID,
+		Name:      fmt.Sprintf("Service '%s' HTTP health check", checkID),
 		Notes:     fmt.Sprintf("url: %s", url),
 		ServiceID: service.ID,
 		AgentServiceCheck: api.AgentServiceCheck{
@@ -376,7 +381,7 @@ func register(c *serviceConsul) error {
 		log.Error(err)
 		return err
 	}
-	log.S("service", c.Name).S("url", url).Info("registerd health check")
+	log.S("service", c.Name).S("checkID", checkID).S("url", url).Info("registerd health check")
 
 	return nil
 }
