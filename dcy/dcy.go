@@ -1,6 +1,7 @@
 package dcy
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -29,6 +30,11 @@ const (
 
 	// EnvFederatedDcs is list of all datacenters
 	EnvFederatedDcs = "SVCKIT_FEDERATED_DCS"
+)
+
+var (
+	ErrNotFound    = errors.New("not found")
+	ErrKeyNotFound = errors.New("key not found")
 )
 
 const (
@@ -104,6 +110,17 @@ func (a Addresses) Contains(a2 Address) bool {
 		}
 	}
 	return false
+}
+
+func (a *Addresses) Append(as Addresses) {
+	s := []Address(*a)
+	for _, a1 := range []Address(as) {
+		if a.Contains(a1) {
+			continue
+		}
+		s = append(s, a1)
+	}
+	*a = Addresses(s)
 }
 
 // On including package it will try to find consul.
@@ -351,7 +368,7 @@ func query(tag, name, dc string) (Addresses, error) {
 	}
 	srvs := parseConsulServiceEntries(ses)
 	if len(srvs) == 0 {
-		return nil, fmt.Errorf("service %s not found in consul %s", name, consulAddr)
+		return nil, ErrNotFound
 	}
 	updateCache(tag, name, dc, srvs)
 	go func() {
@@ -391,44 +408,64 @@ func srv(tag, name string, dc string) (Addresses, error) {
 // LocalServices returns all services registered in Consul in specifed, or if not set, local datacenter
 func LocalServices(name string) (Addresses, error) {
 	sn, ldc := serviceName(name, domain)
-	services, err := srv("", sn, ldc)
-	return services, err
+	srvs, err := srv("", sn, ldc)
+	return srvs, err
 }
 
 // Services returns all services registered in Consul from all of the datacenters
 func Services(name string) (Addresses, error) {
+	return ServicesByTag(name, "")
+}
+
+// Services returns all services registered in Consul from all of the datacenters
+func ServicesByTag(name, tag string) (Addresses, error) {
 	sn, _ := serviceName(name, domain)
-	services := []Address{}
+	srvs := []Address{}
 	for _, fdc := range federatedDcs {
-		s, err := srv("", sn, fdc)
+		s, err := srv(tag, sn, fdc)
 		if err == nil {
-			services = append(services, s...)
+			srvs = append(srvs, s...)
 		}
 	}
-	if len(services) == 0 {
-		return services, fmt.Errorf("service %s not found in consul", name)
+	if len(srvs) == 0 {
+		return srvs, ErrNotFound
 	}
-	return services, nil
+	return srvs, nil
 }
 
 // Service will find one service in Consul cluster giving priority to local datacenter.
 // Will randomly choose one if there are multiple register in Consul.
 func Service(name string) (Address, error) {
-	srvs, err := servicesWithLocalPriority(name)
+	srvs, err := servicesWithLocalPriority(name, "")
 	if err != nil {
 		return Address{}, err
 	}
-	srv := srvs[rand.Intn(len(srvs))]
-	return srv, nil
+	return oneOf(srvs), nil
+}
 
+// ServiceByTag will find one service in Consul cluster giving priority to local datacenter.
+// Will randomly choose one if there are multiple register in Consul.
+func ServiceByTag(name, tag string) (Address, error) {
+	srvs, err := servicesWithLocalPriority(name, tag)
+	if err != nil {
+		return Address{}, err
+	}
+	return oneOf(srvs), nil
+}
+
+func oneOf(srvs []Address) Address {
+	if len(srvs) == 1 {
+		return srvs[0]
+	}
+	return srvs[rand.Intn(len(srvs))]
 }
 
 // returns services from one of the datacenters giving priority to the local dc
-func servicesWithLocalPriority(name string) (Addresses, error) {
+func servicesWithLocalPriority(name, tag string) (Addresses, error) {
 	sn, ldc := serviceName(name, domain)
-	services, err := srv("", sn, ldc)
-	if err == nil && len(services) != 0 {
-		return services, err
+	srvs, err := srv(tag, sn, ldc)
+	if err == nil && len(srvs) != 0 {
+		return srvs, err
 	}
 
 	// loop through all datacenters until desired service is found
@@ -437,13 +474,13 @@ func servicesWithLocalPriority(name string) (Addresses, error) {
 		if fdc == dc {
 			continue
 		}
-		services, err = srv("", sn, fdc)
-		if err == nil && len(services) != 0 {
+		srvs, err = srv(tag, sn, fdc)
+		if err == nil && len(srvs) != 0 {
 			break
 		}
 	}
 
-	return services, err
+	return srvs, err
 
 }
 
@@ -478,7 +515,7 @@ func AgentService(name string) (Address, error) {
 			return Address{Address: addr, Port: svc.Port}, nil
 		}
 	}
-	return Address{}, fmt.Errorf("service not found")
+	return Address{}, ErrNotFound
 }
 
 // Inspect Consul for configuration parameters.
@@ -528,7 +565,7 @@ func KV(key string) (string, error) {
 		return "", err
 	}
 	if pair == nil {
-		return "", fmt.Errorf("key not found")
+		return "", ErrKeyNotFound
 	}
 	return string(pair.Value), nil
 }
@@ -541,7 +578,7 @@ func KVs(key string) (map[string]string, error) {
 		return nil, err
 	}
 	if entries == nil {
-		return nil, fmt.Errorf("key not found")
+		return nil, ErrKeyNotFound
 	}
 	m := make(map[string]string)
 	for _, e := range entries {

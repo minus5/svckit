@@ -18,12 +18,14 @@ import (
 )
 
 const (
-	DefaultMaxInFlight      = 256
-	DefaultConcurrency      = 16
-	LookupdHTTPServiceName  = "nsqlookupd-http"
-	NsqdTCPServiceName      = "nsqd-tcp"
-	EnvNsqd                 = "SVCKIT_NSQD"
-	DefaultMsgTouchInterval = time.Second * 30
+	DefaultMaxInFlight          = 256
+	DefaultConcurrency          = 16
+	LookupdHTTPServiceName      = "nsqlookupd-http"
+	LookupdHTTPServiceNameByTag = "nsqlookupd"
+	LookupdHTTPServiceTag       = "http"
+	EnvNsqd                     = "SVCKIT_NSQD"
+	DefaultMsgTouchInterval     = time.Second * 30
+	//NsqdTCPServiceName      = "nsqd-tcp"
 )
 
 var (
@@ -68,10 +70,23 @@ func initDefaults() {
 		logger().S("nsqd", defaults.nsqdTCPAddr).Debug("init nsqd")
 	}
 	connect := func() error {
-		addrs, err := dcy.Services(LookupdHTTPServiceName)
-		if err != nil {
+		var addrs dcy.Addresses
+		a, err := dcy.Services(LookupdHTTPServiceName)
+		if err != dcy.ErrNotFound {
 			logger().Error(err)
-			return err
+		}
+		if err == nil {
+			addrs.Append(a)
+		}
+		a, err = dcy.ServicesByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag)
+		if err == nil {
+			addrs.Append(a)
+		}
+		if err != dcy.ErrNotFound {
+			logger().Error(err)
+		}
+		if len(addrs) == 0 {
+			return dcy.ErrNotFound
 		}
 		defaults.lookupds = addrs
 		logger().S("lookupds", fmt.Sprintf("%v", defaults.lookupds.String())).Debug("init lookupds")

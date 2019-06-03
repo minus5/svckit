@@ -190,3 +190,19 @@ func TestInProduction(t *testing.T) {
 		//		fmt.Printf("nsqlookupd: %s\n", addr)
 	}
 }
+
+func TestAddressesAppend(t *testing.T) {
+	as1 := dcy.Addresses{
+		dcy.Address{Address: "1", Port: 1},
+		dcy.Address{Address: "2", Port: 2},
+	}
+	as2 := dcy.Addresses{
+		dcy.Address{Address: "3", Port: 3},
+		dcy.Address{Address: "2", Port: 2},
+	}
+	assert.Len(t, as1, 2)
+	assert.Len(t, as2, 2)
+	as1.Append(as2)
+	assert.Len(t, as1, 3)
+	//fmt.Println(as1)
+}
