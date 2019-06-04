@@ -46,6 +46,28 @@ func ParseV1(buf []byte) *Msg {
 	return v2
 }
 
+func ParseV1Subscriptions(buf []byte) *Msg {
+	v1s := []struct {
+		Stream string `json:"s,omitempty"`
+		No     int64  `json:"n,omitempty"`
+	}{}
+	if err := json.Unmarshal(buf, &v1s); err != nil {
+		log.S("header", string(buf)).Error(err)
+		return nil
+	}
+	v2 := &Msg{
+		Type:          Subscribe,
+		Subscriptions: make(map[string]int64),
+	}
+	for _, s := range v1s {
+		if s.Stream == "" || strings.Contains(s.Stream, "_NaN") {
+			continue
+		}
+		v2.Subscriptions["sportsbook/"+s.Stream] = s.No
+	}
+	return v2
+}
+
 // Marshal packs message for sending on the wire
 func (m *Msg) MarshalV1() []byte {
 	buf, _ := m.marshal(CompressionNone, CompatibilityVersion1)

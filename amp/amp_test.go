@@ -88,3 +88,14 @@ func TestMarshalV1(t *testing.T) {
 {"First":"jozo","Last":"bozo"}`)
 
 }
+
+func TestParseV1Subscriptions(t *testing.T) {
+	buf := []byte(`[{"s":"m","n":94067395},{"s":"s_4","n":1},{"s":"s_5","n":2}]`)
+	m := ParseV1Subscriptions(buf)
+	assert.NotNil(t, m)
+
+	assert.Len(t, m.Subscriptions, 3)
+	assert.Equal(t, m.Subscriptions["sportsbook/m"], int64(94067395))
+	assert.Equal(t, m.Subscriptions["sportsbook/s_4"], int64(1))
+	assert.Equal(t, m.Subscriptions["sportsbook/s_5"], int64(2))
+}
