@@ -75,6 +75,10 @@ func InTest() bool {
 	return flag.Lookup("test.v") != nil
 }
 
+func InDev() bool {
+	return dc == "dev"
+}
+
 func HomeDir() string {
 	usr, _ := user.Current()
 	return usr.HomeDir

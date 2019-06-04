@@ -118,7 +118,9 @@ func Dial(opts ...Option) error {
 
 	// validate options
 	if err := o.Validate(); err != nil {
-		logger().Error(err)
+		if !env.InDev() {
+			logger().Error(err)
+		}
 		return err
 	}
 
