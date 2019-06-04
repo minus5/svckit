@@ -1,12 +1,9 @@
-consul_nomad:
-  command: agent -dev -ui -domain=sd -bind=0.0.0.0 -client=0.0.0.0 -datacenter=dev -node=dev1
-
 consul:
-  command: agent -dev -ui -domain=sd -bind=127.0.0.1 -datacenter=dev -node=dev1
-  
+  command: agent -dev -ui -domain=sd -bind=$BIND_IP -client=0.0.0.0 -datacenter=dev -node=dev1
+
 mongo:
   entrypoint: mongod
-  command: --nojournal --dbpath ./tmp/mongo --profile=1 --logpath ./log/mongodb.log
+  command: --bind_ip_all --nojournal --dbpath ./tmp/mongo --profile=1 --logpath ./log/mongodb.log  
   consul:
     - 
       name: mongo
@@ -37,7 +34,7 @@ nsqadmin:
 
 nsqd:
   entrypoint: nsqd
-  command: -lookupd-tcp-address=127.0.0.1:4160 -broadcast-address=127.0.0.1 -data-path=./tmp/nsqd -max-msg-size=10485760
+  command: -lookupd-tcp-address=127.0.0.1:4160 -broadcast-address=$BIND_IP -data-path=./tmp/nsqd -max-msg-size=10485760
   consul:
     - 
       port_label: tcp
@@ -62,4 +59,13 @@ fabio:
         - urlprefix-consul.localhost/
 
 nomad:
-  command: agent -dev -region=dev -dc=dev -network-interface=en0 -bind=0.0.0.0
+  command: agent -dev -region=dev -dc=dev -network-interface=$BIND_INTERFACE -bind=127.0.0.1 -consul-address=$BIND_IP:8500
+  consul:
+    -
+      # fabio url registration
+      name: nomad
+      http_check: /v1/jobs
+      address: 127.0.0.1
+      port: 4646
+      tags:
+        - urlprefix-nomad.localhost/

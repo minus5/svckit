@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,9 +19,12 @@ import (
 var configFile string
 var noClear bool
 var servicesFileName = "services.yml"
+var bindInterface = ""
+var bindIP = "127.0.0.1"
 
 func init() {
 	flag.StringVar(&configFile, "config", "./cockpit.yml", "config file name")
+	flag.StringVar(&bindInterface, "if", "lo0", "bind to this interface")
 	flag.BoolVar(&noClear, "no-clear", false, "do not remove tmp directory")
 	flag.Parse()
 }
@@ -29,7 +33,33 @@ func logFilePath(name string) string {
 	return fmt.Sprintf("./log/%s.log", name)
 }
 
+func interfaceIP(ifc string) string {
+	i, err := net.InterfaceByName(ifc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	addrs, err := i.Addrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		if ip.To4() != nil {
+			return ip.String()
+		}
+	}
+	return "127.0.0.1"
+}
+
 func main() {
+	bindIP = interfaceIP(bindInterface)
+
 	if fileNotExists(configFile) {
 		log.Fatal(fmt.Errorf("config file [%s]is missing", configFile))
 	}
@@ -57,6 +87,7 @@ func main() {
 	log.SetOutput(f)
 	defer f.Close()
 
+	log.S("bindIP", bindIP).Debug("binding")
 	services := loadServices()
 	config := loadConfig()
 	config.services = services

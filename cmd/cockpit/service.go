@@ -66,9 +66,10 @@ func (s *service) init(name string) {
 	if s.Entrypoint == "" {
 		s.Entrypoint = name
 	}
-	if strings.Contains(s.Command, "$USER") {
-		s.Command = strings.Replace(s.Command, "$USER", env.Username(), -1)
-	}
+	s.Command = strings.Replace(s.Command, "$USER", env.Username(), -1)
+	s.Command = strings.Replace(s.Command, "$BIND_IP", bindIP, -1)
+	s.Command = strings.Replace(s.Command, "$BIND_INTERFACE", bindInterface, -1)
+	fmt.Println(name, s.Command)
 	if s.Port != 0 {
 		s.Consul = append(s.Consul, &serviceConsul{
 			Port:      s.Port,
@@ -308,14 +309,22 @@ func (s *service) Go() error {
 	return nil
 }
 
-func register(c *serviceConsul) error {
+func consulConnect() (*api.Client, error) {
 	config := api.DefaultConfig()
+	config.Address = bindIP + ":8500"
 	consul, err := api.NewClient(config)
 	if err != nil {
 		log.Error(err)
+		return nil, err
+	}
+	return consul, nil
+}
+
+func register(c *serviceConsul) error {
+	consul, err := consulConnect()
+	if err != nil {
 		return err
 	}
-
 	agent := consul.Agent()
 
 	checkID := c.Name
