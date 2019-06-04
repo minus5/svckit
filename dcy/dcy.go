@@ -682,7 +682,7 @@ func MustConnect() {
 func Subscribe(name string, handler func(Addresses)) {
 	_, err := Services(name) // query for service in all of the datacenters so monitor goroutines start
 	if err != nil {
-		log.Error(err)
+		log.S("name", name).Error(err)
 	}
 
 	sn, _ := serviceName(name, domain)

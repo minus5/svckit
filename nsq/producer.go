@@ -20,13 +20,15 @@ func MustNewProducer(topic string, opts ...func(*options)) *Producer {
 }
 
 func NewProducer(topic string, opts ...func(*options)) (*Producer, error) {
-	Set(opts...)
+	o := getDefaults().clone()
+	o.apply(opts...)
+
 	cfg := gonsq.NewConfig()
-	p, err := gonsq.NewProducer(defaults.nsqdTCPAddr, cfg)
+	p, err := gonsq.NewProducer(o.nsqdTCPAddr, cfg)
 	if err != nil {
 		return nil, err
 	}
-	p.SetLogger(defaults.logger, defaults.logLevel)
+	p.SetLogger(o.logger, o.logLevel)
 	return &Producer{nsqProducer: p, topic: topic}, nil
 }
 
