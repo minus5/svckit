@@ -69,7 +69,6 @@ func (s *service) init(name string) {
 	s.Command = strings.Replace(s.Command, "$USER", env.Username(), -1)
 	s.Command = strings.Replace(s.Command, "$BIND_IP", bindIP, -1)
 	s.Command = strings.Replace(s.Command, "$BIND_INTERFACE", bindInterface, -1)
-	fmt.Println(name, s.Command)
 	if s.Port != 0 {
 		s.Consul = append(s.Consul, &serviceConsul{
 			Port:      s.Port,
