@@ -53,7 +53,7 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 func init() {
 	out = os.Stderr
 
-	hostname := env.Hostname()
+	hostname := env.NodeName()
 	if node := os.Getenv(EnvNode); node != "" {
 		hostname = node
 	}
