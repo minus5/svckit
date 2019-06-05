@@ -57,6 +57,10 @@ fabio:
       port: 8500
       tags:
         - urlprefix-consul.localhost/
+    -
+      # register statsd service
+      name: statsd
+      port: 8125
 
 nomad:
   command: agent -dev -region=dev -dc=dev -network-interface=$BIND_INTERFACE -bind=127.0.0.1 -consul-address=$BIND_IP:8500

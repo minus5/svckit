@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -64,11 +65,6 @@ func main() {
 		log.Fatal(fmt.Errorf("config file [%s]is missing", configFile))
 	}
 
-	// dir := env.BinDir()
-	// if err := os.Chdir(dir); err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	if !noClear {
 		os.RemoveAll("./log")
 		os.RemoveAll("./tmp")
@@ -102,6 +98,13 @@ func main() {
 	err = config.start()
 	if err == nil {
 		config.startHTTP()
+
+		f, err := os.Create(logFilePath("metrics"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		statsToConsole(f)
 		<-c
 	}
 	fmt.Println()
@@ -172,4 +175,38 @@ func PP(o interface{}) {
 		panic(err)
 	}
 	fmt.Printf("pp:\n%s\n", buf)
+}
+
+func statsToConsole(w io.Writer) {
+	go listenStatsd(w, "8125")
+	go listenStatsd(w, "18125")
+}
+
+func listenStatsd(w io.Writer, port string) {
+	go tcpHealthCheck(port)
+	address, _ := net.ResolveUDPAddr("udp", "0.0.0.0:"+port)
+	conn, err := net.ListenUDP("udp", address)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	defer conn.Close()
+
+	for {
+		buf := make([]byte, 1024)
+		n, _, err := conn.ReadFromUDP(buf)
+		if err != nil {
+			continue
+		}
+		if n > 0 {
+			fmt.Fprintf(w, "%s\n", buf[:n])
+		}
+	}
+}
+func tcpHealthCheck(port string) {
+	l, _ := net.Listen("tcp", "0.0.0.0:"+port)
+	for {
+		c, _ := l.Accept()
+		c.Close()
+	}
 }
