@@ -18,6 +18,11 @@ type options struct {
 	maxPacketSize     int
 }
 
+var staticStatsdEnvVars = []string{
+	"SVCKIT_METRIC_STATSD",
+	"STATSD_LOGGER_ADDRESS",
+}
+
 // Validate options before start
 func (o *options) Validate() error {
 	// for "github.com/smira/go-statsd" prefix must end with "."
@@ -30,10 +35,12 @@ func (o *options) Validate() error {
 		return nil
 	}
 
-	// default address methods
-	if os.Getenv("STATSD_LOGGER_ADDRESS") != "" {
-		o.addr = os.Getenv("STATSD_LOGGER_ADDRESS")
-		return nil
+	// get statsd address from env variable
+	for _, envVar := range staticStatsdEnvVars {
+		if os.Getenv(envVar) != "" {
+			o.addr = os.Getenv(envVar)
+			return nil
+		}
 	}
 
 	// get statsd address from service discovery
