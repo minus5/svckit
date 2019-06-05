@@ -132,9 +132,9 @@ func (a *Agregator) timeFile(t time.Time, file string, line int) {
 	*buf = append(*buf, file...)
 	*buf = append(*buf, ':')
 	itoa(buf, line, -1)
-	if len(prefix) > 0 {
+	if p := Prefix(); len(p) > 0 {
 		*buf = append(*buf, `", `...)
-		*buf = append(*buf, prefix...)
+		*buf = append(*buf, p...)
 	} else {
 		*buf = append(*buf, `"`...)
 	}

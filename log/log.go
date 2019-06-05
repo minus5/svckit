@@ -21,8 +21,8 @@ const (
 
 var (
 	out                  io.Writer
-	prefix               []byte
-	debugLogLevelEnabled = true
+	prefix               []byte = nil
+	debugLogLevelEnabled        = true
 )
 
 type stdLibOutput struct{}
@@ -52,21 +52,24 @@ func (o *stdLibOutput) Write(p []byte) (int, error) {
 */
 func init() {
 	out = os.Stderr
-
-	hostname := env.NodeName()
-	if node := os.Getenv(EnvNode); node != "" {
-		hostname = node
-	}
-
-	//prefix za sve logove
-	p := fmt.Sprintf(`"host":"%s", "app":"%s"`, hostname, env.AppName())
-	prefix = []byte(p)
-
 	// preusmjeri go standard lib logger kroz mene
 	golog.SetFlags(0)
 	golog.SetOutput(&stdLibOutput{})
 	initSyslog()
 	initLogLevel()
+}
+
+//prefix za sve logove
+func Prefix() []byte {
+	if prefix == nil {
+		hostname := env.NodeName()
+		if node := os.Getenv(EnvNode); node != "" {
+			hostname = node
+		}
+		p := fmt.Sprintf(`"host":"%s", "app":"%s"`, hostname, env.AppName())
+		prefix = []byte(p)
+	}
+	return prefix
 }
 
 func initSyslog() {
