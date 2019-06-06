@@ -16,7 +16,6 @@ const (
 	SyslogServiceName = "syslog"
 	EnvSyslog         = "SVCKIT_LOG_SYSLOG"
 	EnvDisableDebug   = "SVCKIT_LOG_DISABLE_DEBUG"
-	EnvNode           = "node"
 )
 
 var (
@@ -62,11 +61,7 @@ func init() {
 //prefix za sve logove
 func Prefix() []byte {
 	if prefix == nil {
-		hostname := env.NodeName()
-		if node := os.Getenv(EnvNode); node != "" {
-			hostname = node
-		}
-		p := fmt.Sprintf(`"host":"%s", "app":"%s"`, hostname, env.AppName())
+		p := fmt.Sprintf(`"host":"%s", "app":"%s"`, env.NodeName(), env.AppName())
 		prefix = []byte(p)
 	}
 	return prefix
