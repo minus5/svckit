@@ -11,6 +11,10 @@ import (
 	"strings"
 )
 
+const (
+	envNode = "node"
+)
+
 var (
 	dc       string
 	nodeName string
@@ -26,10 +30,17 @@ func init() {
 			_, appName = path.Split(wd)
 		}
 	}
+	if job, ok := os.LookupEnv("NOMAD_JOB_NAME"); ok {
+		appName = job
+	}
 
 	hostname, _ = os.Hostname()
 	if strings.Contains(hostname, ".") {
 		hostname = strings.Split(hostname, ".")[0]
+	}
+
+	if node := os.Getenv(envNode); node != "" {
+		nodeName = node
 	}
 }
 
