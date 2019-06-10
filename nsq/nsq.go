@@ -72,7 +72,7 @@ func initDefaults() {
 	connect := func() error {
 		var addrs dcy.Addresses
 		a, err := dcy.Services(LookupdHTTPServiceName)
-		if err != dcy.ErrNotFound {
+		if err != nil && err != dcy.ErrNotFound {
 			logger().Error(err)
 		}
 		if err == nil {
@@ -82,7 +82,7 @@ func initDefaults() {
 		if err == nil {
 			addrs.Append(a)
 		}
-		if err != dcy.ErrNotFound {
+		if err != nil && err != dcy.ErrNotFound {
 			logger().Error(err)
 		}
 		if len(addrs) == 0 {
