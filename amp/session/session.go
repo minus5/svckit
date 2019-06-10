@@ -8,11 +8,13 @@ import (
 
 	"github.com/minus5/svckit/amp"
 	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/metric"
 )
 
 var (
-	maxWriteQueueDepth = 128              // max number of messages in output write queue
-	aliveInterval      = 32 * time.Second // interval for sending alive messages
+	maxWriteQueueDepth = 256              // max number of messages in outQueue
+	aliveInterval      = 32 * time.Second // interval for sending alive message
+	startupInterval    = 2 * time.Second  // grace period for having more then max messages in outQueue
 )
 
 type session struct {
@@ -29,6 +31,8 @@ type session struct {
 		maxQueueLen   int
 	}
 	compatibilityVersion uint8
+	started              bool
+	closed               bool
 	sync.Mutex
 }
 
@@ -78,16 +82,7 @@ func (s *session) loop(cancelSig context.Context) {
 		}
 	}
 
-	// log session stats
-	defer func() {
-		s.Lock()
-		defer s.Unlock()
-		s.log().I("inMessages", s.stats.inMessages).
-			I("outMessages", s.stats.outMessages).
-			I("aliveMessages", s.stats.aliveMessages).
-			I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
-			Debug("stats")
-	}()
+	defer s.logStats()
 
 	for {
 		tryPopQueue()
@@ -113,6 +108,21 @@ func (s *session) loop(cancelSig context.Context) {
 			exitSig = nil // fire once
 		}
 	}
+}
+
+func (s *session) logStats() {
+	s.Lock()
+	defer s.Unlock()
+	duration := int(time.Now().Sub(s.stats.start) / time.Millisecond)
+	s.log().I("inMessages", s.stats.inMessages).
+		I("outMessages", s.stats.outMessages).
+		I("aliveMessages", s.stats.aliveMessages).
+		I("durationMs", duration).
+		Debug("stats")
+	metric.Time("inMessages", s.stats.inMessages)
+	metric.Time("outMessages", s.stats.inMessages)
+	metric.Time("aliveMessages", s.stats.inMessages)
+	metric.Time("duration", duration)
 }
 
 func (s *session) unsubscribe() {
@@ -156,26 +166,21 @@ func (s *session) Send(m *amp.Msg) {
 	// add to queue
 	s.Lock()
 	defer s.Unlock()
-	queueLen := len(s.outQueue)
-	if s.stats.maxQueueLen < queueLen {
-		s.stats.maxQueueLen = queueLen
-	}
-	// check for queue overflow
-	if queueLen == maxWriteQueueDepth {
-		s.conn.Close()
-		s.log().I("len", queueLen).
-			S("start", fmt.Sprintf("%v", s.stats.start)).
-			I("inMessages", s.stats.inMessages).
-			I("outMessages", s.stats.outMessages).
-			I("aliveMessages", s.stats.aliveMessages).
-			I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
-			Info("out queue overflow")
-		for i, m := range s.outQueue {
-			s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).Info("queue content")
+
+	if s.isStarted() {
+		queueLen := len(s.outQueue)
+		if s.stats.maxQueueLen < queueLen {
+			s.stats.maxQueueLen = queueLen
 		}
-	}
-	if queueLen >= maxWriteQueueDepth {
-		return
+		// check for queue overflow
+		if queueLen >= maxWriteQueueDepth {
+			if !s.closed {
+				s.conn.Close()
+				s.logOutQueueOverflow()
+			}
+			s.closed = true
+			return
+		}
 	}
 
 	s.outQueue = append(s.outQueue, m)
@@ -184,7 +189,28 @@ func (s *session) Send(m *amp.Msg) {
 	case s.outQueueChanged <- struct{}{}:
 	default:
 	}
+}
 
+// should be called during s.Lock
+func (s *session) isStarted() bool {
+	if !s.started {
+		s.started = time.Now().Sub(s.stats.start) > startupInterval
+	}
+	return s.started
+}
+
+// should be called during s.Lock
+func (s *session) logOutQueueOverflow() {
+	s.log().I("len", len(s.outQueue)).
+		S("start", fmt.Sprintf("%v", s.stats.start)).
+		I("inMessages", s.stats.inMessages).
+		I("outMessages", s.stats.outMessages).
+		I("aliveMessages", s.stats.aliveMessages).
+		I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
+		Info("out queue overflow")
+	for i, m := range s.outQueue {
+		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).Info("queue content")
+	}
 }
 
 func (s *session) connWrite(m *amp.Msg) {
