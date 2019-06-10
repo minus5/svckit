@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -155,21 +156,35 @@ func (s *session) Send(m *amp.Msg) {
 	// add to queue
 	s.Lock()
 	defer s.Unlock()
+	queueLen := len(s.outQueue)
+	if s.stats.maxQueueLen < queueLen {
+		s.stats.maxQueueLen = queueLen
+	}
+	// check for queue overflow
+	if queueLen == maxWriteQueueDepth {
+		s.conn.Close()
+		s.log().I("len", queueLen).
+			S("start", fmt.Sprintf("%v", s.stats.start)).
+			I("inMessages", s.stats.inMessages).
+			I("outMessages", s.stats.outMessages).
+			I("aliveMessages", s.stats.aliveMessages).
+			I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
+			Info("out queue overflow")
+		for i, m := range s.outQueue {
+			s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).Info("queue content")
+		}
+	}
+	if queueLen >= maxWriteQueueDepth {
+		return
+	}
+
 	s.outQueue = append(s.outQueue, m)
 	// signal queue changed
 	select {
 	case s.outQueueChanged <- struct{}{}:
 	default:
 	}
-	// check for queue overflow
-	queueLen := len(s.outQueue)
-	if queueLen > maxWriteQueueDepth {
-		s.conn.Close()
-		s.log().I("len", queueLen).Info("out queue overflow")
-	}
-	if s.stats.maxQueueLen < queueLen {
-		s.stats.maxQueueLen = queueLen
-	}
+
 }
 
 func (s *session) connWrite(m *amp.Msg) {
