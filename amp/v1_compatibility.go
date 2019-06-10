@@ -15,6 +15,9 @@ func ParseCompatibility(buf []byte, version uint8) *Msg {
 }
 
 func ParseV1(buf []byte) *Msg {
+	if len(buf) == 0 {
+		return nil
+	}
 	v1 := struct {
 		Type          uint8 `json:"t,omitempty"`
 		Subscriptions []struct {
