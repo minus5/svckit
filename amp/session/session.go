@@ -120,8 +120,8 @@ func (s *session) logStats() {
 		I("durationMs", duration).
 		Debug("stats")
 	metric.Time("inMessages", s.stats.inMessages)
-	metric.Time("outMessages", s.stats.inMessages)
-	metric.Time("aliveMessages", s.stats.inMessages)
+	metric.Time("outMessages", s.stats.outMessages)
+	metric.Time("aliveMessages", s.stats.aliveMessages)
 	metric.Time("duration", duration)
 }
 
