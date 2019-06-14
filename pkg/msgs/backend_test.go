@@ -7,11 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"github.com/minus5/services/pkg/common"
-	tDto "github.com/minus5/services/pkg/tecajna/dto"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -314,7 +313,17 @@ func TestLogWebAppApi(t *testing.T) {
 	assert.Equal(t, buf, m.RawBody)
 	//t.Logf("%s", m.Pack())
 
-	var l common.LogMessage
+	// kopirano iz common LogMessage
+	var l struct {
+		SessionId string    `json:"session_id"`
+		IgracId   string    `json:"igrac_id"`
+		Source    string    `json:"source"`
+		Level     string    `json:"level"`
+		Message   string    `json:"message"`
+		Value     float64   `json:"value"`
+		Created   time.Time `json:"created"`
+	}
+
 	m.UnmarshalBody(&l)
 	assert.Equal(t, "kladomat_plazma", l.Source)
 
@@ -333,7 +342,11 @@ func TestVideoIdDogadjaji(t *testing.T) {
 	buf := []byte(`{"video_id":1,"dogadjaj_id":2}`)
 	m := NewBackendOrSimple(buf, "")
 	assert.NotNil(t, m)
-	var vs tDto.VideoStream
+	// kopirano iz tecajna/dto
+	var vs struct {
+		VideoId    int `json:"video_id"`
+		DogadjajId int `json:"dogadjaj_id"`
+	}
 	m.UnmarshalBody(&vs)
 	assert.Equal(t, 1, vs.VideoId)
 	assert.Equal(t, 2, vs.DogadjajId)
