@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"github.com/minus5/services/pkg/jsonu"
-	"github.com/minus5/services/pkg/util"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/minus5/services/pkg/util"
 
 	"github.com/minus5/go-simplejson"
 	"github.com/minus5/svckit/log"
@@ -392,9 +392,15 @@ func (b *Backend) RawMessage() []byte {
 	return b.pack()
 }
 
+func marshalPrettyBuf(buf []byte) ([]byte, error) {
+	var data map[string]interface{}
+	json.Unmarshal(buf, &data)
+	return json.MarshalIndent(data, "", "  ")
+}
+
 func (b *Backend) Format(prettyJson, noHeader bool) io.Reader {
 	if prettyJson {
-		return b.format(jsonu.MarshalPrettyBuf, noHeader)
+		return b.format(marshalPrettyBuf, noHeader)
 	} else {
 		return b.format(nil, noHeader)
 	}
@@ -521,26 +527,26 @@ func (b *Backend) Json() *simplejson.Json {
 	return b.jsonBody
 }
 
-// Merge spaja diff proruke na postojeci full.
-// I tako nadogradjuje u novi full.
-func (b *Backend) Merge(diff *Backend) {
-	if !b.IsFullDiff() || !diff.IsFullDiff() {
-		// ovo se ne bi smijelo dogoditi, greska je u logici
-		log.Notice("poruka nije full/diff tipa")
-		return
-	}
-	b.jsonBody = jsonu.Merge(b.Json(), diff.Json())
-	b.Ts = diff.Ts
-	b.No = diff.No
-	// ovi podaci vise nemaju smisla pa ih brisem da ih ne bi greskom koristio
-	b.RawBody = nil
-	b.Encoding = ""
-	b.RawHeader = nil
-	b.Body = nil
-	// rawMsg ce se ponov izgraditi u pack
-	b.rawMsg = nil
-	b.pack()
-}
+// // Merge spaja diff proruke na postojeci full.
+// // I tako nadogradjuje u novi full.
+// func (b *Backend) Merge(diff *Backend) {
+// 	if !b.IsFullDiff() || !diff.IsFullDiff() {
+// 		// ovo se ne bi smijelo dogoditi, greska je u logici
+// 		log.Notice("poruka nije full/diff tipa")
+// 		return
+// 	}
+// 	b.jsonBody = jsonu.Merge(b.Json(), diff.Json())
+// 	b.Ts = diff.Ts
+// 	b.No = diff.No
+// 	// ovi podaci vise nemaju smisla pa ih brisem da ih ne bi greskom koristio
+// 	b.RawBody = nil
+// 	b.Encoding = ""
+// 	b.RawHeader = nil
+// 	b.Body = nil
+// 	// rawMsg ce se ponov izgraditi u pack
+// 	b.rawMsg = nil
+// 	b.pack()
+// }
 
 // IsFullDiff radi li se o full/diff tipu poruke
 func (b *Backend) IsFullDiff() bool {

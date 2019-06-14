@@ -1,12 +1,7 @@
 package msgs
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
 	"io/ioutil"
-	"log"
-	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -360,6 +355,7 @@ func TestVideoIdDogadjaji(t *testing.T) {
 	assert.Equal(t, 5, vs.DogadjajId)
 }
 
+/*
 func TestMerge(t *testing.T) {
 
 	// procitaj sve poruke za jedan dogadjaj
@@ -431,6 +427,7 @@ func TestMerge(t *testing.T) {
 		}
 	}
 }
+*/
 
 // BackendPoredak soritra poruke po no
 type BackendPoredak []*Backend
