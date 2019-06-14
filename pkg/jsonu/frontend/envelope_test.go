@@ -1,7 +1,7 @@
 package frontend
 
 import (
-	"github.com/minus5/services/pkg/testu"
+	"github.com/minus5/svckit/pkg/testu"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

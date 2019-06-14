@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"github.com/minus5/services/pkg/util"
+	"github.com/minus5/svckit/pkg/util"
 	"time"
 
 	"github.com/minus5/svckit/log"

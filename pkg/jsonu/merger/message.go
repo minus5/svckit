@@ -2,7 +2,7 @@ package merger
 
 import (
 	"fmt"
-	"github.com/minus5/services/pkg/jsonu"
+	"github.com/minus5/svckit/pkg/jsonu"
 	"strings"
 
 	simplejson "github.com/minus5/go-simplejson"

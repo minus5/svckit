@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/minus5/go-simplejson"
-	"github.com/minus5/services/pkg/util/compress"
+	"github.com/minus5/svckit/pkg/util/compress"
 	"github.com/minus5/svckit/log"
 )
 
