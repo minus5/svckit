@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/minus5/services/pkg/util"
-
 	"github.com/minus5/go-simplejson"
+	"github.com/minus5/services/pkg/util/compress"
 	"github.com/minus5/svckit/log"
 )
 
@@ -145,7 +144,7 @@ func CreateBackendNoGzip(typ string, no int, body []byte) []byte {
 	return createBackend(typ, no, 0, body, false)
 }
 
-func createBackend(typ string, no int, ts int, body []byte, compress bool) []byte {
+func createBackend(typ string, no int, ts int, body []byte, shouldCompress bool) []byte {
 	header := map[string]interface{}{
 		"type": typ,
 	}
@@ -157,8 +156,8 @@ func createBackend(typ string, no int, ts int, body []byte, compress bool) []byt
 	} else {
 		header["ts"] = time.Now().UnixNano()
 	}
-	if compress && len(body) > GzipMsgSizeLimit {
-		body = util.Gzip(body)
+	if shouldCompress && len(body) > GzipMsgSizeLimit {
+		body = compress.Gzip(body)
 		header["encoding"] = "gzip"
 	}
 	buf, _ := json.Marshal(header)
@@ -188,13 +187,13 @@ func BackendFactory(typ string, body []byte, opts ...func(map[string]interface{}
 	for _, o := range opts {
 		o(header)
 	}
-	compress := true
+	shouldCompress := true
 	if v, ok := header[gzipKey]; ok {
-		compress = v.(bool)
+		shouldCompress = v.(bool)
 		delete(header, gzipKey)
 	}
-	if compress && len(body) > GzipMsgSizeLimit {
-		body = util.Gzip(body)
+	if shouldCompress && len(body) > GzipMsgSizeLimit {
+		body = compress.Gzip(body)
 		header["encoding"] = "gzip"
 	}
 	buf, _ := json.Marshal(header)
@@ -212,14 +211,14 @@ func parseAsBackend(buf []byte) *Backend {
 	rawHeader := parts[0]
 	msg, err := parseHeader(rawHeader)
 	if len(parts) == 1 || err != nil {
-		msg.Body, _ = util.GunzipIf(buf)
+		msg.Body, _ = compress.GunzipIf(buf)
 		msg.RawBody = buf
 		msg.RawHeader = nil
 		return msg
 	}
 	body := parts[1]
 	msg.RawBody = body
-	msg.Body, _ = util.GunzipIf(body)
+	msg.Body, _ = compress.GunzipIf(body)
 	msg.rawMsg = buf
 	return msg
 }

@@ -1,4 +1,4 @@
-package util
+package compress
 
 import (
 	"bytes"
