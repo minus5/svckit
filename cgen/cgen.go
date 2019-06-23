@@ -3,6 +3,9 @@ package cgen
 
 import (
 	"reflect"
+	"unicode"
+
+	"github.com/fatih/structtag"
 )
 
 type Struct struct {
@@ -117,9 +120,29 @@ func findFields(v reflect.Value) Struct {
 			Field{
 				Name: ft.Name,
 				Type: f.Type().String(),
+				Tag:  parseTag(ft),
 			})
 	}
 	return stc
+}
+
+func parseTag(ft reflect.StructField) string {
+	tags, err := structtag.Parse(string(ft.Tag))
+	if err != nil {
+		panic(err)
+	}
+	jn := nonExported(ft.Name)
+	if t, err := tags.Get("json"); err == nil {
+		jn = t.Name
+	}
+	return "`" + `json:"` + jn + `,omitempty"`
+}
+
+// nonExported name; first letter lower
+func nonExported(s string) string {
+	a := []rune(s)
+	a[0] = unicode.ToLower(a[0])
+	return string(a)
 }
 
 /*

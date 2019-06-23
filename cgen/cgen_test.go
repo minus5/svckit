@@ -10,11 +10,11 @@ import (
 )
 
 type Event struct {
-	Home     string
-	Away     string
-	Schedule time.Time
-	Result   Result
-	Markets  map[int]Market
+	Home     string         `json:"h"`
+	Away     string         `json:"a"`
+	Schedule time.Time      `json:"s"`
+	Result   Result         `json:"r"`
+	Markets  map[int]Market `json:"m,omitempty"`
 }
 type Market struct {
 	Name     string
@@ -33,7 +33,6 @@ func TestAnalyzeStruct(t *testing.T) {
 	e := &Event{}
 	stcs := analyzeStruct(e)
 	spew.Dump(stcs)
-	//spew.Printf("myVar1: %#v\n", stcs)
 	buf, _ := json.MarshalIndent(stcs, "  ", "  ")
 	fmt.Printf("%s\n", buf)
 }
