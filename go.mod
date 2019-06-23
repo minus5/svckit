@@ -6,6 +6,7 @@ require (
 	github.com/Unix4ever/statsd v0.0.0-20160120230120-a8219f1fb9d8 // indirect
 	github.com/cactus/go-statsd-client/statsd v0.0.0-20190302225832-f5dd73501f04 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible
+	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/color v1.7.0
 	github.com/fatih/structtag v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
