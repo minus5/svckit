@@ -2,7 +2,9 @@
 package cgen
 
 import (
+	"fmt"
 	"reflect"
+	"sort"
 	"unicode"
 
 	"github.com/fatih/structtag"
@@ -25,29 +27,55 @@ type Map struct {
 	Value string
 	Tag   string
 }
-type Type struct {
-	Name  string
-	Value reflect.Value
-	Type  reflect.Type
+
+func (s Struct) NilConditions() []string {
+	var c []string
+	for _, f := range s.Fields {
+		c = append(c, fmt.Sprintf(" i.%s == nil ", f.Name))
+	}
+	for _, s := range s.Structs {
+		c = append(c, fmt.Sprintf(" i.%s == nil ", s.Name))
+	}
+	for _, m := range s.Maps {
+		c = append(c, fmt.Sprintf(" (i.%s == nil || len(i.%s) == 0) ", m.Field, m.Field))
+	}
+	return c
 }
 
-func analyzeStruct(o interface{}) map[string]Struct {
+type structs map[string]Struct
+
+func (s structs) sort() []Struct {
+	var names []string
+	for k := range s {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	var a []Struct
+	for _, k := range names {
+		a = append(a, s[k])
+	}
+	return a
+}
+
+// AnalyzeStruct returns information for all struct types
+// reachable from o.
+func AnalyzeStruct(o interface{}) []Struct {
 	v := reflect.ValueOf(o).Elem()
-	types := make(map[string]Type)
-	findTypes(v, types)
-	stcs := make(map[string]Struct)
-	for k, v := range types {
-		stcs[k] = findFields(v.Value)
-	}
-	return stcs
+	return analyzeValues(deepFindValues(v)).sort()
 }
 
-func findTypes(v reflect.Value, types map[string]Type) {
+// deepFindValues finds all values recursively,
+// staring with v and going into inner fields, maps.
+func deepFindValues(v reflect.Value) map[string]reflect.Value {
+	values := make(map[string]reflect.Value)
+	findValues(v, values)
+	return values
+}
+
+func findValues(v reflect.Value, values map[string]reflect.Value) {
 	t := v.Type()
-	types[t.Name()] = Type{
-		Value: v,
-		Type:  t,
-	}
+	values[t.Name()] = v
+
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		if !f.CanSet() { // skip unexported
@@ -57,7 +85,7 @@ func findTypes(v reflect.Value, types map[string]Type) {
 		switch ft.Type.Kind() {
 		case reflect.Map:
 			mv := reflect.New(ft.Type.Elem()).Elem() // map value value
-			findTypes(mv, types)
+			findValues(mv, values)
 		case reflect.Struct:
 			ts := ft.Type.String()
 			if ts == "sync.Mutex" {
@@ -67,12 +95,20 @@ func findTypes(v reflect.Value, types map[string]Type) {
 				continue
 			}
 			sv := reflect.New(ft.Type).Elem()
-			findTypes(sv, types)
+			findValues(sv, values)
 		}
 	}
 }
 
-func findFields(v reflect.Value) Struct {
+func analyzeValues(values map[string]reflect.Value) structs {
+	stcs := make(map[string]Struct)
+	for k, v := range values {
+		stcs[k] = analyzeValue(v)
+	}
+	return stcs
+}
+
+func analyzeValue(v reflect.Value) Struct {
 	t := v.Type()
 	stc := Struct{
 		Type: t.Name(),
@@ -95,6 +131,7 @@ func findFields(v reflect.Value) Struct {
 					Field: ft.Name,
 					Key:   kt.Name(),
 					Value: vt.Name(),
+					Tag:   parseTag(ft),
 				})
 			continue
 		case reflect.Invalid, reflect.Chan, reflect.Func, reflect.Interface, reflect.UnsafePointer:
@@ -112,6 +149,7 @@ func findFields(v reflect.Value) Struct {
 				stc.Structs = append(stc.Structs, Field{
 					Name: ft.Name,
 					Type: ft.Type.Name(),
+					Tag:  parseTag(ft),
 				})
 				continue
 			}
@@ -135,7 +173,7 @@ func parseTag(ft reflect.StructField) string {
 	if t, err := tags.Get("json"); err == nil {
 		jn = t.Name
 	}
-	return "`" + `json:"` + jn + `,omitempty"`
+	return "`" + `json:"` + jn + `,omitempty"` + "`"
 }
 
 // nonExported name; first letter lower

@@ -31,8 +31,26 @@ type Result struct {
 
 func TestAnalyzeStruct(t *testing.T) {
 	e := &Event{}
-	stcs := analyzeStruct(e)
+	stcs := AnalyzeStruct(e)
 	spew.Dump(stcs)
 	buf, _ := json.MarshalIndent(stcs, "  ", "  ")
 	fmt.Printf("%s\n", buf)
+}
+
+func TestDiff(t *testing.T) {
+	e := &Event{}
+	d := diff(AnalyzeStruct(e))
+	fmt.Printf("%s\n", d)
+}
+
+func TestMerge(t *testing.T) {
+	e := &Event{}
+	d := merge(AnalyzeStruct(e))
+	fmt.Printf("%s\n", d)
+}
+
+func TestDiffMethods(t *testing.T) {
+	e := &Event{}
+	d := diffMethods(AnalyzeStruct(e))
+	fmt.Printf("%s\n", d)
 }
