@@ -1,13 +1,26 @@
-package cgen
+package cgen_test
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/minus5/svckit/cgen"
+	"github.com/minus5/svckit/pkg/testu"
 )
+
+// switch to true to update test fixtures
+// by running test with flag save-fixtures
+//   go test --save-fixtures
+var saveFixtures = false
+
+func init() {
+	flag.BoolVar(&saveFixtures, "save-fixtures", false, "snimi fixture umjesto testiranja spram njih")
+	flag.Parse()
+}
 
 type Event struct {
 	Home     string         `json:"h"`
@@ -30,8 +43,9 @@ type Result struct {
 }
 
 func TestAnalyzeStruct(t *testing.T) {
+	t.Skip("experiments")
 	e := &Event{}
-	stcs := AnalyzeStruct(e)
+	stcs := cgen.AnalyzeStruct(e)
 	spew.Dump(stcs)
 	buf, _ := json.MarshalIndent(stcs, "  ", "  ")
 	fmt.Printf("%s\n", buf)
@@ -39,18 +53,6 @@ func TestAnalyzeStruct(t *testing.T) {
 
 func TestDiff(t *testing.T) {
 	e := &Event{}
-	d := diff(AnalyzeStruct(e))
-	fmt.Printf("%s\n", d)
-}
-
-func TestMerge(t *testing.T) {
-	e := &Event{}
-	d := merge(AnalyzeStruct(e))
-	fmt.Printf("%s\n", d)
-}
-
-func TestDiffMethods(t *testing.T) {
-	e := &Event{}
-	d := diffMethods(AnalyzeStruct(e))
-	fmt.Printf("%s\n", d)
+	d := cgen.AnalyzeStruct(e).Diff()
+	testu.AssertFixture(t, "./fixtures/event_diff.gen", d.Bytes(), saveFixtures)
 }
