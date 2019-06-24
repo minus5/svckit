@@ -36,6 +36,7 @@ func (data Data) Diff() Code {
 	buf.Write(data.diff())
 	buf.Write(data.merge())
 	buf.Write(data.diffMethods())
+	buf.Write(data.copyMethods())
 	return Code{content: gofmt(buf.Bytes())}
 }
 
@@ -49,6 +50,10 @@ func (data Data) merge() []byte {
 
 func (data Data) diffMethods() []byte {
 	return runTemplate(diffMethodsTemplate, data)
+}
+
+func (data Data) copyMethods() []byte {
+	return runTemplate(copyMethods, data)
 }
 
 func runTemplate(tplDef string, data interface{}) []byte {
@@ -118,8 +123,8 @@ var mergeTemplate = `
 // Merge applies diff (d) to {{.Type}} (o)
 // and returns new value type with merged changes.
 // Doesn't modifies original value (o).
-func (o {{.Type}}) Merge(d *{{.Type}}Diff) {{.Type}} {
-  n, _ := o.merge(d)
+func (o {{.Type}}) Merge(d {{.Type}}Diff) {{.Type}} {
+  n, _ := o.merge(&d)
   return n
 }
 {{- end}}
@@ -235,3 +240,18 @@ func (i {{.Type}}Diff) empty() bool {
 
 {{- end}}
 `
+var copyMethods = `
+{{- range .Structs }}
+
+func (o {{.Type}}) Copy() {{.Type}} {
+{{- range .Maps}}
+  	copy{{.Field}} := make(map[{{.Key}}]{{.Value}})
+		for k, v := range o.{{.Field}} {
+      copy{{.Field}}[k] = v.Copy()
+    }
+    o.{{.Field}} = copy{{.Field}}
+{{- end}}
+  return o
+}
+
+{{- end}}`
