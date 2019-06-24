@@ -20,6 +20,7 @@ type Struct struct {
 	StructFields []Field
 	Fields       []Field
 	Maps         []Map
+	IsRoot       bool
 }
 type Field struct {
 	Name string
@@ -63,13 +64,13 @@ func (s structs) sort() []Struct {
 	return a
 }
 
-// AnalyzeStruct returns information for all struct types
+// Analyze returns information for all struct types
 // reachable from o.
-func AnalyzeStruct(o interface{}) Data {
+func Analyze(o interface{}) Data {
 	v := reflect.ValueOf(o).Elem()
 	return Data{
 		Package: packageName(v),
-		Structs: analyzeStructs(deepFindValues(v)).sort(),
+		Structs: analyzeStructs(v, deepFindValues(v)).sort(),
 	}
 }
 
@@ -114,10 +115,14 @@ func findValues(v reflect.Value, values map[string]reflect.Value) {
 	}
 }
 
-func analyzeStructs(values map[string]reflect.Value) structs {
+func analyzeStructs(root reflect.Value, values map[string]reflect.Value) structs {
 	stcs := make(map[string]Struct)
 	for k, v := range values {
-		stcs[k] = analyzeStruct(v)
+		stc := analyzeStruct(v)
+		if v == root {
+			stc.IsRoot = true
+		}
+		stcs[k] = stc
 	}
 	return stcs
 }

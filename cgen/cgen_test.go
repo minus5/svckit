@@ -45,7 +45,7 @@ type Result struct {
 func TestAnalyzeStruct(t *testing.T) {
 	t.Skip("experiments")
 	e := &Event{}
-	stcs := cgen.AnalyzeStruct(e)
+	stcs := cgen.Analyze(e)
 	spew.Dump(stcs)
 	buf, _ := json.MarshalIndent(stcs, "  ", "  ")
 	fmt.Printf("%s\n", buf)
@@ -53,6 +53,6 @@ func TestAnalyzeStruct(t *testing.T) {
 
 func TestDiff(t *testing.T) {
 	e := &Event{}
-	d := cgen.AnalyzeStruct(e).Diff()
+	d := cgen.Analyze(e).Diff()
 	testu.AssertFixture(t, "./fixtures/event_diff.gen", d.Bytes(), saveFixtures)
 }

@@ -30,7 +30,7 @@ type ResultDiff struct {
 // and returns new value type with merged changes.
 // Doesn't modifies original value (o).
 func (o Event) Merge(d *EventDiff) Event {
-	n, _ := o.merge()
+	n, _ := o.merge(d)
 	return n
 }
 
@@ -86,14 +86,6 @@ func (o Event) merge(d *EventDiff) (Event, bool) {
 	return o, changed
 }
 
-// Merge applies diff (d) to Market (o)
-// and returns new value type with merged changes.
-// Doesn't modifies original value (o).
-func (o Market) Merge(d *MarketDiff) Market {
-	n, _ := o.merge()
-	return n
-}
-
 func (o Market) merge(d *MarketDiff) (Market, bool) {
 	if d == nil {
 		return o, false
@@ -133,14 +125,6 @@ func (o Market) merge(d *MarketDiff) (Market, bool) {
 	return o, changed
 }
 
-// Merge applies diff (d) to Outcome (o)
-// and returns new value type with merged changes.
-// Doesn't modifies original value (o).
-func (o Outcome) Merge(d *OutcomeDiff) Outcome {
-	n, _ := o.merge()
-	return n
-}
-
 func (o Outcome) merge(d *OutcomeDiff) (Outcome, bool) {
 	if d == nil {
 		return o, false
@@ -156,14 +140,6 @@ func (o Outcome) merge(d *OutcomeDiff) (Outcome, bool) {
 		changed = true
 	}
 	return o, changed
-}
-
-// Merge applies diff (d) to Result (o)
-// and returns new value type with merged changes.
-// Doesn't modifies original value (o).
-func (o Result) Merge(d *ResultDiff) Result {
-	n, _ := o.merge()
-	return n
 }
 
 func (o Result) merge(d *ResultDiff) (Result, bool) {
@@ -186,6 +162,10 @@ func (o Result) merge(d *ResultDiff) (Result, bool) {
 // Diff creates diff (i) between new (n) and old (o) Event.
 // So that diff applyed to old will produce new.
 func (o Event) Diff(n Event) *EventDiff {
+	return o.diff(n)
+}
+
+func (o Event) diff(n Event) *EventDiff {
 	i := &EventDiff{}
 	if n.Home != o.Home {
 		i.Home = &n.Home
@@ -196,14 +176,14 @@ func (o Event) Diff(n Event) *EventDiff {
 	if n.Schedule != o.Schedule {
 		i.Schedule = &n.Schedule
 	}
-	i.Result = o.Result.Diff(n.Result)
+	i.Result = o.Result.diff(n.Result)
 	i.Markets = make(map[int]*MarketDiff)
 	for k, nc := range n.Markets {
 		oc, ok := o.Markets[k]
 		if !ok {
 			oc = Market{}
 		}
-		ip := oc.Diff(nc)
+		ip := oc.diff(nc)
 		if ip != nil {
 			i.Markets[k] = ip
 		}
@@ -232,9 +212,7 @@ func (i EventDiff) empty() bool {
 		(i.Markets == nil || len(i.Markets) == 0)
 }
 
-// Diff creates diff (i) between new (n) and old (o) Market.
-// So that diff applyed to old will produce new.
-func (o Market) Diff(n Market) *MarketDiff {
+func (o Market) diff(n Market) *MarketDiff {
 	i := &MarketDiff{}
 	if n.Name != o.Name {
 		i.Name = &n.Name
@@ -245,7 +223,7 @@ func (o Market) Diff(n Market) *MarketDiff {
 		if !ok {
 			oc = Outcome{}
 		}
-		ip := oc.Diff(nc)
+		ip := oc.diff(nc)
 		if ip != nil {
 			i.Outcomes[k] = ip
 		}
@@ -271,9 +249,7 @@ func (i MarketDiff) empty() bool {
 		(i.Outcomes == nil || len(i.Outcomes) == 0)
 }
 
-// Diff creates diff (i) between new (n) and old (o) Outcome.
-// So that diff applyed to old will produce new.
-func (o Outcome) Diff(n Outcome) *OutcomeDiff {
+func (o Outcome) diff(n Outcome) *OutcomeDiff {
 	i := &OutcomeDiff{}
 	if n.Name != o.Name {
 		i.Name = &n.Name
@@ -292,9 +268,7 @@ func (i OutcomeDiff) empty() bool {
 		i.Odds == nil
 }
 
-// Diff creates diff (i) between new (n) and old (o) Result.
-// So that diff applyed to old will produce new.
-func (o Result) Diff(n Result) *ResultDiff {
+func (o Result) diff(n Result) *ResultDiff {
 	i := &ResultDiff{}
 	if n.Home != o.Home {
 		i.Home = &n.Home

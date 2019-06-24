@@ -87,21 +87,42 @@ type {{.Type}}Diff struct {
 	{{.Name}} *{{.Type}}Diff {{.Tag}}
 {{- end}}
 {{- range .Maps}}
-	{{.Field}}  map[{{.Key}}]*{{.Value}}Diff {{.Tag}}
+	{{.Field}} {{.Value}}DiffMap {{.Tag}}
 {{- end}}
 }
+
+{{ range .Maps}}
+type {{.Value}}DiffMap map[{{.Key}}]*{{.Value}}Diff
+func (m *{{.Value}}DiffMap) Set(key {{.Key}}, value *{{.Value}}Diff) *{{.Value}}Diff {
+	if *m == nil {
+		*m = make(map[{{.Key}}]*{{.Value}}Diff)
+	}
+	mv := *m
+	mv[key] = value
+	return value
+}
+func (m *{{.Value}}DiffMap) Nil(key {{.Key}}) {
+  m.Set(key, nil)
+}
+func (m *{{.Value}}DiffMap) Empty(key {{.Key}}) *{{.Value}}Diff {
+  return m.Set(key, &{{.Value}}Diff{})
+}
+{{- end}}
 {{- end}}
 `
 
 var mergeTemplate = `
 {{- range .Structs }}
+
+{{- if .IsRoot}}
 // Merge applies diff (d) to {{.Type}} (o)
 // and returns new value type with merged changes.
 // Doesn't modifies original value (o).
 func (o {{.Type}}) Merge(d *{{.Type}}Diff) {{.Type}} {
-  n, _ := o.merge()
+  n, _ := o.merge(d)
   return n
 }
+{{- end}}
 
 func (o {{.Type}}) merge(d *{{.Type}}Diff) ({{.Type}}, bool) {
   if d == nil {
@@ -159,9 +180,15 @@ func (o {{.Type}}) merge(d *{{.Type}}Diff) ({{.Type}}, bool) {
 
 var diffMethodsTemplate = `
 {{- range .Structs }}
+{{- if .IsRoot}}
 // Diff creates diff (i) between new (n) and old (o) {{.Type}}.
 // So that diff applyed to old will produce new.
 func (o {{.Type}}) Diff(n {{.Type}}) *{{.Type}}Diff {
+  return o.diff(n)
+}
+{{- end}}
+
+func (o {{.Type}}) diff(n {{.Type}}) *{{.Type}}Diff {
 	i := &{{.Type}}Diff{}
 
 {{- range .Fields }}
@@ -171,7 +198,7 @@ func (o {{.Type}}) Diff(n {{.Type}}) *{{.Type}}Diff {
 {{- end}}
 
 {{- range .StructFields}}
-  i.{{.Name}} = o.{{.Name}}.Diff(n.{{.Name}})
+  i.{{.Name}} = o.{{.Name}}.diff(n.{{.Name}})
 {{- end}}
 {{- range .Maps}}
 	i.{{.Field}} = make(map[{{.Key}}]*{{.Value}}Diff)
@@ -180,7 +207,7 @@ func (o {{.Type}}) Diff(n {{.Type}}) *{{.Type}}Diff {
 		if !ok {
       oc = {{.Value}}{}
 		}
-		ip := oc.Diff(nc)
+		ip := oc.diff(nc)
 		if ip != nil {
 			i.{{.Field}}[k] = ip
 		}
