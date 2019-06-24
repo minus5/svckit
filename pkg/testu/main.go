@@ -28,7 +28,8 @@ func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) 
 	if !same {
 		actualFile := expectedFile + "_actual"
 		SaveFixture(actualFile, a)
-		cmd := exec.Command("icdiff", "--highlight", expectedFile, actualFile)
+		cmd := exec.Command("icdiff", "--highlight", "--cols=160", expectedFile, actualFile)
+		//cmd := exec.Command("git", "diff", "--no-index", "--color=always", expectedFile, actualFile)
 		out, err := cmd.Output()
 		if err != nil {
 			t.Logf("diff status %s", err)
