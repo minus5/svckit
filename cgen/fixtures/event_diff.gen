@@ -7,20 +7,57 @@ import (
 )
 
 type EventDiff struct {
-	Home     *string             `json:"h,omitempty"`
-	Away     *string             `json:"a,omitempty"`
-	Schedule *time.Time          `json:"s,omitempty"`
-	Result   *ResultDiff         `json:"r,omitempty"`
-	Markets  map[int]*MarketDiff `json:"m,omitempty"`
+	Home     *string       `json:"h,omitempty"`
+	Away     *string       `json:"a,omitempty"`
+	Schedule *time.Time    `json:"s,omitempty"`
+	Result   *ResultDiff   `json:"r,omitempty"`
+	Markets  MarketDiffMap `json:"m,omitempty"`
 }
+
+type MarketDiffMap map[int]*MarketDiff
+
+func (m *MarketDiffMap) Set(key int, value *MarketDiff) *MarketDiff {
+	if *m == nil {
+		*m = make(map[int]*MarketDiff)
+	}
+	mv := *m
+	mv[key] = value
+	return value
+}
+func (m *MarketDiffMap) Nil(key int) {
+	m.Set(key, nil)
+}
+func (m *MarketDiffMap) Empty(key int) *MarketDiff {
+	return m.Set(key, &MarketDiff{})
+}
+
 type MarketDiff struct {
-	Name     *string              `json:"name,omitempty"`
-	Outcomes map[int]*OutcomeDiff `json:"outcomes,omitempty"`
+	Name     *string        `json:"name,omitempty"`
+	Outcomes OutcomeDiffMap `json:"outcomes,omitempty"`
 }
+
+type OutcomeDiffMap map[int]*OutcomeDiff
+
+func (m *OutcomeDiffMap) Set(key int, value *OutcomeDiff) *OutcomeDiff {
+	if *m == nil {
+		*m = make(map[int]*OutcomeDiff)
+	}
+	mv := *m
+	mv[key] = value
+	return value
+}
+func (m *OutcomeDiffMap) Nil(key int) {
+	m.Set(key, nil)
+}
+func (m *OutcomeDiffMap) Empty(key int) *OutcomeDiff {
+	return m.Set(key, &OutcomeDiff{})
+}
+
 type OutcomeDiff struct {
 	Name *string  `json:"name,omitempty"`
 	Odds *float64 `json:"odds,omitempty"`
 }
+
 type ResultDiff struct {
 	Home *int `json:"home,omitempty"`
 	Away *int `json:"away,omitempty"`
@@ -29,8 +66,8 @@ type ResultDiff struct {
 // Merge applies diff (d) to Event (o)
 // and returns new value type with merged changes.
 // Doesn't modifies original value (o).
-func (o Event) Merge(d *EventDiff) Event {
-	n, _ := o.merge(d)
+func (o Event) Merge(d EventDiff) Event {
+	n, _ := o.merge(&d)
 	return n
 }
 
@@ -285,4 +322,30 @@ func (o Result) diff(n Result) *ResultDiff {
 func (i ResultDiff) empty() bool {
 	return i.Home == nil &&
 		i.Away == nil
+}
+
+func (o Event) Copy() Event {
+	copyMarkets := make(map[int]Market)
+	for k, v := range o.Markets {
+		copyMarkets[k] = v.Copy()
+	}
+	o.Markets = copyMarkets
+	return o
+}
+
+func (o Market) Copy() Market {
+	copyOutcomes := make(map[int]Outcome)
+	for k, v := range o.Outcomes {
+		copyOutcomes[k] = v.Copy()
+	}
+	o.Outcomes = copyOutcomes
+	return o
+}
+
+func (o Outcome) Copy() Outcome {
+	return o
+}
+
+func (o Result) Copy() Result {
+	return o
 }

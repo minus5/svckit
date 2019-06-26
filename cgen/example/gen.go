@@ -8,6 +8,6 @@ import (
 )
 
 func main() {
-	e := &example.Event{}
+	var e example.Event
 	cgen.Analyze(e).Diff().Save("./event_diff_gen.go")
 }

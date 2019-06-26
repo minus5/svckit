@@ -67,7 +67,11 @@ func (s structs) sort() []Struct {
 // Analyze returns information for all struct types
 // reachable from o.
 func Analyze(o interface{}) Data {
-	v := reflect.ValueOf(o).Elem()
+	// allow both value and pointer types
+	v := reflect.ValueOf(o)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
 	return Data{
 		Package: packageName(v),
 		Structs: analyzeStructs(v, deepFindValues(v)).sort(),
@@ -87,16 +91,20 @@ func deepFindValues(v reflect.Value) map[string]reflect.Value {
 	return values
 }
 
+func isExported(fieldName string) bool {
+	return fieldName == strings.Title(fieldName)
+}
+
 func findValues(v reflect.Value, values map[string]reflect.Value) {
 	t := v.Type()
 	values[t.Name()] = v
 
 	for i := 0; i < v.NumField(); i++ {
-		f := v.Field(i)
-		if !f.CanSet() { // skip unexported
+		//f := v.Field(i)
+		ft := t.Field(i)
+		if !isExported(ft.Name) { // skip unexported
 			continue
 		}
-		ft := t.Field(i)
 		switch ft.Type.Kind() {
 		case reflect.Map:
 			mv := reflect.New(ft.Type.Elem()).Elem() // map value value
@@ -134,10 +142,10 @@ func analyzeStruct(v reflect.Value) Struct {
 	}
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
-		if !f.CanSet() { // skip unexported
+		ft := t.Field(i)
+		if !isExported(ft.Name) {
 			continue
 		}
-		ft := t.Field(i)
 		switch ft.Type.Kind() {
 		case reflect.Map:
 			vt := ft.Type.Elem() // map value
