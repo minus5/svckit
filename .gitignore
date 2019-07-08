@@ -6,3 +6,6 @@ log
 /cmd/amp_tester/amp_tester
 cmd/amp_tester/build/app
 cmd/amp_tester/build/bin
+
+# ignore work in progress
+ssr
