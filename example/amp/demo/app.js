@@ -1,4 +1,9 @@
-var api = minus5.api();
+var api = minus5.api({
+  meta: {
+    pero: "Zdero",
+    sessionID: "id",
+  },
+});
 
 var mathTopic = "math.v1/i",
     mathHanderl = function(data) {

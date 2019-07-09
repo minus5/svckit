@@ -19,16 +19,30 @@ var urls = {
   },
   ws() {
     var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-    return protocol + location.hostname + urls.port() + urls.path() + 'api';
+    return urls.addMeta(protocol + location.hostname + urls.port() + urls.path() + 'api');
   },
   log: function() {
     return location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'log';
   },
   pooling: function() {
-    return location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'pooling';
+    return urls.addMeta(location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'pooling');
   },
   forcePooling: function() {
     return location.search.search("forcePooling") > -1;
+  },
+  meta: {},
+  addMeta: function(url) { // add meta key/values as query string to the url
+    var queryStr = "";
+    for (var key in urls.meta) {
+      if (queryStr) {
+        queryStr += "&";
+      }
+      queryStr += key + "=" + urls.meta[key];
+    }
+    if (queryStr) {
+      return url + "?" + encodeURI(queryStr);
+    }
+    return url;
   }
 };
 
@@ -38,9 +52,15 @@ var urls = {
 module.exports = function(config) {
   config = config || {
     onTransportChange: function() {},
-    logTransportChanges: false
+    logTransportChanges: false,
+    meta: {}
   };
 
+  if (config.meta) {
+    for (var key in config.meta) {
+      urls.meta[key] = config.meta[key].toString();
+    }
+  }
   var sub    = Sub(subscribe);
   var logger = null;
   var req    = Req();

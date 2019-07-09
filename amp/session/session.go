@@ -154,6 +154,7 @@ func (s *session) receive(m *amp.Msg) {
 		s.Send(m.Pong())
 	case amp.Request:
 		// TODO what URI-a are ok, make filter
+		m.Meta = s.conn.Meta()
 		s.requester.Send(s, m)
 	case amp.Subscribe:
 		s.broker.Subscribe(s, m.Subscriptions)

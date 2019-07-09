@@ -82,7 +82,7 @@ func (s *restServer) pool(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	m := amp.Parse(buf)
+	m := amp.ParseWithMeta(buf, r.URL.Query())
 	if m == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

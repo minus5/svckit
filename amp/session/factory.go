@@ -27,6 +27,7 @@ type connection interface {
 	Headers() map[string]string                // http headers we got on connection open
 	No() uint64                                // connection identifier (for grouping logs)
 	Close() error                              // close connection
+	Meta() map[string]string                   // session metadata, set by the client
 }
 
 type counter struct {

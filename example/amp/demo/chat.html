@@ -4,7 +4,7 @@
     </head>
     <body></body>
     <script>
-     var api = minus5.api();
+     var api = minus5.api({meta: {sessionID: "pero"}});
 
      var topic = "chat/1";
      api.subscribe(topic, function(data) {

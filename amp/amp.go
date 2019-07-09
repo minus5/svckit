@@ -5,6 +5,7 @@ import (
 	"compress/flate"
 	"encoding/json"
 	"io"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -74,16 +75,17 @@ type BodyMarshaler interface {
 
 // Msg basic application message structure
 type Msg struct {
-	Type          uint8            `json:"t,omitempty"` // message type
-	ReplyTo       string           `json:"r,omitempty"` // topic to send replay to
-	CorrelationID uint64           `json:"i,omitempty"` // correlationID between request and response
-	Error         *Error           `json:"e,omitempty"` // error description in response message
-	URI           string           `json:"u,omitempty"` // has structure: topic/path
-	Ts            int64            `json:"s,omitempty"` // timestamp unix milli
-	UpdateType    uint8            `json:"p,omitempty"` // explains how to handle publish message
-	Replay        uint8            `json:"l,omitempty"` // is this a re-play message (repeated)
-	Subscriptions map[string]int64 `json:"b,omitempty"` // topics to subscribe to
-	CacheDepth    int              `json:"d,omitempty"` // cache depth for append update type messages
+	Type          uint8             `json:"t,omitempty"` // message type
+	ReplyTo       string            `json:"r,omitempty"` // topic to send replay to
+	CorrelationID uint64            `json:"i,omitempty"` // correlationID between request and response
+	Error         *Error            `json:"e,omitempty"` // error description in response message
+	URI           string            `json:"u,omitempty"` // has structure: topic/path
+	Ts            int64             `json:"s,omitempty"` // timestamp unix milli
+	UpdateType    uint8             `json:"p,omitempty"` // explains how to handle publish message
+	Replay        uint8             `json:"l,omitempty"` // is this a re-play message (repeated)
+	Subscriptions map[string]int64  `json:"b,omitempty"` // topics to subscribe to
+	CacheDepth    int               `json:"d,omitempty"` // cache depth for append update type messages
+	Meta          map[string]string `json:"m,omitempty"` // client session metadata
 
 	body          []byte
 	noCompression bool
@@ -115,6 +117,23 @@ func Parse(buf []byte) *Msg {
 	}
 	if len(parts) > 1 {
 		m.body = parts[1]
+	}
+	return m
+}
+
+func ParseWithMeta(buf []byte, query url.Values) *Msg {
+	m := Parse(buf)
+	if m == nil {
+		return nil
+	}
+	if len(query) > 0 {
+		meta := make(map[string]string)
+		for k, v := range query {
+			meta[k] = strings.Join(v, ",")
+		}
+		if len(meta) > 0 {
+			m.Meta = meta
+		}
 	}
 	return m
 }
@@ -257,6 +276,7 @@ func (m *Msg) Request() *Msg {
 		Type:          Request,
 		CorrelationID: m.CorrelationID,
 		URI:           m.URI,
+		Meta:          m.Meta,
 		src:           m.src,
 		body:          m.body,
 	}

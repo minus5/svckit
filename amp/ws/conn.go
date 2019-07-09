@@ -26,6 +26,7 @@ type connCap struct {
 	deflateSupported bool
 	userAgent        string
 	forwardedFor     string
+	meta             map[string]string
 }
 
 var (
@@ -131,64 +132,16 @@ func (c *Conn) DeflateSupported() bool {
 	return c.cap.deflateSupported
 }
 
-// // wait blocks until connection is closed
-// func (c *Conn) wait() {
-// 	c.receiveLoop()
-// }
-
 // Close starts clearing connection.
 // Closes tcpConn, that will raise error on reading and break receiveLoop.
 func (c *Conn) Close() error {
 	return c.tcpConn.Close()
 }
 
-// func (c *Conn) receiveLoop() {
-// 	defer close(c.receive)
-// 	for {
-// 		header, err := ws.ReadHeader(c.tcpConn)
-// 		if err != nil {
-// 			c.receiveErr = errors.WithStack(err)
-// 			break
-// 		}
-
-// 		payload := make([]byte, header.Length)
-// 		_, err = io.ReadFull(c.tcpConn, payload)
-// 		if err != nil {
-// 			c.receiveErr = errors.WithStack(err)
-// 			c.Close()
-// 			break
-// 		}
-
-// 		if header.OpCode == ws.OpClose {
-// 			c.receiveErr = errors.WithStack(io.EOF)
-// 			c.Close()
-// 			break
-// 		}
-// 		if header.OpCode == ws.OpContinuation {
-// 			// TODO not implemented
-// 			c.receiveErr = errors.WithStack(io.ErrUnexpectedEOF)
-// 			break
-// 		}
-// 		if header.OpCode == ws.OpPing {
-// 			header.OpCode = ws.OpPong
-// 			header.Masked = false
-// 			_ = ws.WriteHeader(c.tcpConn, header)
-// 			continue
-// 		}
-// 		if header.OpCode == ws.OpPong {
-// 			continue
-// 		}
-// 		if header.Masked {
-// 			ws.Cipher(payload, header.Mask, 0)
-// 		}
-// 		if header.Rsv1() {
-// 			payload = undeflate(payload)
-// 		}
-
-// 		c.receive <- payload
-// 		setDeadline(c.tcpConn)
-// 	}
-// }
+// Cookies from the requests which started connection
+func (c *Conn) Meta() map[string]string {
+	return c.cap.meta
+}
 
 // undeflate uncomresses websocket payload
 func undeflate(data []byte) []byte {
