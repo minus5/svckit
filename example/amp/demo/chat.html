@@ -4,10 +4,7 @@
     </head>
     <body></body>
     <script>
-     var apiWsUri = "ws://" + location.hostname + "/api";
-     var api = mnu5.api(apiWsUri, function(status){
-         console.log("ws status changed to", status);
-     });
+     var api = minus5.api();
 
      var topic = "chat/1";
      api.subscribe(topic, function(data) {

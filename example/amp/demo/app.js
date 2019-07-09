@@ -1,19 +1,21 @@
-var apiWsUri = "ws://" + location.hostname + "/api";
+var api = minus5.api();
 
-var api = mnu5.api(apiWsUri, function(status){
-  console.log("ws status changed to", status);
-});
+var mathTopic = "math.v1/i",
+    mathHanderl = function(data) {
+      var prev;
+      if (data._xChange) {
+        prev = data._xChange.previous;
+      }
+      console.log(mathTopic, prev, "=>", data.x);
+    };
 
-var topic = "math.v1/i";
-api.subscribe(topic, function(data) {
-  var prev;
-  if (data._xChange) {
-    prev = data._xChange.previous;
-  }
-  //console.log("sub", topic, data);
-  console.log(topic, prev, "=>", data.x);
-});
+function mathSubscribe() {
+  api.subscribe(mathTopic, mathHanderl);
+}
 
+function mathUnsubscribe() {
+  api.unSubscribe(mathTopic, mathHanderl);
+}
 
 function startPeriodicRequests() {
   var x = 1;

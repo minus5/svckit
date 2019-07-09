@@ -107,5 +107,5 @@ func debugHTTP() {
 	health.Set(func() (health.Status, []byte) {
 		return health.Passing, []byte("OK")
 	})
-	httpi.Start(env.Address(""))
+	httpi.Start(env.Address("debug"))
 }

@@ -20,6 +20,7 @@ chat:
     - chat.current
   consul:
     -
+      port_label: debug
       http_check: /health_check
       tags:
         - urlprefix-chat.localhost/
@@ -29,23 +30,20 @@ amp:
   build: go build --race
   consul:
     - 
-      name: api
+      port_label: debug
       http_check: /health_check
       tags:
         - urlprefix-api.localhost/
-    - 
-      name: api-ws
+    -
       port_label: ws
       tags:
         - urlprefix-/api
     - 
-      name: app
       port_label: app
       http_check: /index.html
       tags:
         - urlprefix-/
     - 
-      name: api-pooling
       port_label: pooling
       http_check: /health_check
       tags:

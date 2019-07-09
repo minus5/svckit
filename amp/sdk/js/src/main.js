@@ -33,11 +33,21 @@ var urls = {
 };
 
 
-//export function api(onTransportChange) {
-module.exports = function(onTransportChange) {
+//export function api(config)
+//
+module.exports = function(config) {
+  config = config || {
+    onTransportChange: function() {},
+    logTransportChanges: false
+  };
+
   var sub    = Sub(subscribe);
-  var logger = Log(urls.log());
+  var logger = null;
   var req    = Req();
+
+  if (config.logTransportChanges) {
+    logger = Log(urls.log());
+  }
 
   var transport = {
         current: undefined,
@@ -126,10 +136,12 @@ module.exports = function(onTransportChange) {
       transport.pooling.stop();
     }
 
-    if (status.connected)  {
-      logger.info(status);
-    } else {
-      logger.error(status);
+    if (logger) {
+      if (status.connected)  {
+        logger.info(status);
+      } else {
+        logger.error(status);
+      }
     }
 
     transport.onChange( {
@@ -139,9 +151,9 @@ module.exports = function(onTransportChange) {
   }
 
   transport.onChange = function(status) {
-    if (onTransportChange) {
+    if (config.onTransportChange) {
       try {
-        onTransportChange(status);
+        config.onTransportChange(status);
       }catch(e){
         console.error(e);
       }

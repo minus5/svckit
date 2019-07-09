@@ -22,6 +22,7 @@ import (
 
 var (
 	inputTopics      = []string{"math.v1", "chat"}
+	debugPortLabel   = "debug"
 	wsPortLabel      = "ws"
 	poolingPortLabel = "pooling"
 	appPortLabel     = "app"
@@ -46,28 +47,34 @@ func main() {
 }
 
 func poolingHTTP(interupt context.Context, sessions *session.Sessions) {
-	srv := &http.Server{Addr: env.Address(poolingPortLabel), Handler: &server{sessions: sessions}}
-	go func() {
-		// returns ErrServerClosed on graceful close
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Error(err)
-		}
-	}()
+	srv := &http.Server{Addr: env.Address(poolingPortLabel), Handler: &restServer{sessions: sessions}}
 	go func() {
 		<-interupt.Done()
 		srv.Shutdown(context.Background())
 	}()
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed { // returns ErrServerClosed on graceful close
+
+		log.Error(err)
+	}
 }
 
-type server struct {
+type restServer struct {
 	sessions *session.Sessions
 }
 
-func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if p := r.URL.Path; p == "/ping" {
+func (s *restServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path[1:]
+	switch path {
+	case "health_check":
 		w.WriteHeader(http.StatusOK)
-		return
+	case "ping":
+		w.WriteHeader(http.StatusOK)
+	default:
+		s.pool(w, r)
 	}
+}
+
+func (s *restServer) pool(w http.ResponseWriter, r *http.Request) {
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err)
@@ -94,7 +101,7 @@ func debugHTTP() {
 	health.Set(func() (health.Status, []byte) {
 		return health.Passing, []byte("OK")
 	})
-	httpi.Start(env.Address(""))
+	httpi.Start(env.Address(debugPortLabel))
 }
 
 func demoServer() {
