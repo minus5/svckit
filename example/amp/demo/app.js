@@ -2,11 +2,15 @@ var api = minus5.api();
 
 var mathTopic = "math.v1/i",
     mathHanderl = function(data) {
-      var prev;
-      if (data._xChange) {
-        prev = data._xChange.previous;
+      if (!data.merged) {
+        console.log(mathTopic, data);
+        return;
       }
-      console.log(mathTopic, prev, "=>", data.x);
+      var prev;
+      if (data.merged._xChange) {
+        prev = data.merged._xChange.previous;
+      }
+      console.log(mathTopic, prev, "=>", data.merged.x);
     };
 
 function mathSubscribe() {

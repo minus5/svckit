@@ -51,34 +51,47 @@ module.exports = function(onChangeHandler) {
     var s = subscriptions[key];
 
     if (!s) {
-      console.log("topic not found", key);
+      console.error("topic not found", key);
       return;
     }
 
-    if (msg.updateType === amp.updateType.close) {
+    var data = null;
+    switch (msg.updateType){
+    case amp.updateType.close:
       delete subscriptions[key];
-      s.handlers.forEach(function(handler){
-        handler(null, null); // signals close of the topic
-      });
+      data = {close: true};
+      break;
+    case amp.updateType.burstStart:
+      data = {burstStart: true};
+      break;
+    case amp.updateType.burstEnd:
+      data = {burstEnd: true};
+      break;
+    case amp.updateType.full:
+      s.full = msg.body;
+      data = {full: msg.body, diff: null, merged: msg.body};
+      break;
+    case amp.updateType.diff:
+      if (!s.full) {
+        s.full = {};
+      }
+      merge(s.full, msg.body);
+      data = {full: null, diff: msg.body, merged: s.full};
+      break;
+    case amp.updateType.append:
+      data = {append: msg.body};
+      break;
+    case amp.updateType.update:
+      data = {update: msg.body};
+      break;
+    default:
+      console.error("unknown update type", msg.updateType);
       return;
     }
 
     s.ts = msg.ts;
-    if (msg.updateType === amp.updateType.full ||
-        msg.updateType === amp.updateType.append ||
-        msg.updateType === amp.updateType.update) {
-      s.full = msg.body;
-      s.diff = null;
-    }
-    if (msg.updateType === amp.updateType.diff) {
-      if (!s.full) {
-        s.full = {};
-      }
-      s.diff = msg.body;
-      merge(s.full, msg.body);
-    }
     s.handlers.forEach(function(handler){
-      handler(s.full, s.diff);
+      handler(data); 
     });
   }
 

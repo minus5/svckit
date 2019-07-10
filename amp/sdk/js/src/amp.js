@@ -13,7 +13,9 @@ var updateType = {
   full: 1,
   append: 2,
   update: 3,
-  close: 4
+  close: 4,
+	burstStart: 5,
+	burstEnd: 6
 };
 
 var keys = {
@@ -109,7 +111,9 @@ function unpack(data) {
   var msgs = [];
   for(var i=0; i<p.length; i++) {
     var m = unpackMsg(p[i]);
-    msgs[i] = m;
+    if (m) {
+      msgs.push(m);
+    }
   }
   return msgs;
 }

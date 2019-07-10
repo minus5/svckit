@@ -28,11 +28,13 @@ const (
 
 // Topic update types
 const (
-	Diff   uint8 = iota // merge into topic
-	Full                // replace entire topic
-	Append              // append to the end of the topic
-	Update              // replace existing topic entry
-	Close               // last message for the topic, topic is closed after this
+	Diff       uint8 = iota // merge into topic
+	Full                    // replace entire topic
+	Append                  // append to the end of the topic
+	Update                  // replace existing topic entry
+	Close                   // last message for the topic, topic is closed after this
+	BurstStart              // indicate that there will be burst of messages for the topic ...
+	BurstEnd                // so we can stop updating UI until we get BurstEnd message
 )
 
 // Error sources
@@ -162,6 +164,12 @@ func (m *Msg) MarshalDeflate() ([]byte, bool) {
 
 // marshal encodes message into []byte
 func (m *Msg) marshal(supportedCompression, version uint8) ([]byte, bool) {
+	if version == CompatibilityVersion1 {
+		if m.UpdateType == BurstStart || m.UpdateType == BurstEnd {
+			// unsuported mesage types in this version
+			return nil, false
+		}
+	}
 	m.Lock()
 	defer m.Unlock()
 	compression := supportedCompression
@@ -244,6 +252,26 @@ func (m *Msg) Response(o interface{}) *Msg {
 		Type:          Response,
 		CorrelationID: m.CorrelationID,
 		src:           toBodyMarshaler(o),
+	}
+}
+
+// BurstStart creates burst start message for the uri from the original message.
+func (m *Msg) BurstStart() *Msg {
+	return &Msg{
+		Type:       Publish,
+		URI:        m.URI,
+		UpdateType: BurstStart,
+		Ts:         m.Ts,
+	}
+}
+
+// BurstEnd creates burst end message for the uri from the original message.
+func (m *Msg) BurstEnd() *Msg {
+	return &Msg{
+		Type:       Publish,
+		URI:        m.URI,
+		UpdateType: BurstEnd,
+		Ts:         m.Ts,
 	}
 }
 

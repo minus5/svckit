@@ -4,11 +4,15 @@
     </head>
     <body></body>
     <script>
-     var api = minus5.api({meta: {sessionID: "pero", daniel: "nesto"}});
+     var api = minus5.api({meta: {sessionID: "pero"}});
 
      var topic = "chat/1";
      api.subscribe(topic, function(data) {
-         console.log(topic, data);
+         if (data.append || data.update) {
+             console.log(topic, data.append || data.update);
+         } else {
+             console.log(topic, data);
+         }
      });
 
      function chat(nickname, comment) {
@@ -18,7 +22,6 @@
                      function(rsp, header) {console.log("fail", rsp, header)}
          );
      }
-
 
      function fillChat() {
          for(var i=0; i<32; i++) {

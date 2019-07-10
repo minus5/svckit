@@ -222,6 +222,9 @@ func (s *session) connWrite(m *amp.Msg) {
 	} else {
 		payload = m.MarshalCompatiblity(s.compatibilityVersion)
 	}
+	if payload == nil {
+		return
+	}
 	err := s.conn.Write(payload, deflated)
 	if err != nil {
 		s.conn.Close()

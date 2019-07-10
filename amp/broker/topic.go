@@ -91,8 +91,15 @@ func (t *topic) unsubscribe(c amp.Subscriber) bool {
 }
 
 func (t *topic) sendMany(c amp.Subscriber, msgs []*amp.Msg) {
+	burstStartEnd := len(msgs) > 2
+	if burstStartEnd {
+		t.send(c, msgs[0].BurstStart())
+	}
 	for _, m := range msgs {
 		t.send(c, m)
+	}
+	if burstStartEnd {
+		t.send(c, msgs[len(msgs)-1].BurstEnd())
 	}
 }
 
