@@ -1,0 +1,26 @@
+# Path configuration
+
+Could be relative or absolute from the site root.
+
+Absolute:
+     var api = minus5.api({
+         paths: {
+             api: '/api',
+             pooling: '/pooling',
+         }
+     });
+if the site root is http://site.com/my/app/index.html
+api path will be http://site.com/api
+and pooling      http://site.com/pooling
+
+
+Relative:
+     var api = minus5.api({
+         paths: {
+             api: 'api',
+             pooling: 'pooling',
+         }
+     });
+if the site root is http://site.com/my/app/index.html
+api path will be http://site.com/my/app/api
+and pooling      http://site.com/my/app/pooling
