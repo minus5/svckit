@@ -9,28 +9,37 @@ var urls = {
   port: function() {
     return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
   },
-  path: function() {
+  path: function(relative) {
+    if (relative[0] == '/' )  { // if the path has prefix / 
+      return relative;          // than it relative from site root
+    }
+    // othervise we will add relative to the current page location
     var pn = location.pathname;
     var path = pn.substring(0, pn.lastIndexOf('/') + 1);
     if (path.length === 0)  {
       path = "/";
     }
-    return path;
+    return path + relative;
   },
   ws() {
     var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-    return urls.addMeta(protocol + location.hostname + urls.port() + urls.path() + 'api');
+    return urls.addMeta(protocol + location.hostname + urls.port() + urls.path(urls.paths.api));
   },
   log: function() {
-    return location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'log';
+    return location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.log);
   },
   pooling: function() {
-    return urls.addMeta(location.protocol + "//" + location.hostname + urls.port() + urls.path() + 'pooling');
+    return urls.addMeta(location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.pooling));
   },
   forcePooling: function() {
     return location.search.search("forcePooling") > -1;
   },
   meta: {},
+  paths: {
+    api: 'api',
+    pooling: 'pooling',
+    log: 'log',
+  },
   addMeta: function(url) { // add meta key/values as query string to the url
     var queryStr = "";
     for (var key in urls.meta) {
@@ -61,6 +70,12 @@ module.exports = function(config) {
       urls.meta[key] = config.meta[key].toString();
     }
   }
+  if (config.paths) {
+    for (key in config.paths) {
+      urls.paths[key] = config.paths[key];
+    }
+  }
+
   var sub    = Sub(subscribe);
   var logger = null;
   var req    = Req();
