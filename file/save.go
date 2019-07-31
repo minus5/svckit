@@ -7,15 +7,23 @@ import (
 	"path"
 )
 
-func saveJSON(filename string, o interface{}) error {
+func JSON(filename string, o interface{}) error {
 	buf, err := json.Marshal(o)
 	if err != nil {
 		return err
 	}
-	return saveRaw(filename, buf)
+	return Save(filename, buf)
 }
 
-func saveRaw(filename string, buf []byte) error {
+func JSONPretty(filename string, o interface{}) error {
+	buf, err := json.MarshalIndent(o, "  ", "  ")
+	if err != nil {
+		return err
+	}
+	return Save(filename, buf)
+}
+
+func Save(filename string, buf []byte) error {
 	dir, _ := path.Split(filename)
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
