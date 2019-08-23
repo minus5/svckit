@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"reflect"
 	"runtime"
 	"strings"
@@ -16,18 +17,28 @@ import (
 )
 
 //ako zelim snimiti fixture dodam true kraj
-func AssertFixture(t *testing.T, expectedFile string, a []byte, params ...bool) {
+func AssertFixture(t *testing.T, expectedFile string, a interface{}, params ...bool) {
+
+	var actualBuf []byte
+	if buf, ok := a.([]byte); ok {
+		actualBuf = buf
+	} else {
+		buf, _ := json.MarshalIndent(a, "  ", "  ")
+		actualBuf = buf
+	}
+	actual := string(actualBuf)
+
 	if (len(params) > 0 && params[0]) || !Exists(expectedFile) {
 		t.Logf("saving fixture %s", expectedFile)
-		SaveFixture(expectedFile, a)
+		SaveFixture(expectedFile, actualBuf)
 		return
 	}
-	actual := string(a)
+
 	expected := string(ReadFixture(t, expectedFile))
 	same := actual == expected
 	if !same {
 		actualFile := expectedFile + "_actual"
-		SaveFixture(actualFile, a)
+		SaveFixture(actualFile, actualBuf)
 		cmd := exec.Command("icdiff", "--highlight", "--cols=160", expectedFile, actualFile)
 		//cmd := exec.Command("git", "diff", "--no-index", "--color=always", expectedFile, actualFile)
 		out, err := cmd.Output()
@@ -130,8 +141,13 @@ func ReadFixtureJSON(t *testing.T, val interface{}, name string) {
 	}
 }
 
-func SaveFixture(name string, buf []byte) {
-	ioutil.WriteFile(name, buf, 0644)
+func SaveFixture(filename string, buf []byte) error {
+	dir, _ := path.Split(filename)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, buf, 0644)
 }
 
 func SaveJSON(name string, o interface{}) {
