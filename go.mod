@@ -1,6 +1,6 @@
 module github.com/minus5/svckit
 
-go 1.12
+go 1.13
 
 require (
 	github.com/Unix4ever/statsd v0.0.0-20160120230120-a8219f1fb9d8 // indirect
