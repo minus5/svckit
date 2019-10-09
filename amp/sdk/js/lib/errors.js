@@ -1,3 +1,5 @@
+"use strict";
+
 /*
 Defines errors raised during communication.
 There are two main types of errors:
@@ -38,7 +40,7 @@ function server(msg) {
 }
 
 module.exports = {
-  pooling,
-  ws,
-  server
+  pooling: pooling,
+  ws: ws,
+  server: server
 };

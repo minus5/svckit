@@ -1,3 +1,5 @@
+"use strict";
+
 var amp = require("./amp.js");
 
 var errors = require("./errors.js");
@@ -33,19 +35,19 @@ module.exports = function (uri, onMessage_, onChange_) {
   var ws = null,
       pong = {
     timer: undefined,
-    schedule: function (handler) {
+    schedule: function schedule(handler) {
       var interval = 16 * 1000;
       pong.timer = setTimeout(handler, interval);
     },
-    clear: function () {
+    clear: function clear() {
       clearTimeout(pong.timer);
     },
-    onMessage: function (isPong) {
+    onMessage: function onMessage(isPong) {
       if (isPong) {
         pong.clear();
       }
     },
-    start: function () {
+    start: function start() {
       pong.schedule(function () {
         if (ws.readyState != WebSocket.OPEN) {
           // connection is closed
@@ -64,15 +66,15 @@ module.exports = function (uri, onMessage_, onChange_) {
     afterPongInterval: 16 * 1000,
     beforePongInterval: 4 * 1000,
     interval: 4 * 1000,
-    clear: function () {
+    clear: function clear() {
       clearTimeout(ping.timer);
     },
-    start: function () {
+    start: function start() {
       ping.interval = ping.beforePongInterval;
       ping.lastMessage = 0;
       ping.loop();
     },
-    loop: function () {
+    loop: function loop() {
       if (now() - ping.lastMessage > ping.interval / 2) {
         ping.no++;
         send(amp.ping(ping.no), function (e) {
@@ -82,7 +84,7 @@ module.exports = function (uri, onMessage_, onChange_) {
 
       ping.timer = setTimeout(ping.loop, ping.interval);
     },
-    onMessage: function (isPong) {
+    onMessage: function onMessage(isPong) {
       ping.lastMessage = now();
 
       if (isPong) {
@@ -103,7 +105,7 @@ module.exports = function (uri, onMessage_, onChange_) {
     connects: 0,
     retries: 0,
     events: [],
-    onMessage: function (isPong) {
+    onMessage: function onMessage(isPong) {
       status.messages++;
 
       if (isPong && !status.connected) {
@@ -117,7 +119,7 @@ module.exports = function (uri, onMessage_, onChange_) {
         status.change(); // signal success
       }
     },
-    event: function (name, e) {
+    event: function event(name, e) {
       var o = {
         name: name,
         sinceStart: now() - status.start,
@@ -150,10 +152,10 @@ module.exports = function (uri, onMessage_, onChange_) {
 
       status.events.push(o);
     },
-    change: function () {
+    change: function change() {
       onChange(status);
     },
-    shouldQuit: function () {
+    shouldQuit: function shouldQuit() {
       status.connects++;
       status.startConnect = now();
 
@@ -176,7 +178,7 @@ module.exports = function (uri, onMessage_, onChange_) {
       return false;
     },
     // calculates exponential increasing interval based on number of connects
-    connectInterval: function () {
+    connectInterval: function connectInterval() {
       var p = status.connects || 1;
 
       if (p > 12) {

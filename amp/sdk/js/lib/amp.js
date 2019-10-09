@@ -1,3 +1,5 @@
+"use strict";
+
 var messageType = {
   publish: 0,
   subscribe: 1,
@@ -51,11 +53,11 @@ function unpackHeader(o) {
 }
 
 function unpackObject(source, dest, keys) {
-  for (var short in keys) {
-    var long = keys[short];
+  for (var _short in keys) {
+    var _long = keys[_short];
 
-    if (source[short] !== undefined) {
-      dest[long] = source[short];
+    if (source[_short] !== undefined) {
+      dest[_long] = source[_short];
     }
   }
 }
@@ -64,11 +66,11 @@ function pack(o) {
   var header = {},
       body = o.body;
 
-  for (var short in keys) {
-    var long = keys[short];
+  for (var _short2 in keys) {
+    var _long2 = keys[_short2];
 
-    if (o[long] !== undefined) {
-      header[short] = o[long];
+    if (o[_long2] !== undefined) {
+      header[_short2] = o[_long2];
     }
   }
 
@@ -132,13 +134,13 @@ module.exports = {
   unpack: unpack,
   unpackMsg: unpackMsg,
   pack: pack,
-  ping: function (ts) {
+  ping: function ping(ts) {
     return {
       type: messageType.ping,
       ts: ts || now()
     };
   },
-  pong: function () {
+  pong: function pong() {
     return {
       type: messageType.pong
     };

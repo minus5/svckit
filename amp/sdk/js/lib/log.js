@@ -1,3 +1,5 @@
+"use strict";
+
 var nanoajax = require('nanoajax');
 
 function ajax(url, msg, success, fail) {
@@ -16,10 +18,10 @@ function ajax(url, msg, success, fail) {
 
 module.exports = function (uri) {
   return {
-    info: function (msg) {
+    info: function info(msg) {
       ajax(uri + "/info", msg);
     },
-    error: function (msg) {
+    error: function error(msg) {
       ajax(uri + "/error", msg);
     }
   };

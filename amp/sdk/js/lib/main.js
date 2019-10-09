@@ -1,3 +1,5 @@
+"use strict";
+
 var amp = require("./amp.js");
 
 var Sub = require("./subscriptions.js");
@@ -11,10 +13,10 @@ var Ws = require("./ws.js");
 var Pooling = require("./pooling.js");
 
 var urls = {
-  port: function () {
+  port: function port() {
     return location.port === '' || location.port === '80' ? '' : ':' + location.port;
   },
-  path: function (relative) {
+  path: function path(relative) {
     if (relative[0] == '/') {
       // if the path has prefix / 
       return relative; // than it relative from site root
@@ -30,19 +32,17 @@ var urls = {
 
     return path + relative;
   },
-
-  ws() {
+  ws: function ws() {
     var protocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
     return urls.addMeta(protocol + location.hostname + urls.port() + urls.path(urls.paths.api));
   },
-
-  log: function () {
+  log: function log() {
     return location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.log);
   },
-  pooling: function () {
+  pooling: function pooling() {
     return urls.addMeta(location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.pooling));
   },
-  forcePooling: function () {
+  forcePooling: function forcePooling() {
     return location.search.search("forcePooling") > -1;
   },
   meta: {},
@@ -51,7 +51,7 @@ var urls = {
     pooling: 'pooling',
     log: 'log'
   },
-  addMeta: function (url) {
+  addMeta: function addMeta(url) {
     // add meta key/values as query string to the url
     var queryStr = "";
 
@@ -74,7 +74,7 @@ var urls = {
 
 module.exports = function (config) {
   config = config || {
-    onTransportChange: function () {},
+    onTransportChange: function onTransportChange() {},
     logTransportChanges: false,
     meta: {}
   };
@@ -104,16 +104,14 @@ module.exports = function (config) {
     previous: undefined,
     ws: undefined,
     pooling: undefined,
-    onChange: function () {},
-
-    ready() {
+    onChange: function onChange() {},
+    ready: function ready() {
       return !!transport.current;
     },
-
-    name: function (t) {
+    name: function name(t) {
       return t === transport.ws ? "ws" : t === transport.pooling ? "pooling" : "none";
     },
-    send: function (msg, fail) {
+    send: function send(msg, fail) {
       // pooling is always available
       // use it while ws-pooling handshake is done
       var tr = transport.current || transport.pooling;
@@ -121,14 +119,14 @@ module.exports = function (config) {
     }
   };
   var failHandlers = {
-    default: function (e) {
+    "default": function _default(e) {
       console.error(e);
     },
-    ignore: function (e) {}
+    ignore: function ignore(e) {}
   };
 
   function send(msg, fail) {
-    fail = fail || failHandlers.default;
+    fail = fail || failHandlers["default"];
     transport.send(msg, fail);
   }
 
@@ -187,7 +185,7 @@ module.exports = function (config) {
   function request(uri, payload, ok, fail) {
     ok = ok || function () {};
 
-    fail = fail || failHandlers.default;
+    fail = fail || failHandlers["default"];
     var msg = req.request(uri, payload, ok, fail);
     send(msg, fail);
   }

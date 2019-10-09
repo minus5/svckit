@@ -1,3 +1,5 @@
+"use strict";
+
 var amp = require("./amp.js");
 
 var errors = require("./errors.js");
@@ -24,14 +26,14 @@ module.exports = function (uri, onMessages, subMessage) {
   }
 
   function subscribe(msg) {
-    for (const key in msg.subscriptions) {
+    var _loop = function _loop(key) {
       if (processes[key] !== undefined) {
-        continue;
+        return "continue";
       }
 
-      var ts = msg.subscriptions[key];
+      ts = msg.subscriptions[key];
       processes[key] = ts;
-      var m = {
+      m = {
         type: amp.messageType.subscribe,
         subscriptions: {}
       };
@@ -65,6 +67,15 @@ module.exports = function (uri, onMessages, subMessage) {
           subscribe(subMessage());
         }, 4 * 1000);
       });
+    };
+
+    for (var key in msg.subscriptions) {
+      var ts;
+      var m;
+
+      var _ret = _loop(key);
+
+      if (_ret === "continue") continue;
     }
   }
 
@@ -79,7 +90,7 @@ module.exports = function (uri, onMessages, subMessage) {
 
   return {
     send: send,
-    stop: function () {
+    stop: function stop() {
       stopped = true;
     }
   };

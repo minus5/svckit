@@ -1,3 +1,7 @@
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 function merge(full, diff) {
   for (var key in diff) {
     var d = diff[key];
@@ -8,7 +12,7 @@ function merge(full, diff) {
       continue;
     }
 
-    if (typeof d === 'object') {
+    if (_typeof(d) === 'object') {
       if (full[key] === undefined) {
         full[key] = {};
       }
@@ -50,7 +54,7 @@ function sortCollection(parent) {
   for (var key in parent) {
     var child = parent[key];
 
-    if (typeof child === 'object' && key.indexOf("_") !== 0) {
+    if (_typeof(child) === 'object' && key.indexOf("_") !== 0) {
       //console.log(key);
       list.push(child);
     }
@@ -87,7 +91,7 @@ function addLists(parent) {
   for (var key in parent) {
     var child = parent[key];
 
-    if (typeof child === 'object' && key.indexOf("_") !== 0) {
+    if (_typeof(child) === 'object' && key.indexOf("_") !== 0) {
       if (child._isMap === true) {
         var listKey = key + "List",
             col = child;

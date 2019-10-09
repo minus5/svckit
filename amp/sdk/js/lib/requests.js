@@ -1,3 +1,5 @@
+"use strict";
+
 var amp = require("./amp.js");
 
 var errors = require("./errors.js");
