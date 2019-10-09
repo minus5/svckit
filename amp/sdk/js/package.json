@@ -1,17 +1,23 @@
 {
   "name": "amp-sdk",
   "publishConfig": {
-    "registry": "http://npm.dev.minus5.hr:4873/"
+    "registry": "http://npm.dev.minus5.hr"
   },
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
-  "main": "src/main.js",
+  "main": "lib/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "npx babel src --out-dir lib"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "nanoajax": "^0.4.3"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.6.3",
+    "@babel/core": "^7.6.3",
+    "@babel/preset-env": "^7.6.3"
   }
 }
