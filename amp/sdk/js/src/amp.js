@@ -15,7 +15,8 @@ var updateType = {
   update: 3,
   close: 4,
 	burstStart: 5,
-	burstEnd: 6
+  burstEnd: 6,
+  event: 8,
 };
 
 var keys = {

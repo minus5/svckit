@@ -84,6 +84,9 @@ module.exports = function(onChangeHandler) {
     case amp.updateType.update:
       data = {update: msg.body};
       break;
+    case amp.updateType.event:
+      data = {event: msg.body};
+      break;
     default:
       console.error("unknown update type", msg.updateType);
       return;
