@@ -109,6 +109,13 @@ func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
 }
 
 func (t *topic) onMessage(m *amp.Msg) {
+	if m.UpdateType == amp.Event {
+		for c := range t.consumers {
+			t.send(c, m)
+		}
+		return
+	}
+
 	if t.cache == nil {
 		if m.UpdateType == amp.Append || m.UpdateType == amp.Update {
 			t.cache = newAppendCache()
