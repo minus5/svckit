@@ -66,9 +66,6 @@ func (dbs *Mongo) start() {
 		"--dbpath", dbs.DbPath,
 		"--bind_ip", "127.0.0.1",
 		"--port", strconv.Itoa(addr.Port),
-		"--nssize", "1",
-		"--noprealloc",
-		"--smallfiles",
 		"--nojournal",
 	}
 	dbs.server = exec.Command("mongod", args...)
