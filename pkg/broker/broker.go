@@ -184,7 +184,7 @@ func Stream(topic, event string, data []byte) {
 // FindBroker pronalazi brokera za topic
 func FindBroker(topic string) (*Broker, bool) {
 	brokersLock.RLock()
-	brokersLock.RUnlock()
+	defer brokersLock.RUnlock()
 	b, ok := brokers[topic]
 	return b, ok
 }
