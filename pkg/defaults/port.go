@@ -29,7 +29,6 @@ const (
 	PortBonoviApi                 = "8271"
 	PortBonoviS2Api               = "8272"
 	PortFirebaseNotifier          = "8280"
-	PortNotification              = "8283"
 	PortVsport                    = "8290"
 	PortBetgeniusConnector        = "8300"
 	PortNsqToLog                  = "8310"
@@ -70,4 +69,5 @@ const (
 	PortPrematchSbk = "8610"
 	PortPromo       = "8620"
 	PortWallet      = "8640" // definiram da se zna da je zauzet od strane casino walleta
+	PortNotification = "8650"
 )
