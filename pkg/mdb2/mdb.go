@@ -279,11 +279,14 @@ func (mdb *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration)
 	}
 	index := mongo.IndexModel{}
 	index.Keys = parsedKeys.key
-	index.Options = options.Index().
+	options := options.Index().
 		SetBackground(true).
 		SetSparse(true).
-		SetName(parsedKeys.name).
-		SetExpireAfterSeconds(int32(expireAfter / time.Second))
+		SetName(parsedKeys.name)
+	if expireAfter > 0 {
+		options = options.SetExpireAfterSeconds(int32(expireAfter / time.Second))
+	}
+	index.Options = options
 	_, err = c.Indexes().CreateOne(context.Background(), index)
 	return err
 }
