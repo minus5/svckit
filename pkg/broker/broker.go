@@ -39,11 +39,14 @@ func NewMessage(event string, data []byte, loadData func() []byte) *Message {
 }
 
 func (m *Message) GetData() []byte {
-	if m.data != nil {
+	if m.loadData == nil {
 		return m.data
 	}
 	m.Lock()
 	defer m.Unlock()
+	if m.data != nil {
+		return m.data
+	}
 	m.data = m.loadData()
 	return m.data
 }
