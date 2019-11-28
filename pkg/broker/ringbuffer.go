@@ -60,7 +60,7 @@ func (r *ring) get() *Message {
 
 func (r *ring) emit(ch chan *Message) {
 	for _, line := range r.values() {
-		if line != nil && len(line.Data) > 0 {
+		if line != nil && len(line.GetData()) > 0 {
 			ch <- line
 		}
 	}

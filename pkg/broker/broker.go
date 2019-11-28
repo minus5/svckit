@@ -23,16 +23,29 @@ func init() {
 
 // Message poruka full/diff brokera
 type Message struct {
-	Event string
-	Data  []byte
+	Event    string
+	data     []byte
+	loadData func() []byte
+	sync.Mutex
 }
 
 // NewMessage kreira novi Message s podacima
-func NewMessage(event string, data []byte) *Message {
+func NewMessage(event string, data []byte, loadData func() []byte) *Message {
 	return &Message{
-		Event: event,
-		Data:  data,
+		Event:    event,
+		data:     data,
+		loadData: loadData,
 	}
+}
+
+func (m *Message) GetData() []byte {
+	if m.data != nil {
+		return m.data
+	}
+	m.Lock()
+	defer m.Unlock()
+	m.data = m.loadData()
+	return m.data
 }
 
 type state interface {
@@ -160,14 +173,14 @@ func (b *Broker) expired() bool {
 }
 
 // Full sprema full podatke za topic
-func Full(topic, event string, data []byte) {
-	msg := NewMessage(event, data)
+func Full(topic, event string, data []byte, loadData func() []byte) {
+	msg := NewMessage(event, data, loadData)
 	GetFullDiffBroker(topic).full(msg)
 }
 
 // Diff sprema diff za topic
-func Diff(topic, event string, data []byte) {
-	msg := NewMessage(event, data)
+func Diff(topic, event string, data []byte, loadData func() []byte) {
+	msg := NewMessage(event, data, loadData)
 	GetFullDiffBroker(topic).diff(msg)
 }
 
@@ -175,7 +188,7 @@ func Diff(topic, event string, data []byte) {
 // - ovo koristimo za streamanje logova gde na pocetku
 // dobijemo X log linija kao full-ove i nastavljamo slusati diff-ove
 func Stream(topic, event string, data []byte) {
-	msg := NewMessage(event, data)
+	msg := NewMessage(event, data, nil)
 	b := GetBufferedBroker(topic)
 	b.full(msg)
 	b.diff(msg)
