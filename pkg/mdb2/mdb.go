@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"strings"
 	"text/template"
 	"time"
@@ -14,10 +16,10 @@ import (
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric"
 
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 var (
@@ -30,6 +32,7 @@ var (
 // Mdb is struct for handling mongo connection
 type Mdb struct {
 	client       *mongo.Client
+	clientOptions *options.ClientOptions
 	db           *mongo.Database
 	checkPointIn time.Duration
 	name         string
@@ -116,11 +119,17 @@ func EnsureSafe() func(*Mdb) {
 	}
 }
 
+// MajoritySafe  requests acknowledgement that write operations propagate to the majority of mongod instances
+func MajoritySafe() func(db *Mdb) {
+	return func(db *Mdb) {
+		db.clientOptions.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+	}
+}
+
 // SetModePrimaryPreferred sets mode to primary preferred
 func SetModePrimaryPreferred() func(mdb *Mdb) {
 	return func(mdb *Mdb) {
-		// TODO
-		// SetMode in mgo can be used for emulating a direct connection; this will need to be replaced with configuration for a direct connection instead.
+		mdb.clientOptions.SetReadPreference(readpref.Primary())
 	}
 }
 
@@ -144,14 +153,24 @@ func NewDb(connStr string, opts ...func(db *Mdb)) (*Mdb, error) {
 // Init initializes new Mdb
 // Connects to mongo, initializes cache, starts checkpoint loop.
 func (mdb *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
-	clientOptions := options.Client().ApplyURI(connStr)
-	client, err := mongo.Connect(context.Background(), clientOptions)
-	if err != nil {
-		return err
-	}
+	mdb.checkpoint()
+	mdb.clientOptions = options.Client().
+		ApplyURI(connStr).
+		SetReadPreference(readpref.SecondaryPreferred())
+	mdb.checkPointIn = time.Minute
+	mdb.name = strings.Replace(env.AppName(), ".", "_", -1)
 
 	for _, opt := range opts {
 		opt(mdb)
+	}
+
+	if err := mdb.clientOptions.Validate(); err != nil {
+		return err
+	}
+
+	client, err := mongo.Connect(context.Background(), mdb.clientOptions)
+	if err != nil {
+		return err
 	}
 
 	if mdb.cacheDir != "" {
@@ -163,7 +182,6 @@ func (mdb *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 	}
 
 	mdb.client = client
-	mdb.name = strings.Replace(env.AppName(), ".", "_", -1)
 	mdb.db = client.Database(mdb.name)
 	return nil
 }
