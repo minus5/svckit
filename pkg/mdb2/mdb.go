@@ -111,18 +111,19 @@ func CacheRoot(d string) func(*Mdb) {
 	}
 }
 
-// EnsureSafe sets session in majority safe mode
+// EnsureSafe sets session into Safe mode - ensure session is at least checking for errors, without enforcing further constraints
+// request acknowledgment that write operations propagated to at least 1 mongod instance
+// the closest I could find to replace EnsureSafe(&mgo.Safe{}) from mgo driver
 func EnsureSafe() func(*Mdb) {
 	return func(mdb *Mdb) {
-		// SetSafe is irrelevant as the MongoDB Go driver defaults to safe operation
-		// leaving for backward compatibility for now
+		mdb.clientOptions.SetWriteConcern(writeconcern.New(writeconcern.W(1)))
 	}
 }
 
-// MajoritySafe  requests acknowledgement that write operations propagate to the majority of mongod instances
-func MajoritySafe() func(db *Mdb) {
-	return func(db *Mdb) {
-		db.clientOptions.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+// MajoritySafe  requests acknowledgement that write operations propagated to the majority of mongod instances
+func MajoritySafe() func(mdb *Mdb) {
+	return func(mdb *Mdb) {
+		mdb.clientOptions.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 	}
 }
 
@@ -156,7 +157,10 @@ func (mdb *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 	mdb.checkpoint()
 	mdb.clientOptions = options.Client().
 		ApplyURI(connStr).
-		SetReadPreference(readpref.SecondaryPreferred())
+		SetReadPreference(readpref.SecondaryPreferred()).
+		// don't wait for acknowledgment that write operations propagated to the any of the mongod instances
+		// SetSafe(nil) from mgo driver
+		SetWriteConcern(writeconcern.New(writeconcern.W(0)))
 	mdb.checkPointIn = time.Minute
 	mdb.name = strings.Replace(env.AppName(), ".", "_", -1)
 
