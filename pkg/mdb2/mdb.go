@@ -99,6 +99,7 @@ func Name(n string) func(*Mdb) {
 
 func SetPoolLimit(limit int) func(*Mdb) {
 	return func(mdb *Mdb) {
+		mdb.clientOptions.SetMaxPoolSize(uint64(limit))
 	}
 }
 
