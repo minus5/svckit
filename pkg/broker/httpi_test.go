@@ -105,7 +105,7 @@ func testSSEReq(t *testing.T, topic string) (chan *Message, chan struct{}, error
 				msg = &Message{}
 				msg.Event = string(bytes.TrimSpace(spl[1]))
 			case "data":
-				msg.Data = bytes.TrimSpace(spl[1])
+				msg.data = bytes.TrimSpace(spl[1])
 				t.Log(msg)
 				select {
 				case msgCh <- msg:
@@ -141,12 +141,12 @@ func TestStreamingSSE(t *testing.T) {
 	var msg *Message
 	msg = <-msgCh
 	assert.Equal(t, "event-q", msg.Event)
-	assert.Equal(t, []byte("1"), msg.Data)
+	assert.Equal(t, []byte("1"), msg.GetData())
 	assert.Len(t, b.subscribers, 1) // ima 1 subscriber jer smo primili 1 poruku
 
 	msg = <-msgCh
 	assert.Equal(t, "event-q", msg.Event)
-	assert.Equal(t, []byte("2"), msg.Data)
+	assert.Equal(t, []byte("2"), msg.GetData())
 
 	close(doneCh)    // Prestani slusati SSE
 	close(closeHTTP) // Stop HTTP SSE server
