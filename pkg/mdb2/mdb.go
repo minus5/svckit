@@ -284,6 +284,12 @@ func (mdb *Mdb) Insert(col string, o interface{}) error {
 	})
 }
 
+func (mdb *Mdb) DropCollection(col string) error {
+	return mdb.Use(col, col+"drop", func(c *mongo.Collection) error {
+		return c.Drop(context.Background())
+	})
+}
+
 // Close starts clean exit
 func (mdb *Mdb) Close() {
 	mdb.checkpoint()
