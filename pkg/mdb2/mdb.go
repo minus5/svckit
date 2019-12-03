@@ -55,7 +55,7 @@ func DefaultConnStr() string {
 
 	connStr := "mongo.service.sd"
 	if addrs, err := dcy.LocalServices(connStr); err == nil {
-		connStr = strings.Join(addrs.String(), ",")
+		connStr = fmt.Sprintf("mongodb://%s", strings.Join(addrs.String(), ","))
 	}
 	return connStr
 }
