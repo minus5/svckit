@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"reflect"
 	"strings"
 	"text/template"
 	"time"
@@ -162,6 +164,14 @@ func (mdb *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 		// don't wait for acknowledgment that write operations propagated to the any of the mongod instances
 		// SetSafe(nil) from mgo driver
 		SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+
+	// driver defaults to decoding interface{} as bson.D whereas mgo defaults to bson.M
+	// this code matches mgo behavior and allows to decode interface{} as JSON
+	// https://jira.mongodb.org/browse/GODRIVER-988
+	tM := reflect.TypeOf(bson.M{})
+	reg := bson.NewRegistryBuilder().RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM).Build()
+	mdb.clientOptions.SetRegistry(reg)
+
 	mdb.checkPointIn = time.Minute
 	mdb.name = strings.Replace(env.AppName(), ".", "_", -1)
 
