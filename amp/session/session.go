@@ -100,7 +100,6 @@ func (s *session) loop(cancelSig context.Context) {
 			hi.end()
 		case msg := <-outMessages:
 			hi := s.hist.put("out")
-			time.Sleep(100 * time.Millisecond)
 			s.connWrite(msg)
 			hi.end()
 			alive.Reset(aliveInterval)
