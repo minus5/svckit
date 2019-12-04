@@ -30,6 +30,7 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
+	hist                 history
 	compatibilityVersion uint8
 	started              bool
 	closed               bool
@@ -47,6 +48,9 @@ func serve(cancelSig context.Context, conn connection, req requester, brk broker
 		outQueue:             make([]*amp.Msg, 0),
 		outQueueChanged:      make(chan struct{}),
 		compatibilityVersion: compatibilityVersion,
+		hist: history{
+			items: [16]*hitem{},
+		},
 	}
 	s.stats.start = time.Now()
 	s.loop(cancelSig)
@@ -91,21 +95,32 @@ func (s *session) loop(cancelSig context.Context) {
 		case <-s.outQueueChanged:
 			// just start another loop iteration
 		case <-alive.C:
+			hi := s.hist.put("alive")
 			sendAlive()
+			hi.end()
 		case msg := <-outMessages:
+			hi := s.hist.put("out")
+			time.Sleep(100 * time.Millisecond)
 			s.connWrite(msg)
+			hi.end()
 			alive.Reset(aliveInterval)
 			s.stats.outMessages++
 		case msg, ok := <-inMessages:
 			if !ok {
+				hi := s.hist.put("uns")
 				s.unsubscribe()
+				hi.end()
 				return
 			}
+			hi := s.hist.put("in")
 			s.receive(msg)
+			hi.end()
 			s.stats.inMessages++
 		case <-exitSig:
+			hi := s.hist.put("exit")
 			_ = s.conn.Close()
 			exitSig = nil // fire once
+			hi.end()
 		}
 	}
 }
@@ -122,6 +137,7 @@ func (s *session) logStats() {
 	metric.Time("inMessages", s.stats.inMessages)
 	metric.Time("outMessages", s.stats.outMessages)
 	metric.Time("aliveMessages", s.stats.aliveMessages)
+	metric.Time("maxQueueLen", s.stats.maxQueueLen)
 	metric.Time("duration", duration)
 }
 
@@ -209,6 +225,10 @@ func (s *session) logOutQueueOverflow() {
 		I("aliveMessages", s.stats.aliveMessages).
 		I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
 		Info("out queue overflow")
+	now := time.Now()
+	for i, hi := range s.hist.dump() {
+		s.log().I("i", i).S("typ", hi.typ).I("duration", hi.duration()).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("history")
+	}
 	for i, m := range s.outQueue {
 		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).Info("queue content")
 	}
