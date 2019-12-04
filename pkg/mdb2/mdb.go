@@ -397,14 +397,14 @@ func parseIndexKey(key []string) (*indexKeyInfo, error) {
 		}
 		if kind == "text" {
 			if !isText {
-				keyInfo.key.Append("_fts", bsonx.String("text"))
-				keyInfo.key.Append("_ftsx", bsonx.Int32(1))
+				keyInfo.key = keyInfo.key.Append("_fts", bsonx.String("text"))
+				keyInfo.key = keyInfo.key.Append("_ftsx", bsonx.Int32(1))
 				isText = true
 			}
 		} else if kind != "" {
-			keyInfo.key.Append(field, bsonx.String(kind))
+			keyInfo.key = keyInfo.key.Append(field, bsonx.String(kind))
 		} else {
-			keyInfo.key.Append(field, bsonx.Int32(order))
+			keyInfo.key = keyInfo.key.Append(field, bsonx.Int32(order))
 		}
 	}
 	if keyInfo.name == "" {
