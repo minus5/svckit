@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const hlen = 16
+const hlen = 64
 
 type history struct {
 	items [hlen]*hitem

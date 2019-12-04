@@ -49,7 +49,7 @@ func serve(cancelSig context.Context, conn connection, req requester, brk broker
 		outQueueChanged:      make(chan struct{}),
 		compatibilityVersion: compatibilityVersion,
 		hist: history{
-			items: [16]*hitem{},
+			items: [hlen]*hitem{},
 		},
 	}
 	s.stats.start = time.Now()
@@ -229,7 +229,7 @@ func (s *session) logOutQueueOverflow() {
 		s.log().I("i", i).S("typ", hi.typ).I("duration", hi.duration()).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("history")
 	}
 	for i, m := range s.outQueue {
-		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).Info("queue content")
+		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).I("ts", int(m.Ts)).Info("queue content")
 	}
 }
 
