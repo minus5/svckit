@@ -259,10 +259,9 @@ func (mdb *Mdb) SaveId(col string, id interface{}, o interface{}) error {
 	return mdb.saveId(col, id, o)
 }
 
-// TODO: doesn't work like this, UpdateOne can't take whole struct
 func (mdb *Mdb) saveId(col string, id interface{}, o interface{}) error {
 	return mdb.Use(col, "saveId", func(c *mongo.Collection) error {
-		_, err := c.UpdateOne(context.Background(), bson.D{{"_id", id}}, o, options.Update().SetUpsert(true))
+		_, err := c.ReplaceOne(context.Background(), bson.D{{"_id", id}}, o, options.Replace().SetUpsert(true))
 		return err
 	})
 }
