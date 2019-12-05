@@ -1,5 +1,6 @@
 .DS_Store
 .idea
+.vscode
 example/tmp
 amp/sdk/js/node_modules/
 tmp

@@ -13,7 +13,7 @@ func concatenate(ch chan *Message, out *[]byte) <-chan bool {
 	c := make(chan bool)
 	go func() {
 		for msg := range ch {
-			*out = append(*out, msg.Data...)
+			*out = append(*out, msg.GetData()...)
 		}
 		c <- true
 	}()
@@ -21,7 +21,7 @@ func concatenate(ch chan *Message, out *[]byte) <-chan bool {
 }
 
 func TestFullDiff(t *testing.T) {
-	Full("test", "testevent", []byte("12345"))
+	Full("test", "testevent", []byte("12345"), nil)
 
 	var buf1, buf2 []byte
 
@@ -34,9 +34,9 @@ func TestFullDiff(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 
-	Diff("test", "testevent", []byte("6"))
-	Diff("test", "testevent", []byte("7"))
-	Diff("test", "testevent", []byte("8"))
+	Diff("test", "testevent", []byte("6"), nil)
+	Diff("test", "testevent", []byte("7"), nil)
+	Diff("test", "testevent", []byte("8"), nil)
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -109,18 +109,18 @@ func TestTouch(t *testing.T) {
 	ch1 := b1.Subscribe()
 	done1 := concatenate(ch1, &buf1)
 
-	Diff("touch", "test", []byte("diff1"))
-	Diff("touch", "test", []byte("diff2"))
+	Diff("touch", "test", []byte("diff1"), nil)
+	Diff("touch", "test", []byte("diff2"), nil)
 
 	var buf2 []byte
 	b2 := GetFullDiffBroker("touch")
 	ch2 := b2.Subscribe()
 	done2 := concatenate(ch2, &buf2)
 
-	Diff("touch", "test", []byte("diff3"))
-	Diff("touch", "test", []byte("diff4"))
+	Diff("touch", "test", []byte("diff3"), nil)
+	Diff("touch", "test", []byte("diff4"), nil)
 
-	Full("touch", "test", []byte("full1"))
+	Full("touch", "test", []byte("full1"), nil)
 	time.Sleep(10 * time.Millisecond)
 
 	var buf3 []byte
@@ -129,8 +129,8 @@ func TestTouch(t *testing.T) {
 	done3 := concatenate(ch3, &buf3)
 
 	time.Sleep(10 * time.Millisecond)
-	Diff("touch", "test", []byte("diff5"))
-	Diff("touch", "test", []byte("diff6"))
+	Diff("touch", "test", []byte("diff5"), nil)
+	Diff("touch", "test", []byte("diff6"), nil)
 
 	b1.Unsubscribe(ch1)
 	b2.Unsubscribe(ch2)
@@ -164,7 +164,7 @@ func TestCleanup(t *testing.T) {
 	msgCh := b.Subscribe()
 	assert.Len(t, b.subscribers, 0) // Subscriber nije dodan nije dobio full
 	m := <-msgCh
-	assert.Equal(t, "1", string(m.Data))
+	assert.Equal(t, "1", string(m.GetData()))
 
 	time.Sleep(5 * time.Millisecond) // cekaj pola vremena do expire
 	CleanUpBrokers()
