@@ -252,11 +252,15 @@ func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 		}
 	}
 	return mdb.Use(col, "saveId", func(c *mongo.Collection) error {
-		err := c.FindOne(context.Background(), bson.D{{"_id", id}}).Decode(o)
-		if err == mongo.ErrNoDocuments {
+		sr := c.FindOne(context.Background(), bson.D{{"_id", id}})
+		err := sr.Err()
+		if err != nil && err == mongo.ErrNoDocuments {
 			return ErrNotFound
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		return sr.Decode(o)
 	})
 }
 
