@@ -30,7 +30,8 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
-	hist                 history
+	hist                 *history
+	histSend             *history
 	compatibilityVersion uint8
 	started              bool
 	closed               bool
@@ -48,9 +49,8 @@ func serve(cancelSig context.Context, conn connection, req requester, brk broker
 		outQueue:             make([]*amp.Msg, 0),
 		outQueueChanged:      make(chan struct{}),
 		compatibilityVersion: compatibilityVersion,
-		hist: history{
-			items: [hlen]*hitem{},
-		},
+		hist:                 newHistory(),
+		histSend:             newHistory(),
 	}
 	s.stats.start = time.Now()
 	s.loop(cancelSig)
@@ -200,6 +200,7 @@ func (s *session) Send(m *amp.Msg) {
 	}
 
 	s.outQueue = append(s.outQueue, m)
+	s.histSend.put("send")
 	// signal queue changed
 	select {
 	case s.outQueueChanged <- struct{}{}:
@@ -227,6 +228,9 @@ func (s *session) logOutQueueOverflow() {
 	now := time.Now()
 	for i, hi := range s.hist.dump() {
 		s.log().I("i", i).S("typ", hi.typ).I("duration", hi.duration()).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("history")
+	}
+	for i, hi := range s.histSend.dump() {
+		s.log().I("i", i).S("typ", hi.typ).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("histSend")
 	}
 	for i, m := range s.outQueue {
 		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).I("ts", int(m.Ts)).Info("queue content")

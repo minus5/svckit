@@ -5,7 +5,13 @@ import (
 	"time"
 )
 
-const hlen = 64
+const hlen = 32
+
+func newHistory() *history {
+	return &history{
+		items: [hlen]*hitem{},
+	}
+}
 
 type history struct {
 	items [hlen]*hitem
