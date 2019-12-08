@@ -111,7 +111,7 @@ func (s *session) loop(cancelSig context.Context) {
 				hi.end()
 				return
 			}
-			hi := s.hist.put("in")
+			hi := s.hist.put(fmt.Sprintf("in%d", msg.Type))
 			s.receive(msg)
 			hi.end()
 			s.stats.inMessages++
