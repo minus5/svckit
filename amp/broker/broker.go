@@ -250,3 +250,7 @@ func (s *Broker) waitClose() {
 // 	})
 // 	return m
 // }
+
+func (s *Broker) Gauges() (int, int, int) {
+	return len(s.messages), len(s.topics), len(s.consumerTopics)
+}

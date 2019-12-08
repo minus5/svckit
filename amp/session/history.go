@@ -7,6 +7,24 @@ import (
 
 const hlen = 32
 
+const (
+	actionAlive = iota
+	actionSend
+	actionExit
+	actionUnsubscribe
+	actionOut
+	actionIn
+)
+
+var historyNames = map[uint8]string{
+	actionAlive:       "alive",
+	actionSend:        "send",
+	actionExit:        "exit",
+	actionUnsubscribe: "uns",
+	actionOut:         "out",
+	actionIn:          "in",
+}
+
 func newHistory() *history {
 	return &history{
 		items: [hlen]*hitem{},
@@ -20,16 +38,22 @@ type history struct {
 }
 
 type hitem struct {
-	typ       string
+	action    uint8
+	typ       uint8
+	updateTyp uint8
+	value     int
 	startedAt time.Time
 	endedAt   *time.Time
 }
 
-func (h *history) put(typ string) *hitem {
+func (h *history) put(action, typ, updateType uint8, value int) *hitem {
 	h.Lock()
 	defer h.Unlock()
 	hi := &hitem{
+		action:    action,
 		typ:       typ,
+		updateTyp: updateType,
+		value:     value,
 		startedAt: time.Now(),
 	}
 	h.items[h.index%hlen] = hi
@@ -40,6 +64,10 @@ func (h *history) put(typ string) *hitem {
 func (hi *hitem) end() {
 	t := time.Now()
 	hi.endedAt = &t
+}
+
+func (hi *hitem) name() string {
+	return historyNames[hi.action]
 }
 
 func (h *history) dump() []*hitem {

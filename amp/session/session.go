@@ -95,28 +95,26 @@ func (s *session) loop(cancelSig context.Context) {
 		case <-s.outQueueChanged:
 			// just start another loop iteration
 		case <-alive.C:
-			hi := s.hist.put("alive")
+			hi := s.hist.put(actionAlive, 0, 0, 0)
 			sendAlive()
 			hi.end()
 		case msg := <-outMessages:
-			hi := s.hist.put("out")
+			hi := s.hist.put(actionOut, msg.Type, msg.UpdateType, 0)
 			s.connWrite(msg)
-			hi.end()
 			alive.Reset(aliveInterval)
 			s.stats.outMessages++
+			hi.end()
 		case msg, ok := <-inMessages:
 			if !ok {
-				hi := s.hist.put("uns")
+				hi := s.hist.put(actionUnsubscribe, 0, 0, 0)
 				s.unsubscribe()
 				hi.end()
 				return
 			}
-			hi := s.hist.put(fmt.Sprintf("in%d", msg.Type))
 			s.receive(msg)
-			hi.end()
 			s.stats.inMessages++
 		case <-exitSig:
-			hi := s.hist.put("exit")
+			hi := s.hist.put(actionExit, 0, 0, 0)
 			_ = s.conn.Close()
 			exitSig = nil // fire once
 			hi.end()
@@ -166,13 +164,19 @@ func (s *session) readLoop() chan *amp.Msg {
 func (s *session) receive(m *amp.Msg) {
 	switch m.Type {
 	case amp.Ping:
+		hi := s.hist.put(actionIn, m.Type, m.UpdateType, 0)
 		s.Send(m.Pong())
+		hi.end()
 	case amp.Request:
 		// TODO what URI-a are ok, make filter
+		hi := s.hist.put(actionIn, m.Type, m.UpdateType, 0)
 		m.Meta = s.conn.Meta()
 		s.requester.Send(s, m)
+		hi.end()
 	case amp.Subscribe:
+		hi := s.hist.put(actionIn, m.Type, m.UpdateType, len(m.Subscriptions))
 		s.broker.Subscribe(s, m.Subscriptions)
+		hi.end()
 	}
 }
 
@@ -200,7 +204,7 @@ func (s *session) Send(m *amp.Msg) {
 	}
 
 	s.outQueue = append(s.outQueue, m)
-	s.histSend.put("send")
+	s.histSend.put(actionSend, m.Type, m.UpdateType, 0)
 	// signal queue changed
 	select {
 	case s.outQueueChanged <- struct{}{}:
@@ -227,10 +231,10 @@ func (s *session) logOutQueueOverflow() {
 		Info("out queue overflow")
 	now := time.Now()
 	for i, hi := range s.hist.dump() {
-		s.log().I("i", i).S("typ", hi.typ).I("duration", hi.duration()).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("history")
+		s.log().I("i", i).S("name", hi.name()).I("type", int(hi.typ)).I("updType", int(hi.typ)).I("value", hi.value).I("duration", hi.duration()).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("history")
 	}
 	for i, hi := range s.histSend.dump() {
-		s.log().I("i", i).S("typ", hi.typ).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("histSend")
+		s.log().I("i", i).S("name", hi.name()).I("type", int(hi.typ)).I("updType", int(hi.typ)).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("histSend")
 	}
 	for i, m := range s.outQueue {
 		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).I("ts", int(m.Ts)).Info("queue content")
