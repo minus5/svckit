@@ -7,6 +7,7 @@ package broker
 import (
 	"github.com/minus5/svckit/amp"
 	"github.com/minus5/svckit/log"
+	"time"
 )
 
 // Broker type
@@ -156,7 +157,13 @@ func (s *Broker) inLoop(f func()) {
 		return
 	default:
 	}
+	call := time.Now()
 	s.loopWork <- func() {
+		enter := time.Now()
+		metric.Time("broker.subscribe.wait", int(enter.Sub(call).Nanoseconds()))
+		defer func() {
+			metric.Time("broker.subscribe.run", int(time.Now().Sub(enter).Nanoseconds()))
+		}()
 		f()
 	}
 }
@@ -168,7 +175,13 @@ func (s *Broker) inLoopWait(f func()) {
 	default:
 	}
 	done := make(chan struct{})
+	call := time.Now()
 	s.loopWork <- func() {
+		enter := time.Now()
+		metric.Time("broker.subscribe.wait", int(enter.Sub(call).Nanoseconds()))
+		defer func() {
+			metric.Time("broker.subscribe.run", int(time.Now().Sub(enter).Nanoseconds()))
+		}()
 		f()
 		close(done)
 	}
