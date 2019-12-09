@@ -244,6 +244,16 @@ func (mdb *Mdb) Use2(col string, handler func(*mongo.Collection) error) error {
 	return mdb.Use(col, col, handler)
 }
 
+func (mdb *Mdb) UseSafe(col string, metricKey string, handler func(*mongo.Collection) error) error {
+	// TODO
+	return fmt.Errorf("not implemented")
+}
+
+func (mdb *Mdb) UseWithoutTimeout(col string, handler func(*mongo.Collection) error) error {
+	// TODO
+	return fmt.Errorf("not implemented")
+}
+
 // ReadId reads document with specified id from mongo
 func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 	if mdb.cache != nil {
@@ -292,6 +302,9 @@ func (mdb *Mdb) Exists(col string, query interface{}) (bool, error) {
 
 // RemoveId removes document with specified id from mongo
 func (mdb *Mdb) RemoveId(col string, id interface{}) error {
+	if mdb.cache != nil {
+		mdb.cache.remove(col, id)
+	}
 	return mdb.Use(col, col+"remove", func(c *mongo.Collection) error {
 		_, err := c.DeleteOne(context.Background(), bson.D{{"_id", id}})
 		return err
@@ -336,7 +349,7 @@ func (mdb *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration)
 		SetSparse(true).
 		SetName(parsedKeys.name)
 	if expireAfter > 0 {
-		options = options.SetExpireAfterSeconds(int32(expireAfter / time.Second))
+		options.SetExpireAfterSeconds(int32(expireAfter / time.Second))
 	}
 	index.Options = options
 	_, err = c.Indexes().CreateOne(context.Background(), index)
