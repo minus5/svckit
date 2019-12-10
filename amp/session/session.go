@@ -115,7 +115,7 @@ func (s *session) loop(cancelSig context.Context) {
 			s.stats.inMessages++
 		case <-exitSig:
 			hi := s.hist.put(actionExit, 0, 0, 0)
-			_ = s.conn.Close()
+			s.connClose()
 			exitSig = nil // fire once
 			hi.end()
 		}
@@ -195,7 +195,7 @@ func (s *session) Send(m *amp.Msg) {
 		// check for queue overflow
 		if queueLen >= maxWriteQueueDepth {
 			if !s.closed {
-				s.conn.Close()
+				s.connClose()
 				s.logOutQueueOverflow()
 			}
 			s.closed = true
@@ -254,10 +254,16 @@ func (s *session) connWrite(m *amp.Msg) {
 	}
 	err := s.conn.Write(payload, deflated)
 	if err != nil {
-		s.conn.Close()
+		s.connClose()
 	}
 }
 
 func (s *session) log() *log.Agregator {
 	return log.I("no", int(s.conn.No()))
+}
+
+func (s *session) connClose() {
+	metric.Timing("connClose", func() {
+		s.conn.Close()
+	})
 }

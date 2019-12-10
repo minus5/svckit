@@ -80,6 +80,7 @@ func (s *Broker) Replay(topic string) []*amp.Msg {
 // Subscribe consumer to topics defined c.Topics()
 // amp.Subscriber should call this on each change ih his Topics list.
 func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
+	metric.Time("broker.subscribe.len", len(newTopics))
 	s.inLoop(func() {
 		oldTopics, ok := s.consumerTopics[c]
 		s.consumerTopics[c] = copyMap(newTopics)
