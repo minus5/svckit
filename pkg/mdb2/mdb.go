@@ -33,13 +33,13 @@ var (
 
 // Mdb is struct for handling mongo connection
 type Mdb struct {
-	client       *mongo.Client
+	client        *mongo.Client
 	clientOptions *options.ClientOptions
-	db           *mongo.Database
-	checkPointIn time.Duration
-	name         string
-	cacheDir     string
-	cache        *cache
+	db            *mongo.Database
+	checkPointIn  time.Duration
+	name          string
+	cacheDir      string
+	cache         *cache
 }
 
 // DefaultConnStr creates connection string from consul
@@ -379,6 +379,31 @@ func (mdb *Mdb) EnsureUniqueIndex(col string, key []string) error {
 	return err
 }
 
+func (mdb *Mdb) NextSerialNumber(colName, key string) (int, error) {
+	var no int
+	ctx := context.Background()
+	err := mdb.Use(colName, "next_number", func(c *mongo.Collection) error {
+	again:
+		sn := &struct {
+			Key string `bson:"_id"`
+			No  int    `bson:"no"`
+		}{Key: key, No: 1}
+
+		err := c.FindOneAndUpdate(ctx,
+			bson.D{{"_id", sn.Key}},
+			bson.D{{"$inc", bson.D{{"no", 1}}}}).Err()
+		if err == mongo.ErrNoDocuments {
+			_, err := c.InsertOne(ctx, sn)
+			if IsDup(err) {
+				goto again
+			}
+		}
+		no = sn.No
+		return err
+	})
+	return no, err
+}
+
 type indexKeyInfo struct {
 	name string
 	key  bsonx.Doc
@@ -442,4 +467,17 @@ func parseIndexKey(key []string) (*indexKeyInfo, error) {
 		return nil, errors.New("invalid index key: no fields provided")
 	}
 	return &keyInfo, nil
+}
+
+// IsDup checks if error is duplicate key error
+// TODO Check if correct
+func IsDup(err error) bool {
+	if err == nil {
+		return false
+	}
+	we, ok := err.(mongo.WriteException)
+	if !ok {
+		return false
+	}
+	return we.WriteErrors[0].Code == 11000
 }
