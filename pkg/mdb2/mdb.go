@@ -470,7 +470,6 @@ func parseIndexKey(key []string) (*indexKeyInfo, error) {
 }
 
 // IsDup checks if error is duplicate key error
-// TODO Check if correct
 func IsDup(err error) bool {
 	if err == nil {
 		return false
@@ -479,5 +478,14 @@ func IsDup(err error) bool {
 	if !ok {
 		return false
 	}
-	return we.WriteErrors[0].Code == 11000
+	contains := func(s []int, e int) bool {
+		for _, a := range s {
+			if a == e {
+				return true
+			}
+		}
+		return false
+	}
+	duplicateKeyErrorCodes := []int{11000, 11001, 12582}
+	return contains(duplicateKeyErrorCodes, we.WriteErrors[0].Code)
 }
