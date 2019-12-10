@@ -245,8 +245,13 @@ func (mdb *Mdb) Use2(col string, handler func(*mongo.Collection) error) error {
 }
 
 func (mdb *Mdb) UseSafe(col string, metricKey string, handler func(*mongo.Collection) error) error {
-	// TODO
-	return fmt.Errorf("not implemented")
+	// create new database object so options can be changed regardless of original
+	c := mdb.client.Database(mdb.name, options.Database().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))).Collection(col)
+	var err error
+	metric.Timing("db."+metricKey, func() {
+		err = handler(c)
+	})
+	return err
 }
 
 func (mdb *Mdb) UseWithoutTimeout(col string, handler func(*mongo.Collection) error) error {
