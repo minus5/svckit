@@ -339,7 +339,7 @@ func (mdb *Mdb) Close() {
 }
 
 func (mdb *Mdb) ResetIndexCache() {
-	// TODO
+	// probably not needed but leaving for backward compatibility for now
 }
 
 // EnsureIndex creates index if it doesn't already exist
