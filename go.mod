@@ -3,6 +3,7 @@ module github.com/minus5/svckit
 go 1.13
 
 require (
+	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/Unix4ever/statsd v0.0.0-20160120230120-a8219f1fb9d8 // indirect
 	github.com/cactus/go-statsd-client/statsd v0.0.0-20190302225832-f5dd73501f04 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible
@@ -55,12 +56,11 @@ require (
 	github.com/yudai/gojsondiff v1.0.0
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
-	go.mongodb.org/mongo-driver v1.1.3
+	go.mongodb.org/mongo-driver v1.2.0
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
 	golang.org/x/net v0.0.0-20190611141213-3f473d35a33a
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect
 	golang.org/x/sys v0.0.0-20190422165155-953cdadca894 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
-	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/yaml.v2 v2.2.2
 )
