@@ -312,8 +312,14 @@ func (mdb *Mdb) RemoveId(col string, id interface{}) error {
 		mdb.cache.remove(col, id)
 	}
 	return mdb.Use(col, col+"remove", func(c *mongo.Collection) error {
-		_, err := c.DeleteOne(context.Background(), bson.D{{"_id", id}})
-		return err
+		dr, err := c.DeleteOne(context.Background(), bson.D{{"_id", id}})
+		if err != nil {
+			return err
+		}
+		if dr.DeletedCount == 0 {
+			return ErrNotFound
+		}
+		return nil
 	})
 }
 
