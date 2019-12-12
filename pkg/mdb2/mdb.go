@@ -270,7 +270,7 @@ func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 	return mdb.Use(col, "saveId", func(c *mongo.Collection) error {
 		sr := c.FindOne(context.Background(), bson.D{{"_id", id}})
 		err := sr.Err()
-		if err != nil && err == mongo.ErrNoDocuments {
+		if err == mongo.ErrNoDocuments {
 			return ErrNotFound
 		}
 		if err != nil {
