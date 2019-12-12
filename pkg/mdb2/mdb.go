@@ -255,7 +255,8 @@ func (mdb *Mdb) UseSafe(col string, metricKey string, handler func(*mongo.Collec
 }
 
 func (mdb *Mdb) UseWithoutTimeout(col string, handler func(*mongo.Collection) error) error {
-	// TODO
+	// this option will probably have to go through options passed to Find and FindOne - SetNoCursorTimeout
+	// eg. options.Find().SetNoCursorTimeout(true)
 	return fmt.Errorf("not implemented")
 }
 
