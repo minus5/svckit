@@ -320,7 +320,9 @@ func (mdb *Mdb) RemoveId(col string, id interface{}) error {
 func (mdb *Mdb) Insert(col string, o interface{}) error {
 	return mdb.Use(col, col+"insert", func(c *mongo.Collection) error {
 		_, err := c.InsertOne(context.Background(), o)
-		// TODO check duplicate
+		if IsDup(err) {
+			return ErrDuplicate
+		}
 		return err
 	})
 }
