@@ -2,6 +2,7 @@ package broker
 
 type metricer struct {
 	Time func(string, int)
+	Count
 }
 
 var metric = metricer{

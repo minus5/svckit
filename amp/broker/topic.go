@@ -69,7 +69,13 @@ func (t *topic) close() {
 }
 
 func (t *topic) subscribe(c amp.Subscriber, ts int64) {
+	call := time.Now()
 	t.loopWork <- func() {
+		enter := time.Now()
+		metric.Time("topic.subscribe.wait", int(enter.Sub(call).Nanoseconds()))
+		defer func() {
+			metric.Time("topic.subscribe.run", int(time.Now().Sub(enter).Nanoseconds()))
+		}()
 		if ts <= 0 {
 			ts = tsNone
 		}
@@ -83,7 +89,10 @@ func (t *topic) subscribe(c amp.Subscriber, ts int64) {
 // unsubscribe vraca true ako vise nema niti jednog consumera.
 func (t *topic) unsubscribe(c amp.Subscriber) bool {
 	empty := make(chan bool)
+	call := time.Now()
 	t.loopWork <- func() {
+		enter := time.Now()
+		metric.Time("topic.unsubscribe.wait", int(enter.Sub(call).Nanoseconds()))
 		delete(t.consumers, c)
 		empty <- len(t.consumers) == 0
 	}
@@ -91,6 +100,7 @@ func (t *topic) unsubscribe(c amp.Subscriber) bool {
 }
 
 func (t *topic) sendMany(c amp.Subscriber, msgs []*amp.Msg) {
+	metric.Time("topic.sendMany", len(msgs))
 	burstStartEnd := len(msgs) > 2
 	if burstStartEnd {
 		t.send(c, msgs[0].BurstStart())

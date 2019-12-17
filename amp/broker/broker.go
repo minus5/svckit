@@ -117,6 +117,7 @@ func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
 				continue
 			}
 			if topic.unsubscribe(c) {
+				log.S("topic", t).Info("delete from uns")
 				delete(s.topics, t) // there is no one subscribed to this topic
 				topic.close()
 			}
@@ -127,11 +128,13 @@ func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
 func (s *Broker) find(topic string, currentOnNew bool) *topic {
 	t, ok := s.topics[topic]
 	if !ok {
-		log.S("topic", topic).Debug("new topic")
 		t = newTopic()
 		s.topics[topic] = t
 		if currentOnNew && s.current != nil {
+			log.S("topic", topic).Info("new top current")
 			go s.current(topic)
+		} else {
+			log.S("topic", topic).Info("new topic")
 		}
 	}
 	return t
@@ -217,7 +220,7 @@ func (s *Broker) loop() {
 			t := m.URI
 			topic := s.find(t, !m.IsFull())
 			if m.IsTopicClose() {
-				log.S("topic", t).Debug("delete")
+				log.S("topic", t).Info("delete from msg")
 				delete(s.topics, t)
 				topic.close()
 			} else {
