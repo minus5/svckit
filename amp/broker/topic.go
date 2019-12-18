@@ -64,6 +64,7 @@ func (t *topic) loop() {
 }
 
 func (t *topic) close() {
+	metric.Counter("topic.close")
 	close(t.messages)
 	<-t.closed
 }

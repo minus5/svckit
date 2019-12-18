@@ -128,6 +128,7 @@ func (s *Broker) Subscribe(c amp.Subscriber, newTopics map[string]int64) {
 func (s *Broker) find(topic string, currentOnNew bool) *topic {
 	t, ok := s.topics[topic]
 	if !ok {
+		start := time.Now()
 		t = newTopic()
 		s.topics[topic] = t
 		if currentOnNew && s.current != nil {
@@ -136,6 +137,7 @@ func (s *Broker) find(topic string, currentOnNew bool) *topic {
 		} else {
 			log.S("topic", topic).Info("new topic")
 		}
+		metric.Time("topic.new", int(time.Now().Sub(start).Nanoseconds()))
 	}
 	return t
 }
