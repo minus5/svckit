@@ -64,7 +64,10 @@ func (t *topic) loop() {
 }
 
 func (t *topic) close() {
-	metric.Counter("topic.close")
+	enter := time.Now()
+	defer func() {
+		metric.Time("topic.close", int(time.Now().Sub(enter).Nanoseconds()))
+	}()
 	close(t.messages)
 	<-t.closed
 }
