@@ -62,7 +62,7 @@ func (dbs *Mongo) start() {
 	}
 	addr := l.Addr().(*net.TCPAddr)
 	l.Close()
-	dbs.Host = addr.String()
+	dbs.Host = fmt.Sprintf("mongodb://%s", addr.String())
 
 	args := []string{
 		"--dbpath", dbs.DbPath,
@@ -164,7 +164,7 @@ func (dbs *Mongo) Session() *mongo.Client {
 	if dbs.session == nil {
 		var err error
 		dbs.session, err = mongo.Connect(context.Background(),
-			options.Client().ApplyURI(fmt.Sprintf("mongodb://%s/test", dbs.Host)))
+			options.Client().ApplyURI(fmt.Sprintf("%s/test", dbs.Host)))
 		if err != nil {
 			panic(err)
 		}
