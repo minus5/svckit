@@ -261,13 +261,13 @@ func (mdb *Mdb) UseWithoutTimeout(col string, handler func(*mongo.Collection) er
 }
 
 // ReadId reads document with specified id from mongo
-func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}) error {
+func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}, metrics ...string) error {
 	if mdb.cache != nil {
 		if i, ok := mdb.cache.find(col, id); ok {
 			return i.unmarshal(o)
 		}
 	}
-	return mdb.Use(col, "saveId", func(c *mongo.Collection) error {
+	return mdb.Use(col, getMetricKey("saveId", metrics...), func(c *mongo.Collection) error {
 		sr := c.FindOne(context.Background(), bson.D{{"_id", id}})
 		err := sr.Err()
 		if err == mongo.ErrNoDocuments {
@@ -281,24 +281,24 @@ func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}) error {
 }
 
 // SaveId stores document to mongo
-func (mdb *Mdb) SaveId(col string, id interface{}, o interface{}) error {
+func (mdb *Mdb) SaveId(col string, id interface{}, o interface{}, metrics ...string) error {
 	if mdb.cache != nil {
 		return mdb.cache.add(col, id, o)
 	}
-	return mdb.saveId(col, id, o)
+	return mdb.saveId(col, getMetricKey("saveId", metrics...), id, o)
 }
 
-func (mdb *Mdb) saveId(col string, id interface{}, o interface{}) error {
-	return mdb.Use(col, "saveId", func(c *mongo.Collection) error {
+func (mdb *Mdb) saveId(col, metricKey string, id interface{}, o interface{}) error {
+	return mdb.Use(col, metricKey, func(c *mongo.Collection) error {
 		_, err := c.ReplaceOne(context.Background(), bson.D{{"_id", id}}, o, options.Replace().SetUpsert(true))
 		return err
 	})
 }
 
 // Exists checks if document matching specified query exists in mongo
-func (mdb *Mdb) Exists(col string, query interface{}) (bool, error) {
+func (mdb *Mdb) Exists(col string, query interface{}, metrics ...string) (bool, error) {
 	exists := false
-	err := mdb.Use(col, "exists", func(c *mongo.Collection) error {
+	err := mdb.Use(col, getMetricKey("exists", metrics...), func(c *mongo.Collection) error {
 		count, err := c.CountDocuments(context.Background(), query)
 		exists = count > 0
 		return err
@@ -307,11 +307,11 @@ func (mdb *Mdb) Exists(col string, query interface{}) (bool, error) {
 }
 
 // RemoveId removes document with specified id from mongo
-func (mdb *Mdb) RemoveId(col string, id interface{}) error {
+func (mdb *Mdb) RemoveId(col string, id interface{}, metrics ...string) error {
 	if mdb.cache != nil {
 		mdb.cache.remove(col, id)
 	}
-	return mdb.Use(col, col+"remove", func(c *mongo.Collection) error {
+	return mdb.Use(col, getMetricKey(col + "remove", metrics...), func(c *mongo.Collection) error {
 		dr, err := c.DeleteOne(context.Background(), bson.D{{"_id", id}})
 		if err != nil {
 			return err
@@ -324,8 +324,8 @@ func (mdb *Mdb) RemoveId(col string, id interface{}) error {
 }
 
 // Insert inserts new document to mongo
-func (mdb *Mdb) Insert(col string, o interface{}) error {
-	return mdb.Use(col, col+"insert", func(c *mongo.Collection) error {
+func (mdb *Mdb) Insert(col string, o interface{}, metrics ...string) error {
+	return mdb.Use(col, getMetricKey(col + "insert", metrics...), func(c *mongo.Collection) error {
 		_, err := c.InsertOne(context.Background(), o)
 		if IsDup(err) {
 			return ErrDuplicate
@@ -411,6 +411,13 @@ func (mdb *Mdb) NextSerialNumber(colName, key string) (int, error) {
 		return err
 	})
 	return no, err
+}
+
+func getMetricKey(defaultMetricKey string, metrics ...string) string{
+	if len(metrics) > 0 {
+		return strings.Join(metrics, ".")
+	}
+	return defaultMetricKey
 }
 
 type indexKeyInfo struct {
