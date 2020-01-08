@@ -125,7 +125,7 @@ func (c *cache) purge() {
 		c.Lock()
 		delete(c.m, k)
 		c.Unlock()
-		err := c.mdb.saveId(i.col, i.id, i.o())
+		err := c.mdb.saveId(i.col, "saveId", i.id, i.o())
 		if err != nil {
 			log.S("col", i.col).S("id", fmt.Sprintf("%v", i.id)).Error(err)
 		}
