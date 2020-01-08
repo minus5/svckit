@@ -267,7 +267,7 @@ func (mdb *Mdb) ReadId(col string, id interface{}, o interface{}, metrics ...str
 			return i.unmarshal(o)
 		}
 	}
-	return mdb.Use(col, getMetricKey("saveId", metrics...), func(c *mongo.Collection) error {
+	return mdb.Use(col, getMetricKey("readId", metrics...), func(c *mongo.Collection) error {
 		sr := c.FindOne(context.Background(), bson.D{{"_id", id}})
 		err := sr.Err()
 		if err == mongo.ErrNoDocuments {
