@@ -215,6 +215,7 @@ func (s *Broker) loop() {
 	for {
 		select {
 		case m := <-s.messages:
+			start := time.Now()
 			if m == nil {
 				s.close()
 				return
@@ -228,8 +229,11 @@ func (s *Broker) loop() {
 			} else {
 				topic.publish(m)
 			}
+			metric.Time("broker.loop.msg", int(time.Now().Sub(start).Nanoseconds()))
 		case f := <-s.loopWork:
+			start := time.Now()
 			f()
+			metric.Time("broker.loop.work", int(time.Now().Sub(start).Nanoseconds()))
 		}
 	}
 }

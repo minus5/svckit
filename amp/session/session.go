@@ -184,9 +184,13 @@ func (s *session) receive(m *amp.Msg) {
 // Implements amp.Subscriber interface.
 func (s *session) Send(m *amp.Msg) {
 	// add to queue
+	enter := time.Now()
 	s.Lock()
+	if s.conn.No()%100 == 0 {
+		wait := int(time.Now().Sub(enter).Nanoseconds())
+		defer metric.Time("session.send.wait", wait)
+	}
 	defer s.Unlock()
-
 	if s.isStarted() {
 		queueLen := len(s.outQueue)
 		if s.stats.maxQueueLen < queueLen {

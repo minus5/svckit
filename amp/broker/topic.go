@@ -104,7 +104,6 @@ func (t *topic) unsubscribe(c amp.Subscriber) bool {
 }
 
 func (t *topic) sendMany(c amp.Subscriber, msgs []*amp.Msg) {
-	metric.Time("topic.sendMany", len(msgs))
 	burstStartEnd := len(msgs) > 2
 	if burstStartEnd {
 		t.send(c, msgs[0].BurstStart())
