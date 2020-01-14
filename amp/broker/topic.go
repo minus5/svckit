@@ -1,7 +1,9 @@
 package broker
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/minus5/svckit/amp"
@@ -25,20 +27,25 @@ type cache interface {
 }
 
 type topic struct {
-	messages  chan *amp.Msg
-	loopWork  chan func()
-	consumers map[amp.Subscriber]int64
-	closed    chan struct{}
-	cache     cache
-	updatedAt time.Time
+	messages   chan *amp.Msg
+	loopWork   chan func()
+	consumers  map[amp.Subscriber]int64
+	closed     chan struct{}
+	cache      cache
+	updatedAt  time.Time
+	metricName string
 }
 
-func newTopic() *topic {
+func newTopic(name string) *topic {
 	t := &topic{
-		messages:  make(chan *amp.Msg, 128),
-		consumers: make(map[amp.Subscriber]int64),
-		closed:    make(chan struct{}),
-		loopWork:  make(chan func()),
+		messages:   make(chan *amp.Msg, 128),
+		consumers:  make(map[amp.Subscriber]int64),
+		closed:     make(chan struct{}),
+		loopWork:   make(chan func()),
+		metricName: "other",
+	}
+	if strings.HasPrefix(name, "sportsbook/") {
+		t.metricName = name[11:12]
 	}
 	go t.loop()
 	return t
@@ -129,6 +136,18 @@ func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
 }
 
 func (t *topic) onMessage(m *amp.Msg) {
+	start := time.Now()
+	msgCount := 0
+	defer func() {
+		if msgCount == 0 {
+			return
+		}
+		duration := int(time.Now().Sub(start).Nanoseconds())
+		metric.Time(fmt.Sprintf("topic.onMessage.%s.duration", t.metricName), duration)
+		metric.Time(fmt.Sprintf("topic.onMessage.%s.consumers", t.metricName), len(t.consumers))
+		metric.Time(fmt.Sprintf("topic.onMessage.%s.msgCount", t.metricName), msgCount)
+		metric.Time(fmt.Sprintf("topic.onMessage.%s.perMsg", t.metricName), duration/msgCount)
+	}()
 	if m.UpdateType == amp.Event {
 		for c := range t.consumers {
 			t.send(c, m)
@@ -149,8 +168,11 @@ func (t *topic) onMessage(m *amp.Msg) {
 		switch t.cache.FindFor(cTs, m) {
 		case sendMsg:
 			t.send(c, m)
+			msgCount++
 		case sendCurrent:
-			t.sendMany(c, t.cache.Current())
+			current := t.cache.Current()
+			t.sendMany(c, current)
+			msgCount += len(current)
 		}
 	}
 

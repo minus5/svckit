@@ -129,7 +129,7 @@ func (s *Broker) find(topic string, currentOnNew bool) *topic {
 	t, ok := s.topics[topic]
 	if !ok {
 		start := time.Now()
-		t = newTopic()
+		t = newTopic(topic)
 		s.topics[topic] = t
 		if currentOnNew && s.current != nil {
 			log.S("topic", topic).Info("new top current")
