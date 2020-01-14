@@ -85,7 +85,14 @@ func (t *topic) subscribe(c amp.Subscriber, ts int64) {
 		}
 		t.consumers[c] = ts
 		if t.cache != nil {
-			t.sendMany(c, t.cache.Find(ts))
+			t1 := time.Now()
+			msgs := t.cache.Find(ts)
+			t2 := time.Now()
+			t.sendMany(c, msgs)
+			t3 := time.Now()
+			metric.Time("topic.subscribe.cacheFind", int(t2.Sub(t1).Nanoseconds()))
+			metric.Time("topic.subscribe.sendMany", int(t3.Sub(t2).Nanoseconds()))
+			metric.Time("topic.subscribe.sendManySize", len(msgs))
 		}
 	}
 }
