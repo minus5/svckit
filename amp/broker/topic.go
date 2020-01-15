@@ -27,13 +27,21 @@ type cache interface {
 }
 
 type topic struct {
-	messages   chan *amp.Msg
-	loopWork   chan func()
-	consumers  map[amp.Subscriber]int64
-	closed     chan struct{}
-	cache      cache
-	updatedAt  time.Time
-	metricName string
+	messages        chan *amp.Msg
+	loopWork        chan func()
+	consumers       map[amp.Subscriber]int64
+	closed          chan struct{}
+	cache           cache
+	updatedAt       time.Time
+	metricName      string
+	mOnMsgDuration  string
+	mOnMsgConsumers string
+	mOnMsgMsgCount  string
+	mOnMsgPerMsg    string
+	mSubWait        string
+	mSubDuration    string
+	mSubMsgCount    string
+	mSubPerMsg      string
 }
 
 func newTopic(name string) *topic {
@@ -47,6 +55,14 @@ func newTopic(name string) *topic {
 	if strings.HasPrefix(name, "sportsbook/") {
 		t.metricName = name[11:12]
 	}
+	t.mOnMsgDuration = fmt.Sprintf("topic.onMessage.%s.duration", t.metricName)
+	t.mOnMsgConsumers = fmt.Sprintf("topic.onMessage.%s.consumers", t.metricName)
+	t.mOnMsgMsgCount = fmt.Sprintf("topic.onMessage.%s.msgCount", t.metricName)
+	t.mOnMsgPerMsg = fmt.Sprintf("topic.onMessage.%s.perMsg", t.metricName)
+	t.mSubWait = fmt.Sprintf("topic.sub.%s.wait", t.metricName)
+	t.mSubDuration = fmt.Sprintf("topic.sub.%s.duration", t.metricName)
+	t.mSubMsgCount = fmt.Sprintf("topic.sub.%s.msgCount", t.metricName)
+	t.mSubPerMsg = fmt.Sprintf("topic.sub.%s.perMsg", t.metricName)
 	go t.loop()
 	return t
 }
@@ -83,23 +99,25 @@ func (t *topic) subscribe(c amp.Subscriber, ts int64) {
 	call := time.Now()
 	t.loopWork <- func() {
 		enter := time.Now()
-		metric.Time("topic.subscribe.wait", int(enter.Sub(call).Nanoseconds()))
+		msgCount := 0
 		defer func() {
-			metric.Time("topic.subscribe.run", int(time.Now().Sub(enter).Nanoseconds()))
+			if msgCount == 0 {
+				return
+			}
+			duration := int(time.Now().Sub(enter).Nanoseconds())
+			metric.Time(t.mSubWait, int(enter.Sub(call).Nanoseconds()))
+			metric.Time(t.mSubDuration, duration)
+			metric.Time(t.mSubMsgCount, msgCount)
+			metric.Time(t.mSubPerMsg, duration/msgCount)
 		}()
 		if ts <= 0 {
 			ts = tsNone
 		}
 		t.consumers[c] = ts
 		if t.cache != nil {
-			t1 := time.Now()
 			msgs := t.cache.Find(ts)
-			t2 := time.Now()
 			t.sendMany(c, msgs)
-			t3 := time.Now()
-			metric.Time("topic.subscribe.cacheFind", int(t2.Sub(t1).Nanoseconds()))
-			metric.Time("topic.subscribe.sendMany", int(t3.Sub(t2).Nanoseconds()))
-			metric.Time("topic.subscribe.sendManySize", len(msgs))
+			msgCount = len(msgs)
 		}
 	}
 }
@@ -143,10 +161,10 @@ func (t *topic) onMessage(m *amp.Msg) {
 			return
 		}
 		duration := int(time.Now().Sub(start).Nanoseconds())
-		metric.Time(fmt.Sprintf("topic.onMessage.%s.duration", t.metricName), duration)
-		metric.Time(fmt.Sprintf("topic.onMessage.%s.consumers", t.metricName), len(t.consumers))
-		metric.Time(fmt.Sprintf("topic.onMessage.%s.msgCount", t.metricName), msgCount)
-		metric.Time(fmt.Sprintf("topic.onMessage.%s.perMsg", t.metricName), duration/msgCount)
+		metric.Time(t.mOnMsgDuration, duration)
+		metric.Time(t.mOnMsgConsumers, len(t.consumers))
+		metric.Time(t.mOnMsgMsgCount, msgCount)
+		metric.Time(t.mOnMsgPerMsg, duration/msgCount)
 	}()
 	if m.UpdateType == amp.Event {
 		for c := range t.consumers {
