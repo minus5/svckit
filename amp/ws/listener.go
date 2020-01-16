@@ -92,6 +92,10 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 		ExtensionCustom: func(f []byte, os []httphead.Option) ([]httphead.Option, bool) {
 			os = make([]httphead.Option, 0)
 			field := string(f)
+			// skip deflating for kladomat, implementation in Chromium is buggy, constantly reconnects
+			if cc.meta["klad"] != "" {
+				return os, true
+			}
 			if strings.Contains(field, "permessage-deflate") && !cc.deflateSupported {
 				params := map[string]string{
 					"client_no_context_takeover": "",
