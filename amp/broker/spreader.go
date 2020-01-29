@@ -52,8 +52,10 @@ func (spr *spreader) close() {
 
 func (spr *spreader) unsubscribe(c amp.Subscriber) bool {
 	t := spr.consumerTopics[c]
-	t.unsubscribe(c)
-	delete(spr.consumerTopics, c)
+	if t != nil {
+		t.unsubscribe(c)
+		delete(spr.consumerTopics, c)
+	}
 	return len(spr.consumerTopics) == 0
 }
 
