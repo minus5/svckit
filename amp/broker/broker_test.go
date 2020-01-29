@@ -54,7 +54,7 @@ func TestSubscribe(t *testing.T) {
 	s := New(nil)
 	c := &testConsumer{topics: map[string]int64{"1": 0, "2": 0}}
 
-	assert.Len(t, s.topics, 0)
+	assert.Len(t, s.spreaders, 0)
 	s.Subscribe(c, c.topics)
 	s.inLoop(func() {})
 
@@ -62,13 +62,13 @@ func TestSubscribe(t *testing.T) {
 	c.topics["3"] = 0
 	s.Subscribe(c, c.topics)
 	s.inLoop(func() {})
-	assert.Len(t, s.topics, 3)
+	assert.Len(t, s.spreaders, 3)
 
 	// izbaci 3 dodaj jedan
 	c.topics = map[string]int64{"4": 0}
 	s.Subscribe(c, c.topics)
 	s.inLoop(func() {})
-	assert.Len(t, s.topics, 1)
+	assert.Len(t, s.spreaders, 1)
 }
 
 func TestDobijeFullNakonSubscribe(t *testing.T) {
@@ -149,13 +149,13 @@ func TestDobijePropusteneDiffOveNaSubscribe(t *testing.T) {
 	c = &testConsumer{topics: map[string]int64{"1": 101, "2": 0}}
 	s.Subscribe(c, c.topics)
 	s.wait("1")
-	assert.Len(t, c.messages, 3)
+	assert.Len(t, c.messages, 5)
 
 	// van ranga dobije sve
 	c = &testConsumer{topics: map[string]int64{"1": 1000, "2": 0}}
 	s.Subscribe(c, c.topics)
 	s.wait("1")
-	assert.Len(t, c.messages, 4)
+	assert.Len(t, c.messages, 6)
 }
 
 func TestReplay(t *testing.T) {
