@@ -1,11 +1,11 @@
 package broker
 
 import (
-	"sync"
-	"testing"
-
 	"github.com/minus5/svckit/amp"
 	"github.com/stretchr/testify/assert"
+	"sync"
+	"testing"
+	"time"
 )
 
 type counter struct {
@@ -16,6 +16,7 @@ type counter struct {
 func (c *counter) Send(m *amp.Msg) {
 	c.Lock()
 	defer c.Unlock()
+	time.Sleep(time.Nanosecond)
 	c.msgCount++
 }
 
@@ -74,4 +75,29 @@ func TestSpreader(t *testing.T) {
 	s.subscribe(&c2, 0)
 	s.wait()
 	assert.Equal(t, 16, c2.msgCount)
+}
+
+type publisher interface {
+	subscribe(amp.Subscriber, int64)
+	publish(*amp.Msg)
+	close()
+}
+
+func benchPublisher(p publisher) {
+	for i := 0; i < 5000; i++ {
+		p.subscribe(&counter{}, 0)
+	}
+	p.publish(&amp.Msg{Ts: 1, UpdateType: amp.Full})
+	for i := 0; i < 5000; i++ {
+		p.publish(&amp.Msg{Ts: int64(i + 1), UpdateType: amp.Diff})
+	}
+	p.close()
+}
+
+func BenchmarkTopic(b *testing.B) {
+	benchPublisher(newTopic("m"))
+}
+
+func BenchmarkSpreader(b *testing.B) {
+	benchPublisher(newSpreader("m"))
 }
