@@ -3,6 +3,7 @@ module github.com/minus5/svckit
 go 1.13
 
 require (
+	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/Unix4ever/statsd v0.0.0-20160120230120-a8219f1fb9d8 // indirect
 	github.com/cactus/go-statsd-client/statsd v0.0.0-20190302225832-f5dd73501f04 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible
@@ -11,11 +12,13 @@ require (
 	github.com/fatih/structtag v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
 	github.com/gobwas/pool v0.2.0 // indirect
 	github.com/gobwas/ws v1.0.0
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/btree v1.0.0 // indirect
+	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/hashicorp/consul v1.4.4
@@ -46,10 +49,14 @@ require (
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/smira/go-statsd v1.2.1
 	github.com/stretchr/testify v1.3.0
+	github.com/tidwall/pretty v1.0.0 // indirect
 	github.com/urfave/negroni v1.0.0
+	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
+	github.com/xdg/stringprep v1.0.0 // indirect
 	github.com/yudai/gojsondiff v1.0.0
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
+	go.mongodb.org/mongo-driver v1.2.0
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
 	golang.org/x/net v0.0.0-20190611141213-3f473d35a33a
 	golang.org/x/sync v0.0.0-20190227155943-e225da77a7e6 // indirect

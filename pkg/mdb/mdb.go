@@ -209,9 +209,18 @@ type Mdb struct {
 // DefaultConnStr creates connection string from consul
 func DefaultConnStr() string {
 	// cita iz mongo kv store key mongo
-	cs, err := dcy.KV("mongo/default/connectionString")
-	if err == nil && cs != "" {
-		app := env.AppName()
+	var cs string
+	app := env.AppName()
+	if acs, err := dcy.KV(fmt.Sprintf("mongo/%s/connectionString", app)); err == nil && acs != "" {
+		cs = acs
+		log.Info("using custom mongo connection string - %s", cs)
+	}
+	if cs == "" {
+		if dcs, err := dcy.KV("mongo/default/connectionString"); err == nil && dcs != "" {
+			cs = dcs
+		}
+	}
+	if cs != "" {
 		kvs, err := dcy.KVs("mongo/" + app)
 		_, disabled := kvs["disabled"]
 		if err == nil && !disabled {
