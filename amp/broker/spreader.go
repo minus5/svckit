@@ -4,21 +4,21 @@ import (
 	"github.com/minus5/svckit/amp"
 )
 
-const topicCount = 4
-
 type spreader struct {
-	topics         [topicCount]*topic
+	topicCount     int
+	topics         []*topic
 	consumerTopics map[amp.Subscriber]*topic
 	pos            int
 }
 
-func newSpreader(name string) *spreader {
+func newSpreader(name string, topicCount int) *spreader {
 	s := &spreader{
-		topics:         [topicCount]*topic{},
+		topicCount:     topicCount,
+		topics:         []*topic{},
 		consumerTopics: make(map[amp.Subscriber]*topic),
 	}
 	for i := 0; i < topicCount; i++ {
-		s.topics[i] = newTopic(name)
+		s.topics = append(s.topics, newTopic(name))
 	}
 	return s
 }
@@ -28,7 +28,7 @@ func (spr *spreader) findTopic(c amp.Subscriber) *topic {
 		return t
 	}
 	t := spr.topics[spr.pos]
-	spr.pos = (spr.pos + 1) % topicCount
+	spr.pos = (spr.pos + 1) % spr.topicCount
 	spr.consumerTopics[c] = t
 	return t
 }

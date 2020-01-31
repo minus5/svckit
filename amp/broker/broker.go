@@ -129,13 +129,17 @@ func (s *Broker) find(name string, currentOnNew bool) *spreader {
 	spr, ok := s.spreaders[name]
 	if !ok {
 		start := time.Now()
-		spr = newSpreader(name)
+		topicCount := 1
+		if name == "sportsbook/m" {
+			topicCount = 16
+		}
+		spr = newSpreader(name, topicCount)
 		s.spreaders[name] = spr
 		if currentOnNew && s.current != nil {
-			log.S("topic", name).Info("new top current")
+			log.S("topic", name).I("count", topicCount).Info("new top current")
 			go s.current(name)
 		} else {
-			log.S("topic", name).Info("new topic")
+			log.S("topic", name).I("count", topicCount).Info("new topic")
 		}
 		metric.Time("topic.new", int(time.Now().Sub(start).Nanoseconds()))
 	}

@@ -21,7 +21,7 @@ func (c *counter) Send(m *amp.Msg) {
 }
 
 func TestSpreader(t *testing.T) {
-	s := newSpreader("m")
+	s := newSpreader("m", 16)
 	m1 := &amp.Msg{Ts: 10, UpdateType: amp.Full}
 	m2 := &amp.Msg{Ts: 11, UpdateType: amp.Diff}
 	m3 := &amp.Msg{Ts: 12, UpdateType: amp.Diff}
@@ -78,7 +78,7 @@ func TestSpreader(t *testing.T) {
 }
 
 func TestSpreaderClose(t *testing.T) {
-	s := newSpreader("m")
+	s := newSpreader("m", 16)
 	cs := []*counter{}
 	for i := 0; i < 100; i++ {
 		c := counter{}
@@ -117,5 +117,5 @@ func BenchmarkTopic(b *testing.B) {
 }
 
 func BenchmarkSpreader(b *testing.B) {
-	benchPublisher(newSpreader("m"))
+	benchPublisher(newSpreader("m", 16))
 }
