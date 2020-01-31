@@ -30,8 +30,6 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
-	hist                 *history
-	histSend             *history
 	compatibilityVersion uint8
 	started              bool
 	closed               bool
@@ -49,8 +47,6 @@ func serve(cancelSig context.Context, conn connection, req requester, brk broker
 		outQueue:             make([]*amp.Msg, 0),
 		outQueueChanged:      make(chan struct{}),
 		compatibilityVersion: compatibilityVersion,
-		hist:                 newHistory(),
-		histSend:             newHistory(),
 	}
 	s.stats.start = time.Now()
 	s.loop(cancelSig)
@@ -95,29 +91,21 @@ func (s *session) loop(cancelSig context.Context) {
 		case <-s.outQueueChanged:
 			// just start another loop iteration
 		case <-alive.C:
-			hi := s.hist.put(actionAlive, 0, 0, 0)
 			sendAlive()
-			hi.end()
 		case msg := <-outMessages:
-			hi := s.hist.put(actionOut, msg.Type, msg.UpdateType, 0)
 			s.connWrite(msg)
 			alive.Reset(aliveInterval)
 			s.stats.outMessages++
-			hi.end()
 		case msg, ok := <-inMessages:
 			if !ok {
-				hi := s.hist.put(actionUnsubscribe, 0, 0, 0)
 				s.unsubscribe()
-				hi.end()
 				return
 			}
 			s.receive(msg)
 			s.stats.inMessages++
 		case <-exitSig:
-			hi := s.hist.put(actionExit, 0, 0, 0)
 			s.connClose()
 			exitSig = nil // fire once
-			hi.end()
 		}
 	}
 }
@@ -164,19 +152,13 @@ func (s *session) readLoop() chan *amp.Msg {
 func (s *session) receive(m *amp.Msg) {
 	switch m.Type {
 	case amp.Ping:
-		hi := s.hist.put(actionIn, m.Type, m.UpdateType, 0)
 		s.Send(m.Pong())
-		hi.end()
 	case amp.Request:
 		// TODO what URI-a are ok, make filter
-		hi := s.hist.put(actionIn, m.Type, m.UpdateType, 0)
 		m.Meta = s.conn.Meta()
 		s.requester.Send(s, m)
-		hi.end()
 	case amp.Subscribe:
-		hi := s.hist.put(actionIn, m.Type, m.UpdateType, len(m.Subscriptions))
 		s.broker.Subscribe(s, m.Subscriptions)
-		hi.end()
 	}
 }
 
@@ -203,7 +185,6 @@ func (s *session) Send(m *amp.Msg) {
 	}
 
 	s.outQueue = append(s.outQueue, m)
-	s.histSend.put(actionSend, m.Type, m.UpdateType, 0)
 	// signal queue changed
 	select {
 	case s.outQueueChanged <- struct{}{}:
@@ -228,13 +209,6 @@ func (s *session) logOutQueueOverflow() {
 		I("aliveMessages", s.stats.aliveMessages).
 		I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
 		Info("out queue overflow")
-	now := time.Now()
-	for i, hi := range s.hist.dump() {
-		s.log().I("i", i).S("name", hi.name()).I("type", int(hi.typ)).I("updType", int(hi.typ)).I("value", hi.value).I("duration", hi.duration()).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("history")
-	}
-	for i, hi := range s.histSend.dump() {
-		s.log().I("i", i).S("name", hi.name()).I("type", int(hi.typ)).I("updType", int(hi.typ)).I("before", int(now.Sub(hi.startedAt).Milliseconds())).Info("histSend")
-	}
 	for i, m := range s.outQueue {
 		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).I("ts", int(m.Ts)).Info("queue content")
 	}

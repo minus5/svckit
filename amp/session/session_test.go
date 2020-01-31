@@ -63,8 +63,6 @@ func testSession(outLen, inLen int) (chan []byte, chan []byte, func(), chan stru
 		conn:      conn,
 		requester: &mockRequester{},
 		broker:    &mockBroker{},
-		hist:      newHistory(),
-		histSend:  newHistory(),
 	}
 	go func() {
 		s.loop(ctx)
@@ -137,8 +135,6 @@ func TestQueueDrain(t *testing.T) {
 		conn:      conn,
 		requester: &mockRequester{},
 		broker:    &mockBroker{},
-		hist:      newHistory(),
-		histSend:  newHistory(),
 	}
 	for i := 0; i < 200; i++ {
 		s.Send(&amp.Msg{})
