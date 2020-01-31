@@ -42,6 +42,7 @@ type timers struct {
 	check  int64
 	append int64
 	signal int64
+	count  int64
 }
 
 // serve starts new session
@@ -133,10 +134,11 @@ func (s *session) logStats() {
 	metric.Time("maxQueueLen", s.stats.maxQueueLen)
 	total := float64(s.timers.enter + s.timers.check + s.timers.append + s.timers.signal)
 	if total > 0 {
-		metric.Time("percentEnter", int(100.0*float64(s.timers.enter)/total))
-		metric.Time("percentCheck", int(100.0*float64(s.timers.check)/total))
-		metric.Time("percentAppend", int(100.0*float64(s.timers.append)/total))
-		metric.Time("percentSignal", int(100.0*float64(s.timers.signal)/total))
+		metric.Time("session.sendPercent.enter", int(100.0*float64(s.timers.enter)/total))
+		metric.Time("session.sendPercent.check", int(100.0*float64(s.timers.check)/total))
+		metric.Time("session.sendPercent.append", int(100.0*float64(s.timers.append)/total))
+		metric.Time("session.sendPercent.signal", int(100.0*float64(s.timers.signal)/total))
+		metric.Time("session.send", int(total/float64(s.timers.count)))
 	}
 }
 
@@ -209,6 +211,7 @@ func (s *session) Send(m *amp.Msg) {
 	default:
 	}
 	timeSignal := time.Now()
+	s.timers.count++
 	s.timers.enter += timeEnter.Sub(timeStart).Nanoseconds()
 	s.timers.check += timeCheck.Sub(timeEnter).Nanoseconds()
 	s.timers.append += timeAppend.Sub(timeCheck).Nanoseconds()
