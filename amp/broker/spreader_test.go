@@ -73,8 +73,26 @@ func TestSpreader(t *testing.T) {
 	empty = s.unsubscribe(&c5)
 	assert.True(t, empty)
 	s.subscribe(&c2, 0)
-	s.wait()
+	s.close()
 	assert.Equal(t, 16, c2.msgCount)
+}
+
+func TestSpreaderClose(t *testing.T) {
+	s := newSpreader("m")
+	cs := []*counter{}
+	for i := 0; i < 100; i++ {
+		c := counter{}
+		cs = append(cs, &c)
+		s.subscribe(&c, 0)
+	}
+	s.publish(&amp.Msg{Ts: 1, UpdateType: amp.Full})
+	for i := 0; i < 100; i++ {
+		s.publish(&amp.Msg{Ts: int64(i + 1), UpdateType: amp.Diff})
+	}
+	s.close()
+	for _, c := range cs {
+		assert.Equal(t, 100, c.msgCount)
+	}
 }
 
 type publisher interface {

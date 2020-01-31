@@ -30,10 +30,18 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
+	timers               timers
 	compatibilityVersion uint8
 	started              bool
 	closed               bool
 	sync.Mutex
+}
+
+type timers struct {
+	enter  int64
+	check  int64
+	append int64
+	signal int64
 }
 
 // serve starts new session
@@ -123,7 +131,13 @@ func (s *session) logStats() {
 	metric.Time("outMessages", s.stats.outMessages)
 	metric.Time("aliveMessages", s.stats.aliveMessages)
 	metric.Time("maxQueueLen", s.stats.maxQueueLen)
-	metric.Time("duration", duration)
+	total := float64(s.timers.enter + s.timers.check + s.timers.append + s.timers.signal)
+	if total > 0 {
+		metric.Time("percentEnter", int(100.0*float64(s.timers.enter)/total))
+		metric.Time("percentCheck", int(100.0*float64(s.timers.check)/total))
+		metric.Time("percentAppend", int(100.0*float64(s.timers.append)/total))
+		metric.Time("percentSignal", int(100.0*float64(s.timers.signal)/total))
+	}
 }
 
 func (s *session) unsubscribe() {
@@ -166,8 +180,10 @@ func (s *session) receive(m *amp.Msg) {
 // Implements amp.Subscriber interface.
 func (s *session) Send(m *amp.Msg) {
 	// add to queue
+	timeStart := time.Now()
 	s.Lock()
 	defer s.Unlock()
+	timeEnter := time.Now()
 	if s.isStarted() {
 		queueLen := len(s.outQueue)
 		if s.stats.maxQueueLen < queueLen {
@@ -184,12 +200,19 @@ func (s *session) Send(m *amp.Msg) {
 		}
 	}
 
+	timeCheck := time.Now()
 	s.outQueue = append(s.outQueue, m)
+	timeAppend := time.Now()
 	// signal queue changed
 	select {
 	case s.outQueueChanged <- struct{}{}:
 	default:
 	}
+	timeSignal := time.Now()
+	s.timers.enter += timeEnter.Sub(timeStart).Nanoseconds()
+	s.timers.check += timeCheck.Sub(timeEnter).Nanoseconds()
+	s.timers.append += timeAppend.Sub(timeCheck).Nanoseconds()
+	s.timers.signal += timeSignal.Sub(timeAppend).Nanoseconds()
 }
 
 // should be called during s.Lock
