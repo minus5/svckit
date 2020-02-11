@@ -29,7 +29,7 @@ type cache interface {
 type topic struct {
 	messages        chan *amp.Msg
 	loopWork        chan func()
-	consumers       map[amp.Subscriber]int64
+	consumers       map[amp.MulSubscriber]int64
 	closed          chan struct{}
 	cache           cache
 	updatedAt       time.Time
@@ -47,7 +47,7 @@ type topic struct {
 func newTopic(name string) *topic {
 	t := &topic{
 		messages:   make(chan *amp.Msg, 128),
-		consumers:  make(map[amp.Subscriber]int64),
+		consumers:  make(map[amp.MulSubscriber]int64),
 		closed:     make(chan struct{}),
 		loopWork:   make(chan func()),
 		metricName: "other",
@@ -95,7 +95,7 @@ func (t *topic) close() {
 	<-t.closed
 }
 
-func (t *topic) subscribe(c amp.Subscriber, ts int64) {
+func (t *topic) subscribe(c amp.MulSubscriber, ts int64) {
 	call := time.Now()
 	t.loopWork <- func() {
 		enter := time.Now()
@@ -115,15 +115,17 @@ func (t *topic) subscribe(c amp.Subscriber, ts int64) {
 		}
 		t.consumers[c] = ts
 		if t.cache != nil {
-			msgs := t.cache.Find(ts)
-			t.sendMany(c, msgs)
-			msgCount = len(msgs)
+			ms := t.cache.Find(ts)
+			msgCount = len(ms)
+			if msgCount > 0 {
+				t.send(c, burst(ms))
+			}
 		}
 	}
 }
 
 // unsubscribe vraca true ako vise nema niti jednog consumera.
-func (t *topic) unsubscribe(c amp.Subscriber) bool {
+func (t *topic) unsubscribe(c amp.MulSubscriber) bool {
 	empty := make(chan bool)
 	call := time.Now()
 	t.loopWork <- func() {
@@ -135,22 +137,22 @@ func (t *topic) unsubscribe(c amp.Subscriber) bool {
 	return <-empty
 }
 
-func (t *topic) sendMany(c amp.Subscriber, msgs []*amp.Msg) {
-	burstStartEnd := len(msgs) > 2
-	if burstStartEnd {
-		t.send(c, msgs[0].BurstStart())
+func burst(ms []*amp.Msg) []*amp.Msg {
+	l := len(ms)
+	if l < 2 {
+		return ms
 	}
-	for _, m := range msgs {
-		t.send(c, m)
+	res := []*amp.Msg{
+		ms[0].BurstStart(),
 	}
-	if burstStartEnd {
-		t.send(c, msgs[len(msgs)-1].BurstEnd())
-	}
+	res = append(res, ms...)
+	res = append(res, ms[l-1].BurstEnd())
+	return res
 }
 
-func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
-	t.consumers[c] = m.Ts
-	c.Send(m)
+func (t *topic) send(c amp.MulSubscriber, ms []*amp.Msg) {
+	t.consumers[c] = ms[len(ms)-1].Ts
+	c.SendMsgs(ms)
 }
 
 func (t *topic) onMessage(m *amp.Msg) {
@@ -166,13 +168,13 @@ func (t *topic) onMessage(m *amp.Msg) {
 		metric.Time(t.mOnMsgMsgCount, msgCount)
 		metric.Time(t.mOnMsgPerMsg, duration/msgCount)
 	}()
+	ms := []*amp.Msg{m}
 	if m.UpdateType == amp.Event {
 		for c := range t.consumers {
-			t.send(c, m)
+			t.send(c, ms)
 		}
 		return
 	}
-
 	if t.cache == nil {
 		if m.UpdateType == amp.Append || m.UpdateType == amp.Update {
 			t.cache = newAppendCache()
@@ -180,20 +182,21 @@ func (t *topic) onMessage(m *amp.Msg) {
 			t.cache = newFullDiffCache()
 		}
 	}
-
 	t.cache.Add(m)
+	var current []*amp.Msg
 	for c, cTs := range t.consumers {
 		switch t.cache.FindFor(cTs, m) {
 		case sendMsg:
-			t.send(c, m)
+			t.send(c, ms)
 			msgCount++
 		case sendCurrent:
-			current := t.cache.Current()
-			t.sendMany(c, current)
+			if current == nil {
+				current = burst(t.cache.Current())
+			}
+			t.send(c, current)
 			msgCount += len(current)
 		}
 	}
-
 	t.updatedAt = time.Now()
 }
 

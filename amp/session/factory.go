@@ -15,9 +15,9 @@ type requester interface {
 }
 
 type broker interface {
-	Subscribe(amp.Subscriber, map[string]int64) // subscribe to the topics
-	Unsubscribe(amp.Subscriber)                 // unsubscribe from all topics
-	Wait()                                      // wait for clean exit
+	Subscribe(amp.MulSubscriber, map[string]int64) // subscribe to the topics
+	Unsubscribe(amp.MulSubscriber)                 // unsubscribe from all topics
+	Wait()                                         // wait for clean exit
 }
 
 type connection interface {
@@ -174,6 +174,13 @@ type pooler struct {
 func (p *pooler) Send(m *amp.Msg) {
 	p.Lock()
 	p.msgs = append(p.msgs, m)
+	p.Unlock()
+	p.onMsg()
+}
+
+func (p *pooler) SendMsgs(m []*amp.Msg) {
+	p.Lock()
+	p.msgs = append(p.msgs, m...)
 	p.Unlock()
 	p.onMsg()
 }
