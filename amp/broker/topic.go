@@ -1,7 +1,9 @@
 package broker
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/minus5/svckit/amp"
@@ -25,21 +27,42 @@ type cache interface {
 }
 
 type topic struct {
-	messages  chan *amp.Msg
-	loopWork  chan func()
-	consumers map[amp.Subscriber]int64
-	closed    chan struct{}
-	cache     cache
-	updatedAt time.Time
+	messages        chan *amp.Msg
+	loopWork        chan func()
+	consumers       map[amp.Subscriber]int64
+	closed          chan struct{}
+	cache           cache
+	updatedAt       time.Time
+	metricName      string
+	mOnMsgDuration  string
+	mOnMsgConsumers string
+	mOnMsgMsgCount  string
+	mOnMsgPerMsg    string
+	mSubWait        string
+	mSubDuration    string
+	mSubMsgCount    string
+	mSubPerMsg      string
 }
 
-func newTopic() *topic {
+func newTopic(name string) *topic {
 	t := &topic{
-		messages:  make(chan *amp.Msg, 128),
-		consumers: make(map[amp.Subscriber]int64),
-		closed:    make(chan struct{}),
-		loopWork:  make(chan func()),
+		messages:   make(chan *amp.Msg, 128),
+		consumers:  make(map[amp.Subscriber]int64),
+		closed:     make(chan struct{}),
+		loopWork:   make(chan func()),
+		metricName: "other",
 	}
+	if strings.HasPrefix(name, "sportsbook/") {
+		t.metricName = name[11:12]
+	}
+	t.mOnMsgDuration = fmt.Sprintf("topic.onMessage.%s.duration", t.metricName)
+	t.mOnMsgConsumers = fmt.Sprintf("topic.onMessage.%s.consumers", t.metricName)
+	t.mOnMsgMsgCount = fmt.Sprintf("topic.onMessage.%s.msgCount", t.metricName)
+	t.mOnMsgPerMsg = fmt.Sprintf("topic.onMessage.%s.perMsg", t.metricName)
+	t.mSubWait = fmt.Sprintf("topic.sub.%s.wait", t.metricName)
+	t.mSubDuration = fmt.Sprintf("topic.sub.%s.duration", t.metricName)
+	t.mSubMsgCount = fmt.Sprintf("topic.sub.%s.msgCount", t.metricName)
+	t.mSubPerMsg = fmt.Sprintf("topic.sub.%s.perMsg", t.metricName)
 	go t.loop()
 	return t
 }
@@ -64,18 +87,37 @@ func (t *topic) loop() {
 }
 
 func (t *topic) close() {
+	enter := time.Now()
+	defer func() {
+		metric.Time("topic.close", int(time.Now().Sub(enter).Nanoseconds()))
+	}()
 	close(t.messages)
 	<-t.closed
 }
 
 func (t *topic) subscribe(c amp.Subscriber, ts int64) {
+	call := time.Now()
 	t.loopWork <- func() {
+		enter := time.Now()
+		msgCount := 0
+		defer func() {
+			if msgCount == 0 {
+				return
+			}
+			duration := int(time.Now().Sub(enter).Nanoseconds())
+			metric.Time(t.mSubWait, int(enter.Sub(call).Nanoseconds()))
+			metric.Time(t.mSubDuration, duration)
+			metric.Time(t.mSubMsgCount, msgCount)
+			metric.Time(t.mSubPerMsg, duration/msgCount)
+		}()
 		if ts <= 0 {
 			ts = tsNone
 		}
 		t.consumers[c] = ts
 		if t.cache != nil {
-			t.sendMany(c, t.cache.Find(ts))
+			msgs := t.cache.Find(ts)
+			t.sendMany(c, msgs)
+			msgCount = len(msgs)
 		}
 	}
 }
@@ -83,7 +125,10 @@ func (t *topic) subscribe(c amp.Subscriber, ts int64) {
 // unsubscribe vraca true ako vise nema niti jednog consumera.
 func (t *topic) unsubscribe(c amp.Subscriber) bool {
 	empty := make(chan bool)
+	call := time.Now()
 	t.loopWork <- func() {
+		enter := time.Now()
+		metric.Time("topic.unsubscribe.wait", int(enter.Sub(call).Nanoseconds()))
 		delete(t.consumers, c)
 		empty <- len(t.consumers) == 0
 	}
@@ -109,6 +154,18 @@ func (t *topic) send(c amp.Subscriber, m *amp.Msg) {
 }
 
 func (t *topic) onMessage(m *amp.Msg) {
+	start := time.Now()
+	msgCount := 0
+	defer func() {
+		if msgCount == 0 {
+			return
+		}
+		duration := int(time.Now().Sub(start).Nanoseconds())
+		metric.Time(t.mOnMsgDuration, duration)
+		metric.Time(t.mOnMsgConsumers, len(t.consumers))
+		metric.Time(t.mOnMsgMsgCount, msgCount)
+		metric.Time(t.mOnMsgPerMsg, duration/msgCount)
+	}()
 	if m.UpdateType == amp.Event {
 		for c := range t.consumers {
 			t.send(c, m)
@@ -129,8 +186,11 @@ func (t *topic) onMessage(m *amp.Msg) {
 		switch t.cache.FindFor(cTs, m) {
 		case sendMsg:
 			t.send(c, m)
+			msgCount++
 		case sendCurrent:
-			t.sendMany(c, t.cache.Current())
+			current := t.cache.Current()
+			t.sendMany(c, current)
+			msgCount += len(current)
 		}
 	}
 

@@ -8,7 +8,7 @@ import (
 )
 
 func TestTopicReplay(t *testing.T) {
-	topic := newTopic()
+	topic := newTopic("m")
 	m1 := &amp.Msg{Ts: 10, UpdateType: amp.Full}
 	m2 := &amp.Msg{Ts: 11, UpdateType: amp.Diff}
 	m3 := &amp.Msg{Ts: 12, UpdateType: amp.Diff}

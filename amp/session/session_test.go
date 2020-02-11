@@ -33,6 +33,7 @@ func (c *mockConn) Write(payload []byte, deflated bool) error {
 func (c *mockConn) DeflateSupported() bool     { return false }
 func (c *mockConn) Headers() map[string]string { return nil }
 func (c *mockConn) No() uint64                 { return 0 }
+func (c *mockConn) Meta() map[string]string    { return nil }
 func (c *mockConn) Close() error {
 	close(c.in)
 	return nil
@@ -123,4 +124,29 @@ func TestPingPong(t *testing.T) {
 
 	cancel()
 	<-done
+}
+
+func TestQueueDrain(t *testing.T) {
+	out := make(chan []byte, 1000)
+	in := make(chan []byte, 1000)
+	done := make(chan struct{})
+	conn := &mockConn{out: out, in: in}
+	s := &session{
+		conn:      conn,
+		requester: &mockRequester{},
+		broker:    &mockBroker{},
+	}
+	for i := 0; i < 200; i++ {
+		s.Send(&amp.Msg{})
+	}
+	assert.Len(t, s.outQueue, 200)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		s.loop(ctx)
+		close(done)
+	}()
+	time.Sleep(500 * time.Millisecond)
+	cancel()
+	<-done
+	assert.Len(t, s.outQueue, 0)
 }

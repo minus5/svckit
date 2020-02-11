@@ -30,10 +30,19 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
+	timers               timers
 	compatibilityVersion uint8
 	started              bool
 	closed               bool
 	sync.Mutex
+}
+
+type timers struct {
+	enter  int64
+	check  int64
+	append int64
+	signal int64
+	count  int64
 }
 
 // serve starts new session
@@ -104,7 +113,7 @@ func (s *session) loop(cancelSig context.Context) {
 			s.receive(msg)
 			s.stats.inMessages++
 		case <-exitSig:
-			_ = s.conn.Close()
+			s.connClose()
 			exitSig = nil // fire once
 		}
 	}
@@ -122,7 +131,15 @@ func (s *session) logStats() {
 	metric.Time("inMessages", s.stats.inMessages)
 	metric.Time("outMessages", s.stats.outMessages)
 	metric.Time("aliveMessages", s.stats.aliveMessages)
-	metric.Time("duration", duration)
+	metric.Time("maxQueueLen", s.stats.maxQueueLen)
+	total := float64(s.timers.enter + s.timers.check + s.timers.append + s.timers.signal)
+	if total > 0 {
+		metric.Time("session.sendPercent.enter", int(100.0*float64(s.timers.enter)/total))
+		metric.Time("session.sendPercent.check", int(100.0*float64(s.timers.check)/total))
+		metric.Time("session.sendPercent.append", int(100.0*float64(s.timers.append)/total))
+		metric.Time("session.sendPercent.signal", int(100.0*float64(s.timers.signal)/total))
+		metric.Time("session.send", int(total/float64(s.timers.count)))
+	}
 }
 
 func (s *session) unsubscribe() {
@@ -165,9 +182,10 @@ func (s *session) receive(m *amp.Msg) {
 // Implements amp.Subscriber interface.
 func (s *session) Send(m *amp.Msg) {
 	// add to queue
+	timeStart := time.Now()
 	s.Lock()
 	defer s.Unlock()
-
+	timeEnter := time.Now()
 	if s.isStarted() {
 		queueLen := len(s.outQueue)
 		if s.stats.maxQueueLen < queueLen {
@@ -176,7 +194,7 @@ func (s *session) Send(m *amp.Msg) {
 		// check for queue overflow
 		if queueLen >= maxWriteQueueDepth {
 			if !s.closed {
-				s.conn.Close()
+				s.connClose()
 				s.logOutQueueOverflow()
 			}
 			s.closed = true
@@ -184,12 +202,20 @@ func (s *session) Send(m *amp.Msg) {
 		}
 	}
 
+	timeCheck := time.Now()
 	s.outQueue = append(s.outQueue, m)
+	timeAppend := time.Now()
 	// signal queue changed
 	select {
 	case s.outQueueChanged <- struct{}{}:
 	default:
 	}
+	timeSignal := time.Now()
+	s.timers.count++
+	s.timers.enter += timeEnter.Sub(timeStart).Nanoseconds()
+	s.timers.check += timeCheck.Sub(timeEnter).Nanoseconds()
+	s.timers.append += timeAppend.Sub(timeCheck).Nanoseconds()
+	s.timers.signal += timeSignal.Sub(timeAppend).Nanoseconds()
 }
 
 // should be called during s.Lock
@@ -210,7 +236,7 @@ func (s *session) logOutQueueOverflow() {
 		I("durationMs", int(time.Now().Sub(s.stats.start)/time.Millisecond)).
 		Info("out queue overflow")
 	for i, m := range s.outQueue {
-		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).Info("queue content")
+		s.log().I("i", i).I("type", int(m.Type)).S("uri", m.URI).I("updateType", int(m.UpdateType)).I("ts", int(m.Ts)).Info("queue content")
 	}
 }
 
@@ -227,10 +253,16 @@ func (s *session) connWrite(m *amp.Msg) {
 	}
 	err := s.conn.Write(payload, deflated)
 	if err != nil {
-		s.conn.Close()
+		s.connClose()
 	}
 }
 
 func (s *session) log() *log.Agregator {
 	return log.I("no", int(s.conn.No()))
+}
+
+func (s *session) connClose() {
+	metric.Timing("connClose", func() {
+		s.conn.Close()
+	})
 }
