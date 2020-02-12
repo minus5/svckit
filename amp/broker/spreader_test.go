@@ -20,6 +20,10 @@ func (c *counter) SendMsgs(ms []*amp.Msg) {
 	c.msgCount += len(ms)
 }
 
+func (c *counter) Send(m *amp.Msg) {
+	c.SendMsgs([]*amp.Msg{m})
+}
+
 func TestSpreader(t *testing.T) {
 	s := newSpreader("m", 16)
 	m1 := &amp.Msg{Ts: 10, UpdateType: amp.Full}
