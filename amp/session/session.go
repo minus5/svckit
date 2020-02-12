@@ -27,15 +27,9 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
-	timers               timers
 	compatibilityVersion uint8
 	overflow             chan struct{}
 	overflowRead         chan struct{}
-}
-
-type timers struct {
-	total int64
-	count int64
 }
 
 // serve starts new session
@@ -104,13 +98,11 @@ func (s *session) logStats() {
 		I("aliveMessages", s.stats.aliveMessages).
 		I("durationMs", duration).
 		Debug("stats")
+	metric.Time("duration", duration)
 	metric.Time("inMessages", s.stats.inMessages)
 	metric.Time("outMessages", s.stats.outMessages)
 	metric.Time("aliveMessages", s.stats.aliveMessages)
 	metric.Time("maxQueueLen", s.stats.maxQueueLen)
-	if s.timers.count > 0 {
-		metric.Time("session.send", int(float64(s.timers.total)/float64(s.timers.count)))
-	}
 }
 
 func (s *session) unsubscribe() {
