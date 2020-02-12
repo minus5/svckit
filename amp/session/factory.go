@@ -15,9 +15,9 @@ type requester interface {
 }
 
 type broker interface {
-	Subscribe(amp.MulSubscriber, map[string]int64) // subscribe to the topics
-	Unsubscribe(amp.MulSubscriber)                 // unsubscribe from all topics
-	Wait()                                         // wait for clean exit
+	Subscribe(amp.Sender, map[string]int64) // subscribe to the topics
+	Unsubscribe(amp.Sender)                 // unsubscribe from all topics
+	Wait()                                  // wait for clean exit
 }
 
 type connection interface {

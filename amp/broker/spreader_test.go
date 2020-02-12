@@ -96,7 +96,7 @@ func TestSpreaderClose(t *testing.T) {
 }
 
 type publisher interface {
-	subscribe(amp.MulSubscriber, int64)
+	subscribe(amp.Sender, int64)
 	publish(*amp.Msg)
 	close()
 }

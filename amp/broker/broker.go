@@ -16,7 +16,7 @@ type Broker struct {
 	loopWork      chan func()
 	closed        chan struct{}
 	spreaders     map[string]*spreader
-	consumerNames map[amp.MulSubscriber]map[string]int64
+	consumerNames map[amp.Sender]map[string]int64
 	current       func(string)
 }
 
@@ -42,7 +42,7 @@ func New(current func(string)) *Broker {
 		loopWork:      make(chan func()),
 		closed:        make(chan struct{}),
 		spreaders:     make(map[string]*spreader),
-		consumerNames: make(map[amp.MulSubscriber]map[string]int64),
+		consumerNames: make(map[amp.Sender]map[string]int64),
 		current:       current,
 	}
 	go s.loop()
@@ -78,8 +78,8 @@ func (s *Broker) Replay(name string) []*amp.Msg {
 }
 
 // Subscribe consumer to topics defined c.Topics()
-// amp.MulSubscriber should call this on each change ih his Topics list.
-func (s *Broker) Subscribe(c amp.MulSubscriber, newNames map[string]int64) {
+// amp.Sender should call this on each change ih his Topics list.
+func (s *Broker) Subscribe(c amp.Sender, newNames map[string]int64) {
 	metric.Time("broker.subscribe.len", len(newNames))
 	s.inLoop(func() {
 		oldNames, ok := s.consumerNames[c]
@@ -147,7 +147,7 @@ func (s *Broker) find(name string, currentOnNew bool) *spreader {
 }
 
 // Unsubscribe from all topics
-func (s *Broker) Unsubscribe(c amp.MulSubscriber) {
+func (s *Broker) Unsubscribe(c amp.Sender) {
 	s.inLoopWait(func() {
 		oldNames := s.consumerNames[c]
 		delete(s.consumerNames, c)

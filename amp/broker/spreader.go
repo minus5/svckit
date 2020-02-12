@@ -7,7 +7,7 @@ import (
 type spreader struct {
 	topicCount     int
 	topics         []*topic
-	consumerTopics map[amp.MulSubscriber]*topic
+	consumerTopics map[amp.Sender]*topic
 	pos            int
 }
 
@@ -15,7 +15,7 @@ func newSpreader(name string, topicCount int) *spreader {
 	s := &spreader{
 		topicCount:     topicCount,
 		topics:         []*topic{},
-		consumerTopics: make(map[amp.MulSubscriber]*topic),
+		consumerTopics: make(map[amp.Sender]*topic),
 	}
 	for i := 0; i < topicCount; i++ {
 		s.topics = append(s.topics, newTopic(name))
@@ -23,7 +23,7 @@ func newSpreader(name string, topicCount int) *spreader {
 	return s
 }
 
-func (spr *spreader) findTopic(c amp.MulSubscriber) *topic {
+func (spr *spreader) findTopic(c amp.Sender) *topic {
 	if t, ok := spr.consumerTopics[c]; ok {
 		return t
 	}
@@ -33,7 +33,7 @@ func (spr *spreader) findTopic(c amp.MulSubscriber) *topic {
 	return t
 }
 
-func (spr *spreader) subscribe(c amp.MulSubscriber, ts int64) {
+func (spr *spreader) subscribe(c amp.Sender, ts int64) {
 	t := spr.findTopic(c)
 	t.subscribe(c, ts)
 }
@@ -50,7 +50,7 @@ func (spr *spreader) close() {
 	}
 }
 
-func (spr *spreader) unsubscribe(c amp.MulSubscriber) bool {
+func (spr *spreader) unsubscribe(c amp.Sender) bool {
 	t := spr.consumerTopics[c]
 	if t != nil {
 		t.unsubscribe(c)

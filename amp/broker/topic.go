@@ -29,7 +29,7 @@ type cache interface {
 type topic struct {
 	messages        chan *amp.Msg
 	loopWork        chan func()
-	consumers       map[amp.MulSubscriber]int64
+	consumers       map[amp.Sender]int64
 	closed          chan struct{}
 	cache           cache
 	updatedAt       time.Time
@@ -47,7 +47,7 @@ type topic struct {
 func newTopic(name string) *topic {
 	t := &topic{
 		messages:   make(chan *amp.Msg, 128),
-		consumers:  make(map[amp.MulSubscriber]int64),
+		consumers:  make(map[amp.Sender]int64),
 		closed:     make(chan struct{}),
 		loopWork:   make(chan func()),
 		metricName: "other",
@@ -95,7 +95,7 @@ func (t *topic) close() {
 	<-t.closed
 }
 
-func (t *topic) subscribe(c amp.MulSubscriber, ts int64) {
+func (t *topic) subscribe(c amp.Sender, ts int64) {
 	call := time.Now()
 	t.loopWork <- func() {
 		enter := time.Now()
@@ -125,7 +125,7 @@ func (t *topic) subscribe(c amp.MulSubscriber, ts int64) {
 }
 
 // unsubscribe vraca true ako vise nema niti jednog consumera.
-func (t *topic) unsubscribe(c amp.MulSubscriber) bool {
+func (t *topic) unsubscribe(c amp.Sender) bool {
 	empty := make(chan bool)
 	call := time.Now()
 	t.loopWork <- func() {
@@ -150,7 +150,7 @@ func burst(ms []*amp.Msg) []*amp.Msg {
 	return res
 }
 
-func (t *topic) send(c amp.MulSubscriber, ms []*amp.Msg) {
+func (t *topic) send(c amp.Sender, ms []*amp.Msg) {
 	t.consumers[c] = ms[len(ms)-1].Ts
 	c.SendMsgs(ms)
 }

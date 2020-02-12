@@ -70,7 +70,7 @@ type Subscriber interface {
 	Send(m *Msg)
 }
 
-type MulSubscriber interface {
+type Sender interface {
 	Send(m *Msg)
 	SendMsgs(ms []*Msg)
 }
