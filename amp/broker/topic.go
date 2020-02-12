@@ -139,7 +139,7 @@ func (t *topic) unsubscribe(c amp.Sender) bool {
 
 func burst(ms []*amp.Msg) []*amp.Msg {
 	l := len(ms)
-	if l < 2 {
+	if l <= 2 {
 		return ms
 	}
 	res := []*amp.Msg{
