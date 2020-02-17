@@ -41,15 +41,15 @@ func (c *mockConn) Close() error {
 
 type mockBroker struct{}
 
-func (b *mockBroker) Subscribe(amp.Subscriber, map[string]int64) {}
-func (b *mockBroker) Unsubscribe(amp.Subscriber)                 {}
-func (b *mockBroker) Wait()                                      {}
+func (b *mockBroker) Subscribe(amp.Sender, map[string]int64) {}
+func (b *mockBroker) Unsubscribe(amp.Sender)                 {}
+func (b *mockBroker) Wait()                                  {}
 
 type mockRequester struct{}
 
-func (r *mockRequester) Send(amp.Subscriber, *amp.Msg) {}
-func (r *mockRequester) Unsubscribe(amp.Subscriber)    {}
-func (r *mockRequester) Wait()                         {}
+func (r *mockRequester) Send(amp.Sender, *amp.Msg) {}
+func (r *mockRequester) Unsubscribe(amp.Sender)    {}
+func (r *mockRequester) Wait()                     {}
 
 func testSession(outLen, inLen int) (chan []byte, chan []byte, func(), chan struct{}, func(*amp.Msg)) {
 	out := make(chan []byte, outLen)

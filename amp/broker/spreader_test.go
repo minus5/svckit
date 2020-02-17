@@ -13,11 +13,15 @@ type counter struct {
 	sync.Mutex
 }
 
-func (c *counter) Send(m *amp.Msg) {
+func (c *counter) SendMsgs(ms []*amp.Msg) {
 	c.Lock()
 	defer c.Unlock()
 	time.Sleep(time.Nanosecond)
-	c.msgCount++
+	c.msgCount += len(ms)
+}
+
+func (c *counter) Send(m *amp.Msg) {
+	c.SendMsgs([]*amp.Msg{m})
 }
 
 func TestSpreader(t *testing.T) {
@@ -96,7 +100,7 @@ func TestSpreaderClose(t *testing.T) {
 }
 
 type publisher interface {
-	subscribe(amp.Subscriber, int64)
+	subscribe(amp.Sender, int64)
 	publish(*amp.Msg)
 	close()
 }

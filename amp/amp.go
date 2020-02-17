@@ -70,6 +70,11 @@ type Subscriber interface {
 	Send(m *Msg)
 }
 
+type Sender interface {
+	Send(m *Msg)
+	SendMsgs(ms []*Msg)
+}
+
 // BodyMarshaler nesto sto se zna zapakovati
 type BodyMarshaler interface {
 	MarshalJSON() ([]byte, error)

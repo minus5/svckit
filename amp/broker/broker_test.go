@@ -15,10 +15,14 @@ type testConsumer struct {
 	sync.Mutex
 }
 
-func (c *testConsumer) Send(m *amp.Msg) {
+func (c *testConsumer) SendMsgs(ms []*amp.Msg) {
 	c.Lock()
 	defer c.Unlock()
-	c.messages = append(c.messages, m)
+	c.messages = append(c.messages, ms...)
+}
+
+func (c *testConsumer) Send(m *amp.Msg) {
+	c.SendMsgs([]*amp.Msg{m})
 }
 
 func TestDvaTopica(t *testing.T) {
