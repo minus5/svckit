@@ -73,4 +73,5 @@ const (
 	PortNotification     = "8650"
 	PortPlayerAccount    = "8660"
 	PortPlayerAccountApi = "8670"
+	PortBetBuilder       = "8680"
 )
