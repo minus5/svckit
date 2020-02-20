@@ -67,9 +67,10 @@ const (
 	PortShareWs                   = "8581"
 	PortKladomatLogs              = "8590"
 	// Port 8600 is reserved by Consul as default dns forwarding port
-	PortPrematchSbk   = "8610"
-	PortPromo         = "8620"
-	PortWallet        = "8640" // definiram da se zna da je zauzet od strane casino walleta
-	PortNotification  = "8650"
-	PortPlayerAccount = "8660"
+	PortPrematchSbk      = "8610"
+	PortPromo            = "8620"
+	PortWallet           = "8640" // definiram da se zna da je zauzet od strane casino walleta
+	PortNotification     = "8650"
+	PortPlayerAccount    = "8660"
+	PortPlayerAccountApi = "8670"
 )
