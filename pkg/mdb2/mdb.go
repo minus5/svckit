@@ -311,7 +311,7 @@ func (mdb *Mdb) RemoveId(col string, id interface{}, metrics ...string) error {
 	if mdb.cache != nil {
 		mdb.cache.remove(col, id)
 	}
-	return mdb.Use(col, getMetricKey(col + "remove", metrics...), func(c *mongo.Collection) error {
+	return mdb.Use(col, getMetricKey(col+"remove", metrics...), func(c *mongo.Collection) error {
 		dr, err := c.DeleteOne(context.Background(), bson.D{{"_id", id}})
 		if err != nil {
 			return err
@@ -325,7 +325,7 @@ func (mdb *Mdb) RemoveId(col string, id interface{}, metrics ...string) error {
 
 // Insert inserts new document to mongo
 func (mdb *Mdb) Insert(col string, o interface{}, metrics ...string) error {
-	return mdb.Use(col, getMetricKey(col + "insert", metrics...), func(c *mongo.Collection) error {
+	return mdb.Use(col, getMetricKey(col+"insert", metrics...), func(c *mongo.Collection) error {
 		_, err := c.InsertOne(context.Background(), o)
 		if IsDup(err) {
 			return ErrDuplicate
@@ -413,7 +413,7 @@ func (mdb *Mdb) NextSerialNumber(colName, key string) (int, error) {
 	return no, err
 }
 
-func getMetricKey(defaultMetricKey string, metrics ...string) string{
+func getMetricKey(defaultMetricKey string, metrics ...string) string {
 	if len(metrics) > 0 {
 		return strings.Join(metrics, ".")
 	}
@@ -490,10 +490,6 @@ func IsDup(err error) bool {
 	if err == nil {
 		return false
 	}
-	we, ok := err.(mongo.WriteException)
-	if !ok {
-		return false
-	}
 	contains := func(s []int, e int) bool {
 		for _, a := range s {
 			if a == e {
@@ -503,5 +499,17 @@ func IsDup(err error) bool {
 		return false
 	}
 	duplicateKeyErrorCodes := []int{11000, 11001, 12582}
-	return contains(duplicateKeyErrorCodes, we.WriteErrors[0].Code)
+	switch e := err.(type) {
+	case mongo.WriteException:
+		return contains(duplicateKeyErrorCodes, e.WriteErrors[0].Code)
+	case mongo.BulkWriteException:
+		containsDup := false
+		for _, we := range e.WriteErrors {
+			containsDup = contains(duplicateKeyErrorCodes, we.Code)
+			if containsDup {
+				return true
+			}
+		}
+	}
+	return false
 }
