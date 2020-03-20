@@ -503,10 +503,8 @@ func IsDup(err error) bool {
 	case mongo.WriteException:
 		return contains(duplicateKeyErrorCodes, e.WriteErrors[0].Code)
 	case mongo.BulkWriteException:
-		containsDup := false
 		for _, we := range e.WriteErrors {
-			containsDup = contains(duplicateKeyErrorCodes, we.Code)
-			if containsDup {
+			if contains(duplicateKeyErrorCodes, we.Code) {
 				return true
 			}
 		}
