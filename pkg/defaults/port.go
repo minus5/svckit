@@ -75,4 +75,5 @@ const (
 	PortPlayerAccountApi = "8670"
 	PortBetBuilder       = "8680"
 	PortWalletAdmin      = "8690"
+	PortVirtuals         = "8700"
 )
