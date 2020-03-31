@@ -62,7 +62,8 @@ module.exports = function(config) {
   config = config || {
     onTransportChange: function() {},
     logTransportChanges: false,
-    meta: {}
+    meta: {},
+    v1: false,
   };
 
   if (config.meta) {
@@ -76,7 +77,7 @@ module.exports = function(config) {
     }
   }
 
-  var sub    = Sub(subscribe);
+  var sub    = Sub(subscribe, config.v1);
   var logger = null;
   var req    = Req();
 
@@ -126,7 +127,7 @@ module.exports = function(config) {
     if (!data) {
       return false;
     }
-    var msgs = amp.unpack(data),
+    var msgs = amp.unpack(data, config.v1),
         pongReceived = false;
     for (var i=0; i<msgs.length; i++) {
       var m = msgs[i];
@@ -195,11 +196,11 @@ module.exports = function(config) {
     }
   };
 
-  transport.pooling = Pooling(urls.pooling(), onMessage, sub.message);
+  transport.pooling = Pooling(urls.pooling(), onMessage, sub.message, config.v1);
   if (urls.forcePooling()) {
     transport.current = transport.pooling;
   } else {
-    transport.ws = Ws(urls.ws(), onMessage, onWsChange);
+    transport.ws = Ws(urls.ws(), onMessage, onWsChange, config.v1);
   }
 
   return {

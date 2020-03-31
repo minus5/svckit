@@ -29,26 +29,41 @@ var keys = {
   "b": "subscriptions"
 };
 
+var keysV1 = {
+  "t": "type",
+  "s": "stream",
+  "n": "no",
+  "f": "full",
+  "u": "subscriptions",
+};
+
 var errorKeys = {
   "s": "source",
   "m": "message",
   "c": "code"
 };
 
-function unpackHeader(o) {
+function unpackHeader(o, v1) {
   var header = {
     // setting defaults
     type: messageType.publish,
   };
 
-  unpackObject(o, header, keys);
+  unpackObject(o, header, v1 ? keysV1 : keys);
   if (header.error) {
     header.error = {};
     unpackObject(o.e, header.error, errorKeys);
   }
 
+  if (header.full) {
+    header.updateType = updateType.full;
+  }
+  if (header.stream) {
+    header.uri = header.stream;
+  }
+
   if (header.type == messageType.publish && header.updateType === undefined)  {
-    header["updateType"] = updateType.diff;
+    header.updateType = updateType.diff;
   }
   return header;
 }
@@ -62,12 +77,13 @@ function unpackObject(source, dest, keys) {
   }
 }
 
-function pack(o) {
+function pack(o, v1) {
   var header = {},
       body = o.body;
 
-  for (var short in keys) {
-    var long = keys[short];
+  var k = v1 ? keysV1 : keys;
+  for (var short in k) {
+    var long = k[short];
     if (o[long] !== undefined) {
       header[short] = o[long];
     }
@@ -82,12 +98,12 @@ function pack(o) {
   return buf;
 }
 
-function unpackMsg(data) {
+function unpackMsg(data, v1) {
   var p = data.split("\n"),
       msg = null;
 
   try {
-    msg = unpackHeader(JSON.parse(p[0]));
+    msg = unpackHeader(JSON.parse(p[0]), v1);
   }catch(e){
     return null;
   }
@@ -104,14 +120,14 @@ function unpackMsg(data) {
   return msg;
 }
 
-function unpack(data) {
+function unpack(data, v1) {
   if (!data) {
     return null;
   }
   var p = data.split("\n\n");
   var msgs = [];
   for(var i=0; i<p.length; i++) {
-    var m = unpackMsg(p[i]);
+    var m = unpackMsg(p[i], v1);
     if (m) {
       msgs.push(m);
     }

@@ -5,7 +5,7 @@ function now() {
   return (new Date()).getTime();
 }
 
-module.exports = function(uri, onMessage_, onChange_) { // TODO get rid of this suffix_
+module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of this suffix_
 
   function onChange(status) {
     try{
@@ -172,7 +172,7 @@ module.exports = function(uri, onMessage_, onChange_) { // TODO get rid of this 
       err(2, "connection closed readyState: " + ws.readyState);
       return;
     }
-    var data = amp.pack(msg);
+    var data = amp.pack(msg, v1);
     try {
       ws.send(data);
     } catch(e) {

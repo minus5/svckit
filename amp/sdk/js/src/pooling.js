@@ -2,13 +2,13 @@ var amp  = require("./amp.js");
 var errors  = require("./errors.js");
 var nanoajax = require('nanoajax');
 
-module.exports = function(uri, onMessages, subMessage) {
+module.exports = function(uri, onMessages, subMessage, v1) {
 
   var processes = {},
       stopped = false;
 
   function ajax(msg, success, fail) {
-    var data = amp.pack(msg);
+    var data = amp.pack(msg, v1);
 
     nanoajax.ajax({
       url: uri,

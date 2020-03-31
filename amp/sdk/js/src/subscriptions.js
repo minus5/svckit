@@ -1,7 +1,7 @@
 var amp = require("./amp.js"),
     merge = require("./merge.js");
 
-module.exports = function(onChangeHandler) {
+module.exports = function(onChangeHandler, v1) {
 
   var subscriptions = {};
 
@@ -39,9 +39,16 @@ module.exports = function(onChangeHandler) {
   }
 
   function message() {
-    var s = {};
+    var s = v1 ? [] : {};
     for(var key in subscriptions) {
-      s[key] = subscriptions[key].ts;
+      if (v1) {
+        s.push({
+          s: key,
+          n: subscriptions[key].ts,
+        });
+      } else {
+        s[key] = subscriptions[key].ts;
+      }
     }
     return {type: amp.messageType.subscribe, subscriptions: s};
   }
