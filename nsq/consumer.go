@@ -73,6 +73,7 @@ func NewConsumer(topic string, handler func(*Message) error,
 
 	co.logger().I("maxInFlight", o.maxInFlight).I("concurrency", o.concurrency).Debug("starting consumer")
 	dcy.Subscribe(LookupdHTTPServiceName, co.onLookupChanges)
+	dcy.SubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, co.onLookupChanges)
 	return co, nil
 }
 
@@ -95,6 +96,7 @@ func (c *Consumer) onLookupChanges(as dcy.Addresses) {
 
 func (c *Consumer) Close() {
 	dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
+	dcy.UnsubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, c.onLookupChanges)
 	c.nsqConsumer.Stop()
 	<-c.nsqConsumer.StopChan
 }
@@ -103,6 +105,7 @@ func (c *Consumer) Close() {
 // Receive on returned chan to block until this process completes
 func (c *Consumer) StartClosing() chan int {
 	dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
+	dcy.UnsubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, c.onLookupChanges)
 	c.nsqConsumer.Stop()
 	return c.nsqConsumer.StopChan
 }

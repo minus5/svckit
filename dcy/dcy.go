@@ -292,8 +292,8 @@ func updateCache(tag, name, ldc string, srvs Addresses) {
 		}
 		allServices = append(allServices, parseConsulServiceEntries(services)...)
 	}
-
-	notify(name, allServices)
+	nn := cacheKey(tag, name, "")
+	notify(nn, allServices)
 }
 
 func invalidateCache(tag, name, dc string) {
@@ -366,14 +366,14 @@ func query(tag, name, dc string) (Addresses, error) {
 	if err != nil {
 		return nil, err
 	}
+	go func() {
+		monitor(tag, name, dc, qm.LastIndex)
+	}()
 	srvs := parseConsulServiceEntries(ses)
 	if len(srvs) == 0 {
 		return nil, ErrNotFound
 	}
 	updateCache(tag, name, dc, srvs)
-	go func() {
-		monitor(tag, name, dc, qm.LastIndex)
-	}()
 	return srvs, nil
 }
 
@@ -680,14 +680,20 @@ func MustConnect() {
 // Subscribe on service changes over all federated datacenters.
 // Changes in Consul for service `name` will be passed to handler.
 func Subscribe(name string, handler func(Addresses)) {
-	_, err := Services(name) // query for service in all of the datacenters so monitor goroutines start
+	SubscribeByTag(name, "", handler)
+}
+
+// SubscribeByTag subscribes on service with specific tag
+func SubscribeByTag(name, tag string, handler func(Addresses)) {
+	_, err := ServicesByTag(name, tag) // query for service in all of the datacenters so monitor goroutines start
 	if err != nil {
-		log.S("name", name).Error(err)
+		log.S("name", name).S("tag", tag).Error(err)
 	}
 
 	sn, _ := serviceName(name, domain)
 	l.Lock()
 	defer l.Unlock()
+	sn = cacheKey(tag, sn, "")
 	a := subscribers[sn]
 	if a == nil {
 		a = make([]func(Addresses), 0)
@@ -706,9 +712,14 @@ func notify(name string, srvs Addresses) {
 
 // Unsubscribe from service changes.
 func Unsubscribe(name string, handler func(Addresses)) {
+	UnsubscribeByTag(name, "", handler)
+}
+
+func UnsubscribeByTag(name, tag string, handler func(Addresses)) {
 	sn, _ := serviceName(name, domain)
 	l.Lock()
 	defer l.Unlock()
+	sn = cacheKey(tag, sn, "")
 	a := subscribers[sn]
 	if a == nil {
 		return
@@ -721,7 +732,7 @@ func Unsubscribe(name string, handler func(Addresses)) {
 			break
 		}
 	}
-	subscribers[name] = a
+	subscribers[sn] = a
 }
 
 func contains(s []string, e string) bool {
