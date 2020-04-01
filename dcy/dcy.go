@@ -313,7 +313,7 @@ func cacheKey(tag, name, dc string) string {
 	return fmt.Sprintf("%s%s-%s", key, name, dc)
 }
 
-func monitor(tag, name, dc string, startIndex uint64) {
+func monitor(tag, name, dc string, startIndex uint64, serviceExistedOnStart bool) {
 	wi := startIndex
 	tries := 0
 	for {
@@ -337,7 +337,9 @@ func monitor(tag, name, dc string, startIndex uint64) {
 		}
 		tries = 0
 		wi = qm.LastIndex
-		if len(ses) == 0 {
+		// monitor routine might be started for service that still doesn't exist but is expected to show up
+		// in that case don't send updates for non existing service and instead wait for it to show up
+		if !serviceExistedOnStart && len(ses) == 0 {
 			continue
 		}
 		updateCache(tag, name, dc, parseConsulServiceEntries(ses))
@@ -369,8 +371,9 @@ func query(tag, name, dc string) (Addresses, error) {
 	if err != nil {
 		return nil, err
 	}
+	serviceExists := len(ses) != 0
 	go func() {
-		monitor(tag, name, dc, qm.LastIndex)
+		monitor(tag, name, dc, qm.LastIndex, serviceExists)
 	}()
 	srvs := parseConsulServiceEntries(ses)
 	if len(srvs) == 0 {
