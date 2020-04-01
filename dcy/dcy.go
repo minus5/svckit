@@ -337,6 +337,9 @@ func monitor(tag, name, dc string, startIndex uint64) {
 		}
 		tries = 0
 		wi = qm.LastIndex
+		if len(ses) == 0 {
+			continue
+		}
 		updateCache(tag, name, dc, parseConsulServiceEntries(ses))
 	}
 }
