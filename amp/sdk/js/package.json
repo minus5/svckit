@@ -3,7 +3,7 @@
   "publishConfig": {
     "registry": "http://npm.dev.minus5.hr"
   },
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "lib/main.js",
   "scripts": {
