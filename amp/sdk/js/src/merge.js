@@ -6,10 +6,7 @@ function merge(full, diff) {
       delete full["_"+key+"Change"];
       continue;
     }
-    if (typeof d === 'object') {
-      if (full[key] === undefined) {
-        full[key] = {};
-      }
+    if (typeof d === 'object' && full[key] !== undefined && !Array.isArray(d)) {
       var parent = full["_collection"];
       if (!!d["_isStruct"]){
         parent = full;
