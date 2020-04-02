@@ -296,6 +296,13 @@ func updateCache(tag, name, ldc string, srvs Addresses) {
 	notify(nn, allServices)
 }
 
+func initializeCacheKey(tag, name, dc string) {
+	l.Lock()
+	defer l.Unlock()
+	key := cacheKey(tag, name, dc)
+	cache[key] = Addresses{}
+}
+
 func invalidateCache(tag, name, dc string) {
 	l.Lock()
 	defer l.Unlock()
@@ -311,6 +318,13 @@ func cacheKey(tag, name, dc string) string {
 		return fmt.Sprintf("%s%s", key, name)
 	}
 	return fmt.Sprintf("%s%s-%s", key, name, dc)
+}
+
+func existsInCache(tag, name, dc string) bool {
+	l.RLock()
+	defer l.RUnlock()
+	_, ok := cache[cacheKey(tag, name, dc)]
+	return ok
 }
 
 func monitor(tag, name, dc string, startIndex uint64, serviceExistedOnStart bool) {
@@ -371,10 +385,15 @@ func query(tag, name, dc string) (Addresses, error) {
 	if err != nil {
 		return nil, err
 	}
-	serviceExists := len(ses) != 0
-	go func() {
-		monitor(tag, name, dc, qm.LastIndex, serviceExists)
-	}()
+	// if key exists in cache it means that monitor goroutine is already started
+	if !existsInCache(tag, name, dc) {
+		serviceExists := len(ses) != 0
+		// initialize cache key and start goroutine
+		initializeCacheKey(tag, name, dc)
+		go func() {
+			monitor(tag, name, dc, qm.LastIndex, serviceExists)
+		}()
+	}
 	srvs := parseConsulServiceEntries(ses)
 	if len(srvs) == 0 {
 		return nil, ErrNotFound
