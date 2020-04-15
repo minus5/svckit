@@ -77,4 +77,5 @@ const (
 	PortWalletAdmin      = "8690"
 	PortVirtuals         = "8700"
 	PortCms              = "8710"
+	PortConsulAlerts     = "8720"
 )
