@@ -400,15 +400,17 @@ func (mdb *Mdb) NextSerialNumber(colName, key string) (int, error) {
 
 		err := c.FindOneAndUpdate(ctx,
 			bson.D{{"_id", sn.Key}},
-			bson.D{{"$inc", bson.D{{"no", 1}}}}).Err()
-		if err == mongo.ErrNoDocuments {
-			_, err := c.InsertOne(ctx, sn)
+			bson.D{{"$inc", bson.D{{"no", 1}}}},
+			options.FindOneAndUpdate().SetReturnDocument(options.After).SetUpsert(true)).Decode(&sn)
+		if err != nil {
 			if IsDup(err) {
 				goto again
+			} else {
+				return err
 			}
 		}
 		no = sn.No
-		return err
+		return nil
 	})
 	return no, err
 }
