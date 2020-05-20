@@ -17,8 +17,12 @@ module.exports = function(onChangeHandler, v1) {
       };
       subscriptions[key] = s;
       onChange();
-    } else {
-      handler(s.full, null);
+    } else if (s.full) {
+      handler({
+        full: s.full,
+        diff: null,
+        merged: s.full
+      });
     }
     s.handlers.push(handler);
   }

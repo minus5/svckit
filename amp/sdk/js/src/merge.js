@@ -67,7 +67,7 @@ function sortCollection(parent) {
 function addLists(parent) {
   for(var key in parent) {
     var child = parent[key];
-    if (typeof child === 'object' && key.indexOf("_") !== 0) {
+    if (child && typeof child === 'object' && key.indexOf("_") !== 0) {
       if (child._isMap === true) {
         var listKey = key+"List",
             col = child;

@@ -20,8 +20,8 @@ describe('subscriptions', function() {
   });
 
   it("should update ts after publish", function(){
-    sub.publish({uri: "one", ts: 123, body: {full: 1}, updateType: amp.updateType.full });
-    sub.publish({uri: "two", ts: 234, body: {full: 2}, updateType: amp.updateType.full });
+    sub.publish({uri: "one", ts: 123, body: {foo: 1}, updateType: amp.updateType.full });
+    sub.publish({uri: "two", ts: 234, body: {foo: 2}, updateType: amp.updateType.full });
     var m = sub.message();
     assert.equal(m.subscriptions.one, 123);
     assert.equal(m.subscriptions.two, 234);
@@ -29,29 +29,32 @@ describe('subscriptions', function() {
 
   it("should call handler on new subscribe, publish and close", function(){
     var called = 0;
-    var handler = function(full, diff){
+    var handler = function(data){
       called++;
       if (called == 1)  {
-        assert.equal(full.full, 1);
-        assert.equal(diff, null);
+        assert.equal(data.full.foo, 1);
+        assert.equal(data.diff, null);
+        assert.equal(data.merged.foo, 1);
       }
       if (called == 2)  {
-        assert.equal(full.full, 4);
-        assert.equal(diff, null);
+        assert.equal(data.full.foo, 4);
+        assert.equal(data.diff, null);
+        assert.equal(data.merged.foo, 4);
       }
       if (called == 3)  {
-        assert.equal(full, null);
-        assert.equal(diff, null);
+        assert.equal(data.full, null);
+        assert.equal(data.diff, null);
+        assert.equal(data.merged, null);
       }
     };
     sub.add("one", handler);
     assert.equal(called, 1);
 
-    sub.publish({uri: "one", ts: 123, body: {full: 4}, updateType: amp.updateType.full });
+    sub.publish({uri: "one", ts: 123, body: {foo: 4}, updateType: amp.updateType.full });
     assert.equal(called, 2);
 
     sub.remove("one", handler);
-    sub.publish({uri: "one", ts: 123, body: {full: 4}, updateType: amp.updateType.full });
+    sub.publish({uri: "one", ts: 123, body: {foo: 4}, updateType: amp.updateType.full });
     assert.equal(called, 2);
 
     called = 1;
