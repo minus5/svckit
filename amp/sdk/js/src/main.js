@@ -77,7 +77,7 @@ module.exports = function(config) {
     }
   }
 
-  var sub    = Sub(subscribe, config.v1);
+  var sub    = Sub(subscribe, config.v1, config.transformBody);
   var logger = null;
   var req    = Req();
 

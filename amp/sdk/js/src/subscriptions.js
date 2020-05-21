@@ -1,7 +1,7 @@
 var amp = require("./amp.js"),
     merge = require("./merge.js");
 
-module.exports = function(onChangeHandler, v1) {
+module.exports = function(onChangeHandler, v1, transformBody) {
 
   var subscriptions = {};
 
@@ -64,6 +64,10 @@ module.exports = function(onChangeHandler, v1) {
     if (!s) {
       console.error("topic not found", key);
       return;
+    }
+
+    if (transformBody){
+      msg.body = transformBody(msg.body);
     }
 
     var data = null;
