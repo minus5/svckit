@@ -5,19 +5,21 @@
 package broker
 
 import (
+	"time"
+
 	"github.com/minus5/svckit/amp"
 	"github.com/minus5/svckit/log"
-	"time"
 )
 
 // Broker type
 type Broker struct {
-	messages      chan *amp.Msg
-	loopWork      chan func()
-	closed        chan struct{}
-	spreaders     map[string]*spreader
-	consumerNames map[amp.Sender]map[string]int64
-	current       func(string)
+	messages       chan *amp.Msg
+	loopWork       chan func()
+	closed         chan struct{}
+	spreaders      map[string]*spreader
+	consumerNames  map[amp.Sender]map[string]int64
+	current        func(string)
+	expireDuration *time.Duration
 }
 
 // Consume consumes all msgs from in channel.
@@ -36,14 +38,15 @@ func (s *Broker) Wait() {
 }
 
 // New creates new scatter
-func New(current func(string)) *Broker {
+func New(current func(string), expireDuration *time.Duration) *Broker {
 	s := &Broker{
-		messages:      make(chan *amp.Msg, 1024),
-		loopWork:      make(chan func()),
-		closed:        make(chan struct{}),
-		spreaders:     make(map[string]*spreader),
-		consumerNames: make(map[amp.Sender]map[string]int64),
-		current:       current,
+		messages:       make(chan *amp.Msg, 1024),
+		loopWork:       make(chan func()),
+		closed:         make(chan struct{}),
+		spreaders:      make(map[string]*spreader),
+		consumerNames:  make(map[amp.Sender]map[string]int64),
+		current:        current,
+		expireDuration: expireDuration,
 	}
 	go s.loop()
 	return s
@@ -116,33 +119,29 @@ func (s *Broker) Subscribe(c amp.Sender, newNames map[string]int64) {
 			if !ok {
 				continue
 			}
-			if spr.unsubscribe(c) {
-				log.S("topic", name).Info("delete from uns")
-				delete(s.spreaders, name) // there is no one subscribed to this topic
-				spr.close()
-			}
+			spr.unsubscribe(c)
 		}
 	})
 }
 
 func (s *Broker) find(name string, currentOnNew bool) *spreader {
-	spr, ok := s.spreaders[name]
-	if !ok {
-		start := time.Now()
-		topicCount := 1
-		if name == "sportsbook/m" {
-			topicCount = 16
-		}
-		spr = newSpreader(name, topicCount)
-		s.spreaders[name] = spr
-		if currentOnNew && s.current != nil {
-			log.S("topic", name).I("count", topicCount).Info("new top current")
-			go s.current(name)
-		} else {
-			log.S("topic", name).I("count", topicCount).Info("new topic")
-		}
-		metric.Time("topic.new", int(time.Now().Sub(start).Nanoseconds()))
+	if spr, ok := s.spreaders[name]; ok {
+		return spr
 	}
+	start := time.Now()
+	topicCount := 1
+	if name == "sportsbook/m" {
+		topicCount = 16
+	}
+	spr := newSpreader(name, topicCount)
+	s.spreaders[name] = spr
+	if currentOnNew && s.current != nil {
+		log.S("topic", name).I("count", topicCount).Info("new top current")
+		go s.current(name)
+	} else {
+		log.S("topic", name).I("count", topicCount).Info("new topic")
+	}
+	metric.Time("topic.new", int(time.Now().Sub(start).Nanoseconds()))
 	return spr
 }
 
@@ -216,6 +215,8 @@ func (s *Broker) close() {
 }
 
 func (s *Broker) loop() {
+	ticker := time.NewTicker(15 * time.Minute)
+	defer ticker.Stop()
 	for {
 		select {
 		case m := <-s.messages:
@@ -238,6 +239,19 @@ func (s *Broker) loop() {
 			start := time.Now()
 			f()
 			metric.Time("broker.loop.work", int(time.Now().Sub(start).Nanoseconds()))
+		case <-ticker.C:
+			if s.expireDuration != nil {
+				s.removeExpired(*s.expireDuration)
+			}
+		}
+	}
+}
+
+func (s *Broker) removeExpired(expireDuration time.Duration) {
+	for name, spr := range s.spreaders {
+		if spr.isExpired(expireDuration) {
+			delete(s.spreaders, name)
+			spr.close()
 		}
 	}
 }

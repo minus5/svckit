@@ -124,17 +124,12 @@ func (t *topic) subscribe(c amp.Sender, ts int64) {
 	}
 }
 
-// unsubscribe vraca true ako vise nema niti jednog consumera.
-func (t *topic) unsubscribe(c amp.Sender) bool {
-	empty := make(chan bool)
+func (t *topic) unsubscribe(c amp.Sender) {
 	call := time.Now()
 	t.loopWork <- func() {
-		enter := time.Now()
-		metric.Time("topic.unsubscribe.wait", int(enter.Sub(call).Nanoseconds()))
+		metric.Time("topic.unsubscribe.wait", int(time.Now().Sub(call).Nanoseconds()))
 		delete(t.consumers, c)
-		empty <- len(t.consumers) == 0
 	}
-	return <-empty
 }
 
 func burst(ms []*amp.Msg) []*amp.Msg {

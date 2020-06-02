@@ -3,6 +3,7 @@ package broker
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/minus5/svckit/amp"
 	"github.com/minus5/svckit/log"
@@ -27,7 +28,7 @@ func (c *testConsumer) Send(m *amp.Msg) {
 
 func TestDvaTopica(t *testing.T) {
 	log.Discard()
-	s := New(nil)
+	s := New(nil, nil)
 	c := &testConsumer{topics: map[string]int64{"1": 0, "2": 0}}
 	s.Subscribe(c, c.topics)
 	m10 := &amp.Msg{URI: "1", Ts: 1, UpdateType: amp.Full}
@@ -55,7 +56,7 @@ func TestDvaTopica(t *testing.T) {
 }
 
 func TestSubscribe(t *testing.T) {
-	s := New(nil)
+	s := New(nil, nil)
 	c := &testConsumer{topics: map[string]int64{"1": 0, "2": 0}}
 
 	assert.Len(t, s.spreaders, 0)
@@ -72,11 +73,15 @@ func TestSubscribe(t *testing.T) {
 	c.topics = map[string]int64{"4": 0}
 	s.Subscribe(c, c.topics)
 	s.inLoop(func() {})
-	assert.Len(t, s.spreaders, 1)
+	assert.Len(t, s.spreaders, 4)
+	s.removeExpired(10 * time.Second)
+	assert.Len(t, s.spreaders, 4) // jos nijedan nije istekao
+	s.removeExpired(0)
+	assert.Len(t, s.spreaders, 1) // tri su istekla
 }
 
 func TestDobijeFullNakonSubscribe(t *testing.T) {
-	s := New(nil)
+	s := New(nil, nil)
 	m10 := &amp.Msg{URI: "1", Ts: 1, UpdateType: amp.Full}
 	m11 := &amp.Msg{URI: "1", Ts: 2, UpdateType: amp.Diff}
 	s.Publish(m10)
@@ -108,7 +113,7 @@ func TestDobijeFullNakonSubscribe(t *testing.T) {
 }
 
 func TestSubscribeNaPrazanTopic(t *testing.T) {
-	s := New(nil)
+	s := New(nil, nil)
 	c := &testConsumer{topics: map[string]int64{"1": 100, "2": 0}}
 	s.Subscribe(c, c.topics)
 	c2 := &testConsumer{topics: map[string]int64{"1": 101, "2": 0}}
@@ -124,7 +129,7 @@ func TestSubscribeNaPrazanTopic(t *testing.T) {
 }
 
 func TestDobijePropusteneDiffOveNaSubscribe(t *testing.T) {
-	s := New(nil)
+	s := New(nil, nil)
 	c0 := &testConsumer{topics: map[string]int64{"1": 0, "2": 0}}
 	s.Subscribe(c0, c0.topics)
 
@@ -163,7 +168,7 @@ func TestDobijePropusteneDiffOveNaSubscribe(t *testing.T) {
 }
 
 func TestReplay(t *testing.T) {
-	s := New(nil)
+	s := New(nil, nil)
 	m1 := &amp.Msg{URI: "1", Ts: 101, UpdateType: amp.Full}
 	m2 := &amp.Msg{URI: "1", Ts: 105, UpdateType: amp.Diff}
 	m3 := &amp.Msg{URI: "1", Ts: 107, UpdateType: amp.Diff}

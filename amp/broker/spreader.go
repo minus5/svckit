@@ -1,6 +1,8 @@
 package broker
 
 import (
+	"time"
+
 	"github.com/minus5/svckit/amp"
 )
 
@@ -9,6 +11,7 @@ type spreader struct {
 	topics         []*topic
 	consumerTopics map[amp.Sender]*topic
 	pos            int
+	lastUsed       time.Time
 }
 
 func newSpreader(name string, topicCount int) *spreader {
@@ -16,11 +19,16 @@ func newSpreader(name string, topicCount int) *spreader {
 		topicCount:     topicCount,
 		topics:         []*topic{},
 		consumerTopics: make(map[amp.Sender]*topic),
+		lastUsed:       time.Now(),
 	}
 	for i := 0; i < topicCount; i++ {
 		s.topics = append(s.topics, newTopic(name))
 	}
 	return s
+}
+
+func (spr *spreader) isExpired(expirePeriod time.Duration) bool {
+	return len(spr.consumerTopics) == 0 && time.Now().Sub(spr.lastUsed) > expirePeriod
 }
 
 func (spr *spreader) findTopic(c amp.Sender) *topic {
@@ -34,11 +42,13 @@ func (spr *spreader) findTopic(c amp.Sender) *topic {
 }
 
 func (spr *spreader) subscribe(c amp.Sender, ts int64) {
+	spr.lastUsed = time.Now()
 	t := spr.findTopic(c)
 	t.subscribe(c, ts)
 }
 
 func (spr *spreader) publish(m *amp.Msg) {
+	spr.lastUsed = time.Now()
 	for _, t := range spr.topics {
 		t.messages <- m
 	}
@@ -50,13 +60,11 @@ func (spr *spreader) close() {
 	}
 }
 
-func (spr *spreader) unsubscribe(c amp.Sender) bool {
-	t := spr.consumerTopics[c]
-	if t != nil {
+func (spr *spreader) unsubscribe(c amp.Sender) {
+	if t := spr.consumerTopics[c]; t != nil {
 		t.unsubscribe(c)
 		delete(spr.consumerTopics, c)
 	}
-	return len(spr.consumerTopics) == 0
 }
 
 func (spr *spreader) replay() []*amp.Msg {
