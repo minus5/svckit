@@ -78,4 +78,6 @@ const (
 	PortVirtuals      = "8700"
 	PortCms           = "8710"
 	PortConsulAlerts  = "8720"
+	// 8740 => crawler-web
+	PortShareRecommender = "8750"
 )
