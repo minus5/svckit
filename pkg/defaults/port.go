@@ -80,4 +80,5 @@ const (
 	PortConsulAlerts  = "8720"
 	// 8740 => crawler-web
 	PortShareRecommender = "8750"
+	PortCashVoucher      = "8760"
 )

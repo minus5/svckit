@@ -33,4 +33,5 @@ const (
 	TypePostavkePrivatnosti = "gdpr/postavke_privatnosti"
 	TypeAircashBon          = "aircash/activate_bon"
 	TypeAircashIsplata      = "aircash_isplata/isplati"
+	TypeCashVoucherDeposit  = "cashvoucher/deposit"
 )
