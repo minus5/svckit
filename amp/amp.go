@@ -71,6 +71,7 @@ type Subscriber interface {
 }
 
 type Sender interface {
+	Meta() map[string]string
 	Send(m *Msg)
 	SendMsgs(ms []*Msg)
 }

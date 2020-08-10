@@ -295,3 +295,34 @@ func (s *Broker) waitClose() {
 func (s *Broker) Gauges() (int, int, int) {
 	return len(s.messages), len(s.spreaders), len(s.consumerNames)
 }
+
+type TopicSubscriber struct {
+	Meta map[string]string
+}
+
+type TopicStats struct {
+	Name        string
+	Subscribers []*TopicSubscriber
+}
+
+func (s *Broker) TopicStats() []*TopicStats {
+	var ts []*TopicStats
+	s.inLoopWait(func() {
+		for name, spr := range s.spreaders {
+			t := &TopicStats{
+				Name: name,
+			}
+			for sub := range spr.consumerTopics {
+				meta := make(map[string]string)
+				for k, v := range sub.Meta() {
+					meta[k] = v
+				}
+				t.Subscribers = append(t.Subscribers, &TopicSubscriber{
+					Meta: meta,
+				})
+			}
+			ts = append(ts, t)
+		}
+	})
+	return ts
+}

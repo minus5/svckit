@@ -26,6 +26,10 @@ func (c *testConsumer) Send(m *amp.Msg) {
 	c.SendMsgs([]*amp.Msg{m})
 }
 
+func (c *testConsumer) Meta() map[string]string {
+	return make(map[string]string)
+}
+
 func TestDvaTopica(t *testing.T) {
 	log.Discard()
 	s := New(nil, nil)

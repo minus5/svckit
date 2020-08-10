@@ -24,6 +24,10 @@ func (c *counter) Send(m *amp.Msg) {
 	c.SendMsgs([]*amp.Msg{m})
 }
 
+func (c *counter) Meta() map[string]string {
+	return make(map[string]string)
+}
+
 func TestSpreader(t *testing.T) {
 	s := newSpreader("m", 16)
 	m1 := &amp.Msg{Ts: 10, UpdateType: amp.Full}

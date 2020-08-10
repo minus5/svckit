@@ -137,13 +137,13 @@ func (s *Sessions) Pool(m *amp.Msg) []*amp.Msg {
 	case amp.Ping:
 		return []*amp.Msg{m.Pong()}
 	case amp.Request:
-		p := newPooler()
+		p := newPooler(m.Meta)
 		s.requester.Send(p, m)
 		p.waitOne(s.cancelSig, poolInterval)
 		s.requester.Unsubscribe(p)
 		return p.msgs
 	case amp.Subscribe:
-		p := newPooler()
+		p := newPooler(m.Meta)
 		s.broker.Subscribe(p, m.Subscriptions)
 		p.wait(s.cancelSig, poolInterval)
 		s.broker.Unsubscribe(p)
@@ -156,7 +156,7 @@ func (s *Sessions) ConnectionsCount() (int, int) {
 	return s.wsConnections.Count(), s.poolingConnections.Count()
 }
 
-func newPooler() *pooler {
+func newPooler(meta map[string]string) *pooler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &pooler{
 		msgWait: ctx,
@@ -165,6 +165,7 @@ func newPooler() *pooler {
 }
 
 type pooler struct {
+	meta    map[string]string
 	msgs    []*amp.Msg
 	onMsg   func()
 	msgWait context.Context
@@ -183,6 +184,10 @@ func (p *pooler) SendMsgs(m []*amp.Msg) {
 	p.msgs = append(p.msgs, m...)
 	p.Unlock()
 	p.onMsg()
+}
+
+func (p *pooler) Meta() map[string]string {
+	return p.meta
 }
 
 func (p *pooler) waitOne(app context.Context, interval time.Duration) {

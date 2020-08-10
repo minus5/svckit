@@ -195,3 +195,7 @@ func (s *session) connClose() {
 		s.conn.Close()
 	})
 }
+
+func (s *session) Meta() map[string]string {
+	return s.conn.Meta()
+}
