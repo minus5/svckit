@@ -227,9 +227,20 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
     return undefined;
   }
 
+  function close() {
+    ws.onopen = null;
+    ws.onclose = function(e) {
+      status.event("close", e);
+      status.opened = false;
+    };
+    ws.onmessage = null;
+    ws.close();
+  }
+
   connect();
 
   return {
-    send: send
+    send: send,
+    close: close
   };
 }

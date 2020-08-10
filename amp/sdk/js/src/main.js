@@ -202,10 +202,17 @@ module.exports = function(config) {
   } else {
     transport.ws = Ws(urls.ws(), onMessage, onWsChange, config.v1);
   }
+  
+  function close() {
+    if (transport.ws) {
+      transport.ws.close();
+    }
+  }
 
   return {
     request: request,
     subscribe: sub.add,
     unSubscribe: sub.remove,
+    close: close,
   };
 }
