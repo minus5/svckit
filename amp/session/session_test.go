@@ -38,6 +38,7 @@ func (c *mockConn) Close() error {
 	close(c.in)
 	return nil
 }
+func (c *mockConn) SetMeta(m map[string]string) {}
 
 type mockBroker struct{}
 

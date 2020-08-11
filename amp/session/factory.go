@@ -28,6 +28,7 @@ type connection interface {
 	No() uint64                                // connection identifier (for grouping logs)
 	Close() error                              // close connection
 	Meta() map[string]string                   // session metadata, set by the client
+	SetMeta(map[string]string)                 // set session metadata
 }
 
 type counter struct {

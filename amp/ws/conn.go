@@ -143,6 +143,12 @@ func (c *Conn) Meta() map[string]string {
 	return c.cap.meta
 }
 
+func (c *Conn) SetMeta(m map[string]string) {
+	for k, v := range m {
+		c.cap.meta[k] = v
+	}
+}
+
 // undeflate uncomresses websocket payload
 func undeflate(data []byte) []byte {
 	buf := bytes.NewBuffer(data)

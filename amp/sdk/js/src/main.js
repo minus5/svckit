@@ -202,6 +202,14 @@ module.exports = function(config) {
   } else {
     transport.ws = Ws(urls.ws(), onMessage, onWsChange, config.v1);
   }
+
+  function setMeta(meta) {
+    let msg = {
+      type: amp.messageType.meta,
+      meta,
+    };
+    send(msg);
+  }
   
   function close() {
     if (transport.ws) {
@@ -211,6 +219,7 @@ module.exports = function(config) {
 
   return {
     request: request,
+    setMeta: setMeta,
     subscribe: sub.add,
     unSubscribe: sub.remove,
     close: close,

@@ -5,7 +5,8 @@ var messageType = {
     response: 3,
     ping: 4,
     pong: 5,
-    alive: 6
+    alive: 6,
+    meta: 9,
 };
 
 var updateType = {
@@ -26,7 +27,8 @@ var keys = {
   "u": "uri",
   "s": "ts",
   "p": "updateType",
-  "b": "subscriptions"
+  "b": "subscriptions",
+  "m": "meta",
 };
 
 var keysV1 = {

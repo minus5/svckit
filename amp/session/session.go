@@ -138,6 +138,9 @@ func (s *session) receive(m *amp.Msg) {
 		s.requester.Send(s, m)
 	case amp.Subscribe:
 		s.broker.Subscribe(s, m.Subscriptions)
+	case amp.Meta:
+		s.conn.SetMeta(m.Meta)
+		s.Send(m.MetaResponse(s.conn.Meta()))
 	}
 }
 

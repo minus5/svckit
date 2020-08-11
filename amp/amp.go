@@ -23,7 +23,8 @@ const (
 	Pong                   // replay to ping
 	Alive                  // signal that server side is still alive
 	Current                // request for current state of a stream
-	Event                  // TODO unused yet, just thinking
+	Event                  // event stream, no cache
+	Meta                   // set session metadata
 )
 
 // Topic update types
@@ -434,6 +435,15 @@ func (m *Msg) AsReplay() *Msg {
 		Ts:         m.Ts,
 		body:       m.body,
 		src:        m.src,
+	}
+}
+
+func (m *Msg) MetaResponse(newMeta map[string]string) *Msg {
+	return &Msg{
+		Type:          Meta,
+		Meta:          newMeta,
+		Ts:            m.Ts,
+		CorrelationID: m.CorrelationID,
 	}
 }
 
