@@ -171,6 +171,10 @@ module.exports = function(config) {
     if (transport.previous === transport.pooling && transport.current=== transport.ws) {
       transport.pooling.stop();
     }
+    // send updated metadata in case it changed before ws was initialized
+    if (transport.current === transport.ws && transport.previous !== transport.ws && transport.metaChanged) {
+      setMeta(urls.meta);
+    }
 
     if (logger) {
       if (status.connected)  {
@@ -204,11 +208,21 @@ module.exports = function(config) {
   }
 
   function setMeta(meta) {
-    let msg = {
-      type: amp.messageType.meta,
-      meta,
-    };
-    send(msg);
+    for (var key in meta) {
+      urls.meta[key] = meta[key].toString();
+    }
+    transport.metaChanged = true;
+
+    transport.pooling.stop();
+    transport.pooling = Pooling(urls.pooling(), onMessage, sub.message, config.v1);
+
+    if (transport.current === transport.ws) {
+      let msg = {
+        type: amp.messageType.meta,
+        meta,
+      };
+      send(msg);
+    }
   }
   
   function close() {
