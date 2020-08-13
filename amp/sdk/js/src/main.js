@@ -5,60 +5,59 @@ var Log       = require("./log.js");
 var Ws        = require("./ws.js");
 var Pooling   = require("./pooling.js");
 
-var urls = {
-  port: function() {
-    return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
-  },
-  path: function(relative) {
-    if (relative[0] == '/' )  { // if the path has prefix / 
-      return relative;          // than it relative from site root
-    }
-    // othervise we will add relative to the current page location
-    var pn = location.pathname;
-    var path = pn.substring(0, pn.lastIndexOf('/') + 1);
-    if (path.length === 0)  {
-      path = "/";
-    }
-    return path + relative;
-  },
-  ws() {
-    var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-    return urls.addMeta(protocol + location.hostname + urls.port() + urls.path(urls.paths.api));
-  },
-  log: function() {
-    return location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.log);
-  },
-  pooling: function() {
-    return urls.addMeta(location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.pooling));
-  },
-  forcePooling: function() {
-    return location.search.search("forcePooling") > -1;
-  },
-  meta: {},
-  paths: {
-    api: 'api',
-    pooling: 'pooling',
-    log: 'log',
-  },
-  addMeta: function(url) { // add meta key/values as query string to the url
-    var queryStr = "";
-    for (var key in urls.meta) {
-      if (queryStr) {
-        queryStr += "&";
-      }
-      queryStr += key + "=" + urls.meta[key];
-    }
-    if (queryStr) {
-      return url + "?" + encodeURI(queryStr);
-    }
-    return url;
-  }
-};
-
-
 //export function api(config)
 //
 module.exports = function(config) {
+  var urls = {
+    port: function() {
+      return (location.port === '' || location.port === '80') ? '' : (':' + location.port);
+    },
+    path: function(relative) {
+      if (relative[0] == '/' )  { // if the path has prefix / 
+        return relative;          // than it relative from site root
+      }
+      // othervise we will add relative to the current page location
+      var pn = location.pathname;
+      var path = pn.substring(0, pn.lastIndexOf('/') + 1);
+      if (path.length === 0)  {
+        path = "/";
+      }
+      return path + relative;
+    },
+    ws() {
+      var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+      return urls.addMeta(protocol + location.hostname + urls.port() + urls.path(urls.paths.api));
+    },
+    log: function() {
+      return location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.log);
+    },
+    pooling: function() {
+      return urls.addMeta(location.protocol + "//" + location.hostname + urls.port() + urls.path(urls.paths.pooling));
+    },
+    forcePooling: function() {
+      return location.search.search("forcePooling") > -1;
+    },
+    meta: {},
+    paths: {
+      api: 'api',
+      pooling: 'pooling',
+      log: 'log',
+    },
+    addMeta: function(url) { // add meta key/values as query string to the url
+      var queryStr = "";
+      for (var key in urls.meta) {
+        if (queryStr) {
+          queryStr += "&";
+        }
+        queryStr += key + "=" + urls.meta[key];
+      }
+      if (queryStr) {
+        return url + "?" + encodeURI(queryStr);
+      }
+      return url;
+    }
+  };
+
   config = config || {
     onTransportChange: function() {},
     logTransportChanges: false,
