@@ -82,4 +82,7 @@ const (
 	PortShareRecommender = "8750"
 	PortCashVoucher      = "8760"
 	PortOIBVerification  = "8770"
+	PortBaseAdmin        = "8780"
+	PortWallet2Admin     = "8790"
+	PortPlayersAdmin     = "8800"
 )
