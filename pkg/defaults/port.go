@@ -85,4 +85,5 @@ const (
 	PortBaseAdmin        = "8780"
 	PortWallet2Admin     = "8790"
 	PortPlayersAdmin     = "8800"
+	PortAdminAuth        = "8810"
 )
