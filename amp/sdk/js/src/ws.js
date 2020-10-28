@@ -134,7 +134,7 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
       if (p > 12) {
         p = 12; // 4096 max
       }
-      return  Math.pow(2, p);
+      return  Math.pow(2, p) * 1000;
     }
   };
 
@@ -173,6 +173,9 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
       setTimeout(connect, status.connectInterval());
       status.connected = false;
     }
+
+    status.connects += 1;
+    status.startConnect = now();
 
     try {
       ws = new WebSocket(uri);
