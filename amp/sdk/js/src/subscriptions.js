@@ -1,12 +1,12 @@
-var amp = require("./amp.js"),
+const amp = require("./amp.js"),
     merge = require("./merge.js");
 
 module.exports = function(onChangeHandler, v1, transformBody) {
 
-  var subscriptions = {};
+  let subscriptions = {};
 
   function add(key, handler) {
-    var s = subscriptions[key];
+    let s = subscriptions[key];
     if (s === undefined) {
       s = {
         key: key,
@@ -28,11 +28,11 @@ module.exports = function(onChangeHandler, v1, transformBody) {
   }
 
   function remove(key, handler) {
-    var s = subscriptions[key];
+    let s = subscriptions[key];
     if (s === undefined) {
       return;
     }
-    var i = s.handlers.indexOf(handler);
+    let i = s.handlers.indexOf(handler);
     if (i > -1) {
       s.handlers.splice(i, 1);
     }
@@ -43,8 +43,8 @@ module.exports = function(onChangeHandler, v1, transformBody) {
   }
 
   function message() {
-    var s = v1 ? [] : {};
-    for(var key in subscriptions) {
+    let s = v1 ? [] : {};
+    for(let key in subscriptions) {
       if (v1) {
         s.push({
           s: key,
@@ -58,8 +58,8 @@ module.exports = function(onChangeHandler, v1, transformBody) {
   }
 
   function publish(msg) {
-    var key = msg.uri;
-    var s = subscriptions[key];
+    let key = msg.uri;
+    let s = subscriptions[key];
 
     if (!s) {
       console.error("topic not found", key);
@@ -70,7 +70,7 @@ module.exports = function(onChangeHandler, v1, transformBody) {
       msg.body = transformBody(msg.body);
     }
 
-    var data = null;
+    let data = null;
     switch (msg.updateType){
     case amp.updateType.close:
       delete subscriptions[key];

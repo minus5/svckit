@@ -1,14 +1,14 @@
-var amp = require("./amp.js");
-var errors  = require("./errors.js");
+const amp = require("./amp.js");
+const errors  = require("./errors.js");
 
 module.exports = function() {
 
-  var correlationID=0,
-      requests = {};
+  let correlationID=0;
+  let requests = {};
 
   // find response handlers and call them
   function response(m) {
-    var r = requests[m.correlationID];
+    let r = requests[m.correlationID];
     if (!r) {
     }
 
@@ -23,7 +23,7 @@ module.exports = function() {
   // create request message and store handlers (ok, fail) into requests
   function request(uri, payload, ok, fail) {
     correlationID++;
-    var msg = {
+    let msg = {
       type: amp.messageType.request,
       uri: uri,
       correlationID: correlationID,

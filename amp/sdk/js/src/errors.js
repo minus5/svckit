@@ -11,7 +11,7 @@ If application needs to distinguish these types of errors it should call isTrans
 For example to decide weather the error is transient or permanent. In the case of transport failures retry can help.
 */
 
-var sources = {
+const sources = {
   application: 0,
   transport: 1
 };
@@ -24,22 +24,16 @@ function create(source, message) {
   };
 }
 
-function pooling(code, responseText) {
-  var desc = "code: " + code + ", " + responseText;
-  return create(sources.transport, desc);
-}
-
 function ws(desc) {
   return create(sources.transport, desc);
 }
 
 function server(msg) {
-  var e = msg ? msg.error : {};
+  let e = msg ? msg.error : {};
   return create((e.source || sources.application), e.message);
 }
 
 module.exports = {
-  pooling,
   ws,
   server,
 };

@@ -1,4 +1,4 @@
-var messageType = {
+const messageType = {
     publish: 0,
     subscribe: 1,
     request: 2,
@@ -9,7 +9,7 @@ var messageType = {
     meta: 9,
 };
 
-var updateType = {
+const updateType = {
   diff: 0,
   full: 1,
   append: 2,
@@ -20,7 +20,7 @@ var updateType = {
   event: 8,
 };
 
-var keys = {
+const keys = {
   "t": "type",
   "i": "correlationID",
   "e": "error",
@@ -31,7 +31,7 @@ var keys = {
   "m": "meta",
 };
 
-var keysV1 = {
+const keysV1 = {
   "t": "type",
   "s": "stream",
   "n": "no",
@@ -39,14 +39,14 @@ var keysV1 = {
   "u": "subscriptions",
 };
 
-var errorKeys = {
+const errorKeys = {
   "s": "source",
   "m": "message",
   "c": "code"
 };
 
 function unpackHeader(o, v1) {
-  var header = {
+  let header = {
     // setting defaults
     type: messageType.publish,
   };
@@ -71,8 +71,8 @@ function unpackHeader(o, v1) {
 }
 
 function unpackObject(source, dest, keys) {
-  for (var short in keys) {
-    var long = keys[short];
+  for (let short in keys) {
+    let long = keys[short];
     if (source[short] !== undefined) {
       dest[long] = source[short];
     }
@@ -80,18 +80,18 @@ function unpackObject(source, dest, keys) {
 }
 
 function pack(o, v1) {
-  var header = {},
+  let header = {},
       body = o.body;
 
-  var k = v1 ? keysV1 : keys;
-  for (var short in k) {
-    var long = k[short];
+  let k = v1 ? keysV1 : keys;
+  for (let short in k) {
+    let long = k[short];
     if (o[long] !== undefined) {
       header[short] = o[long];
     }
   }
 
-  var buf = JSON.stringify(header);
+  let buf = JSON.stringify(header);
   if (body) {
     buf = buf + "\n";
     buf = buf + JSON.stringify(body);
@@ -101,8 +101,8 @@ function pack(o, v1) {
 }
 
 function unpackMsg(data, v1) {
-  var p = data.split("\n"),
-      msg = null;
+  let p = data.split("\n");
+  let msg = null;
 
   try {
     msg = unpackHeader(JSON.parse(p[0]), v1);
@@ -112,7 +112,7 @@ function unpackMsg(data, v1) {
 
   if (p.length > 1 && p[1]) {
     try{
-      var body = JSON.parse(p[1]);
+      let body = JSON.parse(p[1]);
       msg["body"] = body;
     }catch(e) {
       //console.error(e);
@@ -126,10 +126,10 @@ function unpack(data, v1) {
   if (!data) {
     return null;
   }
-  var p = data.split("\n\n");
-  var msgs = [];
-  for(var i=0; i<p.length; i++) {
-    var m = unpackMsg(p[i], v1);
+  let p = data.split("\n\n");
+  let msgs = [];
+  for(let i=0; i<p.length; i++) {
+    let m = unpackMsg(p[i], v1);
     if (m) {
       msgs.push(m);
     }

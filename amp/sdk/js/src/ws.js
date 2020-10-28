@@ -1,5 +1,5 @@
-var amp  = require("./amp.js");
-var errors  = require("./errors.js");
+const amp  = require("./amp.js");
+const errors  = require("./errors.js");
 
 function now() {
   return (new Date()).getTime();
@@ -24,155 +24,141 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
     return false;
   };
 
-  var ws = null,
-      pong = {
-        timer: undefined,
-        schedule: function(handler) {
-          var interval = 16 * 1000;
-          pong.timer = setTimeout(handler, interval);
-        },
-        clear: function() {
-          clearTimeout(pong.timer);
-        },
-        onMessage: function(isPong) {
-          if (isPong) {
-            pong.clear();
-          }
-        },
-        start: function() {
-          pong.schedule(function() {
-            if (ws.readyState != WebSocket.OPEN) { // connection is closed
-              return;
-            }
-            status.event("pongTimeout");
-            ws.close();
-          });
+  let ws = null,
+  pong = {
+    timer: undefined,
+    schedule: function(handler) {
+      let interval = 16 * 1000;
+      pong.timer = setTimeout(handler, interval);
+    },
+    clear: function() {
+      clearTimeout(pong.timer);
+    },
+    onMessage: function(isPong) {
+      if (isPong) {
+        pong.clear();
+      }
+    },
+    start: function() {
+      pong.schedule(function() {
+        if (ws.readyState != WebSocket.OPEN) { // connection is closed
+          return;
         }
-      },
-      ping = {
-        timer: undefined,
-        no: 0,
-        lastMessage: 0,
-        afterPongInterval: 16 * 1000,
-        beforePongInterval: 4 * 1000,
-        interval: 4 * 1000,
-        clear: function() {
-          clearTimeout(ping.timer);
-        },
-        start: function() {
-          ping.interval = ping.beforePongInterval;
-          ping.lastMessage = 0;
-          ping.loop();
-        },
-        loop: function() {
-          if (now() - ping.lastMessage > ping.interval / 2) {
-            ping.no++;
-            send(amp.ping(ping.no), function(e) {
-              status.event("pingError", e);
-            });
-          }
-          ping.timer = setTimeout(ping.loop, ping.interval);
-        },
-        onMessage: function(isPong) {
-          ping.lastMessage = now();
-          if (isPong) {
-            ping.interval = ping.afterPongInterval;
-          }
+        status.event("pongTimeout");
+        ws.close();
+      });
+    }
+  },
+  ping = {
+    timer: undefined,
+    no: 0,
+    lastMessage: 0,
+    afterPongInterval: 16 * 1000,
+    beforePongInterval: 4 * 1000,
+    interval: 4 * 1000,
+    clear: function() {
+      clearTimeout(ping.timer);
+    },
+    start: function() {
+      ping.interval = ping.beforePongInterval;
+      ping.lastMessage = 0;
+      ping.loop();
+    },
+    loop: function() {
+      if (now() - ping.lastMessage > ping.interval / 2) {
+        ping.no++;
+        send(amp.ping(ping.no), function(e) {
+          status.event("pingError", e);
+        });
+      }
+      ping.timer = setTimeout(ping.loop, ping.interval);
+    },
+    onMessage: function(isPong) {
+      ping.lastMessage = now();
+      if (isPong) {
+        ping.interval = ping.afterPongInterval;
+      }
+    }
+  },
+  status = {
+    success: false,
+    opened: false,
+    connected: false,
+    start: now(),
+    startConnect: now(),
+    messages: 0,
+    connects: 0,
+    retries: 0,
+    events: [],
+    onMessage: function(isPong) {
+      status.messages++;
+      if (isPong && !status.connected) {
+        // handle first pong message
+        // pong messages are only send as reply to ping
+        // indicates that connection works in both directions
+        status.event("pong");
+        status.success = true;
+        status.connected = true;
+        status.retries = status.connects;
+        status.change(); // signal success
+      }
+    },
+    event: function(name, e) {
+      let o = {name: name, sinceStart: now() - status.start, sinceConnect: now() - status.startConnect};
+      if (e) {
+        if (e.code) {
+          o["code"] = e.code;
         }
-      },
-      status = {
-        success: false,
-        opened: false,
-        fallback: false,
-        giveup: false,
-        connected: false,
-        supported: false,
-        start: now(),
-        startConnect: now(),
-        messages: 0,
-        connects: 0,
-        retries: 0,
-        events: [],
-        onMessage: function(isPong) {
-          status.messages++;
-          if (isPong && !status.connected) {
-            // handle first pong message
-            // pong messages are only send as reply to ping
-            // indicates that connection works in both directions
-            status.event("pong");
-            status.success = true;
-            status.connected = true;
-            status.retries = status.connects;
-            status.change(); // signal success
-          }
-        },
-        event: function(name, e) {
-          var o = {name: name, sinceStart: now() - status.start, sinceConnect: now() - status.startConnect};
-          if (e) {
-            if (e.code) {
-              o["code"] = e.code;
-            }
-            if (e.type) {
-              o["type"] = e.type;
-            }
-            if (e.reason) {
-              o["reason"] = e.reason;
-            }
-            if (e.message) {
-              o["message"] = e.message;
-            }
-            if (e.name) {
-              o["name"] = e.name;
-            }
-            o["error"] = e.toString();
-          }
-          status.events.push(o);
-        },
-        change: function() {
-          onChange(status);
-        },
-        shouldQuit: function() {
-          status.connects++;
-          status.startConnect = now();
-          if (status.success) {
-            return false;
-          }
-          if (status.connects > 32) {
-            status.giveup = true;
-            status.change(); // signal give up
-            return true;
-          }
-          if (status.connects === 5) {
-            status.fallback = true;
-            status.change(); // signal fallback
-          }
-          return false;
-        },
-        // calculates exponential increasing interval based on number of connects
-        connectInterval: function() {
-          var p = status.connects || 1;
-          if (p > 12) {
-            p = 12; // 4096 max
-          }
-          return  Math.pow(2, p);
+        if (e.type) {
+          o["type"] = e.type;
         }
-      };
+        if (e.reason) {
+          o["reason"] = e.reason;
+        }
+        if (e.message) {
+          o["message"] = e.message;
+        }
+        if (e.name) {
+          o["name"] = e.name;
+        }
+        o["error"] = e.toString();
+      }
+      status.events.push(o);
+    },
+    change: function() {
+      onChange(status);
+    },
+    // calculates exponential increasing interval based on number of connects
+    connectInterval: function() {
+      let p = status.connects || 1;
+      if (p > 12) {
+        p = 12; // 4096 max
+      }
+      return  Math.pow(2, p);
+    }
+  };
 
-  function send(msg, fail) {
+  function createOpenGuard() {
+    let resolve;
+    return {
+      guard: new Promise(r => resolve = r),
+      resolve
+    };
+  }
+
+  let openGuard = createOpenGuard();
+
+  async function send(msg, fail) {
     function err(no, msg, e) {
       fail(errors.ws(msg));
       status.event("sendError"+no, e);
     }
-
-    if (!ws) {
-      err(1, "connection uninitialized");
-      return;
-    }
-    if (ws.readyState !== WebSocket.OPEN) {
+    await openGuard.guard;
+    if (ws.readyState >= WebSocket.CLOSING) {
       err(2, "connection closed readyState: " + ws.readyState);
       return;
     }
-    var data = amp.pack(msg, v1);
+    let data = amp.pack(msg, v1);
     try {
       ws.send(data);
     } catch(e) {
@@ -181,10 +167,6 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
   }
 
   function connect() {
-    if (status.shouldQuit()) {
-      return;
-    }
-
     function reconnect() {
       pong.clear();
       ping.clear();
@@ -205,15 +187,17 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
       pong.start();
       ping.start();
       status.event("open");
+      openGuard.resolve();
     };
 
     ws.onclose = function(e) {
+      openGuard = createOpenGuard();
       reconnect();
       status.event("close", e);
     };
 
     ws.onmessage = function(e) {
-      var isPong = onMessage(e.data);
+      let isPong = onMessage(e.data);
       status.onMessage(isPong);
       ping.onMessage(isPong);
       pong.onMessage(isPong);
@@ -221,17 +205,12 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
 
   };
 
-  status.supported = ("WebSocket" in window && window.WebSocket != undefined);
-  if (!status.supported) {
-    onChange();
-    return undefined;
-  }
-
   function close() {
     ws.onopen = null;
     ws.onclose = function(e) {
       status.event("close", e);
       status.opened = false;
+      openGuard = createOpenGuard();
     };
     ws.onmessage = null;
     ws.close();

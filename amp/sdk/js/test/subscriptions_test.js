@@ -1,9 +1,9 @@
-var assert = require("assert");
-var amp = require("../src/amp.js");
-var Sub = require("../src/subscriptions.js");
+let assert = require("assert");
+let amp = require("../src/amp.js");
+let Sub = require("../src/subscriptions.js");
 
 //import Sub from '../src/subscriptions.js';
-var sub = new Sub();
+let sub = new Sub();
 
 describe('subscriptions', function() {
 
@@ -12,7 +12,7 @@ describe('subscriptions', function() {
     sub.add("one", function(){});
     sub.add("two", function(){});
 
-    var m = sub.message();
+    let m = sub.message();
     assert.equal(m.type, amp.messageType.subscribe);
     assert.equal(Object.keys(m.subscriptions).length, 2);
     assert.equal(m.subscriptions.one, 0);
@@ -22,14 +22,14 @@ describe('subscriptions', function() {
   it("should update ts after publish", function(){
     sub.publish({uri: "one", ts: 123, body: {foo: 1}, updateType: amp.updateType.full });
     sub.publish({uri: "two", ts: 234, body: {foo: 2}, updateType: amp.updateType.full });
-    var m = sub.message();
+    let m = sub.message();
     assert.equal(m.subscriptions.one, 123);
     assert.equal(m.subscriptions.two, 234);
   });
 
   it("should call handler on new subscribe, publish and close", function(){
-    var called = 0;
-    var handler = function(data){
+    let called = 0;
+    let handler = function(data){
       called++;
       if (called == 1)  {
         assert.equal(data.full.foo, 1);
@@ -64,9 +64,9 @@ describe('subscriptions', function() {
   });
 
   describe("onChange handler", function() {
-    var called = 0;
-    var sub2 = new Sub(function(){ called++; });
-    var threeHandler = function(){};
+    let called = 0;
+    let sub2 = new Sub(function(){ called++; });
+    let threeHandler = function(){};
 
     it("should be called on new topics", function(){
 

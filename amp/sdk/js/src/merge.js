@@ -1,17 +1,17 @@
 function merge(full, diff) {
-  for(var key in diff) {
-    var d = diff[key];
+  for(let key in diff) {
+    let d = diff[key];
     if (d === null || d === undefined) {
       delete full[key];
       delete full["_"+key+"Change"];
       continue;
     }
     if (typeof d === 'object' && full[key] !== undefined && !Array.isArray(d)) {
-      var parent = full["_collection"];
+      let parent = full["_collection"];
       if (!!d["_isStruct"]){
         parent = full;
       }
-      var current = full[key];
+      let current = full[key];
       current["_collection"] = full;
       current["_parent"] = parent;
       current["_key"] = key;
@@ -19,7 +19,7 @@ function merge(full, diff) {
       merge(current, d);
       continue;
     }
-    var prev = full[key];
+    let prev = full[key];
     full[key] = d;
     if (prev !== undefined && d !== prev) {
       full["_"+key+"Change"] = {
@@ -34,9 +34,9 @@ function sortCollection(parent) {
   if (parent["_list"] !== undefined) {
     return parent["_list"];
   }
-  var list = [];
-  for(var key in parent) {
-    var child = parent[key];
+  let list = [];
+  for(let key in parent) {
+    let child = parent[key];
     if (typeof child === 'object' && key.indexOf("_") !== 0) {
       //console.log(key);
       list.push(child);
@@ -65,11 +65,11 @@ function sortCollection(parent) {
 }
 
 function addLists(parent) {
-  for(var key in parent) {
-    var child = parent[key];
+  for(let key in parent) {
+    let child = parent[key];
     if (child && typeof child === 'object' && key.indexOf("_") !== 0) {
       if (child._isMap === true) {
-        var listKey = key+"List",
+        let listKey = key+"List",
             col = child;
         parent[listKey] = function() {
           return sortCollection(col);
