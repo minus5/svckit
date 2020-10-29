@@ -24,6 +24,16 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
     return false;
   };
 
+  function createOpenGuard() {
+    let resolve;
+    return {
+      guard: new Promise(r => resolve = r),
+      resolve
+    };
+  }
+
+  let openGuard = createOpenGuard();
+
   let ws = null,
   pong = {
     timer: undefined,
@@ -100,6 +110,7 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
         status.success = true;
         status.connected = true;
         status.retries = status.connects;
+        status.connects = 0;
         status.change(); // signal success
       }
     },
@@ -130,23 +141,13 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
     },
     // calculates exponential increasing interval based on number of connects
     connectInterval: function() {
-      let p = status.connects || 1;
+      let p = status.connects || 0;
       if (p > 12) {
         p = 12; // 4096 max
       }
       return  Math.pow(2, p) * 1000;
     }
   };
-
-  function createOpenGuard() {
-    let resolve;
-    return {
-      guard: new Promise(r => resolve = r),
-      resolve
-    };
-  }
-
-  let openGuard = createOpenGuard();
 
   async function send(msg, fail) {
     function err(no, msg, e) {
@@ -194,7 +195,10 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
     };
 
     ws.onclose = function(e) {
-      openGuard = createOpenGuard();
+      if (status.opened) {
+        openGuard = createOpenGuard();
+      }
+      status.opened = false;
       reconnect();
       status.event("close", e);
     };
@@ -212,8 +216,10 @@ module.exports = function(uri, onMessage_, onChange_, v1) { // TODO get rid of t
     ws.onopen = null;
     ws.onclose = function(e) {
       status.event("close", e);
+      if (status.opened) {
+        openGuard = createOpenGuard();
+      }
       status.opened = false;
-      openGuard = createOpenGuard();
     };
     ws.onmessage = null;
     ws.close();

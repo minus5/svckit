@@ -92,9 +92,24 @@ module.exports = function(config) {
     return pongReceived;
   }
 
-  function onWsChange() {}
+  const transport = {
+    ready: false,
+    ws: undefined
+  };
 
-  let transport = Ws(urls.ws(), onMessage, onWsChange, config.v1);
+  function onWsChange(status) {
+    if (!status) {
+      return;
+    }
+    if (status.connected) {
+      transport.ready = true;
+      subscribe();
+    } else {
+      transport.ready = false;
+    }
+  }
+
+  transport.ws = Ws(urls.ws(), onMessage, onWsChange, config.v1);
   let sub    = Sub(subscribe, config.v1, config.transformBody);
   let req    = Req();
 
@@ -105,10 +120,13 @@ module.exports = function(config) {
 
   function send(msg, fail) {
     fail = fail || failHandlers.default;
-    transport.send(msg, fail);
+    transport.ws.send(msg, fail);
   }
 
   function subscribe(msg) {
+    if (!transport.ready) {
+      return;
+    }
     msg = msg || sub.message();
     send(msg, failHandlers.ignore);
   }
@@ -132,7 +150,7 @@ module.exports = function(config) {
   }
   
   function close() {
-    transport.close();
+    transport.ws.close();
   }
 
   return {
