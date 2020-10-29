@@ -45,7 +45,7 @@ func RrSub(topic string, handler func(string, []byte) (interface{}, error), opts
 		}
 		// provjeri da li je expired
 		if eReq.Expired() {
-			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Info("expired")
+			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).I("now", int(time.Now().Unix())).I("expires_at", int(eReq.ExpiresAt)).Info("expired")
 			return nil
 		}
 		// radi request
