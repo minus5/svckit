@@ -283,7 +283,7 @@ func TestListiciBrisi(t *testing.T) {
 }
 
 func TestPushNotSubscribe(t *testing.T) {
-	buf := []byte(`{"igrac_id":"707e46ff7fdf7c3815210a91cc9dce35f077acab","uredjaj":{"gcm_id":"APA91bGrkydnlbNUNm15S5pGcfFNmvIa5OfuVeJW-iQvXAewqzWEuxXqNRsG0Ue3Yk7v9nl4m80_Af7i45x0JqIbk_QXFxrwe_CTdkjaSdeaG5VCqNljgbA","apple_id":"","aktivan":true},"pretplate":{"privatne_poruke":true,"novosti":true,"listic_vrednovan":true}}`)
+	buf := []byte(`{"igrac_id":"707e46ff7fdf7c3815210a91cc9dce35f077acab","uredjaj":{"fcm_id":"APA91bGrkydnlbNUNm15S5pGcfFNmvIa5OfuVeJW-iQvXAewqzWEuxXqNRsG0Ue3Yk7v9nl4m80_Af7i45x0JqIbk_QXFxrwe_CTdkjaSdeaG5VCqNljgbA","apple_id":"","aktivan":true},"pretplate":{"privatne_poruke":true,"novosti":true,"listic_vrednovan":true}}`)
 	m := NewBackendFromTopic(buf, "push_not.subscribe")
 	assert.NotNil(t, m)
 	assert.Equal(t, "707e46ff7fdf7c3815210a91cc9dce35f077acab", m.IgracId)
@@ -295,7 +295,7 @@ func TestPushNotSubscribe(t *testing.T) {
 	err := m.UnmarshalBody(&p)
 	assert.Nil(t, err)
 	assert.Equal(t, "707e46ff7fdf7c3815210a91cc9dce35f077acab", p.IgracId)
-	assert.Regexp(t, "^APA91bGrkydnlbNUNm15S5pGcfFNmvIa5OfuVeJW", p.Uredjaj.GcmId)
+	assert.Regexp(t, "^APA91bGrkydnlbNUNm15S5pGcfFNmvIa5OfuVeJW", p.Uredjaj.FcmId)
 	assert.True(t, p.Pretplate.Novosti)
 }
 

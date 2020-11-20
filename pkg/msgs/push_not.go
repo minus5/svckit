@@ -12,8 +12,6 @@ const (
 // Poruka za slanje na push notifikacije
 type PushNot struct {
 	Id         int            `json:"push_not_id"`
-	GcmId      string         //obsolete
-	AppleId    string         //obsolete
 	FcmId      string         //token za identifikaciju uredjaja
 	FcmTopic   string         //obsolete
 	DeviceType int            //0 - android, 1 - ios, 2 - web
@@ -63,13 +61,13 @@ func (l *PushNotListic) Serialize() map[string]interface{} {
 }
 
 // Kreira novu tekstualnu push notification poruku
-func NewPushNotText(id int, tip int, gcmId, appleId, fcmId string, deviceType int, tekst string) *PushNot {
-	return &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId, DeviceType: deviceType, Tekst: tekst}
+func NewPushNotText(id int, tip int, fcmId string, deviceType int, tekst string) *PushNot {
+	return &PushNot{Id: id, Tip: tip, FcmId: fcmId, DeviceType: deviceType, Tekst: tekst}
 }
 
 // Kreira novu push notification poruku za status listica
-func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId, fcmId string, deviceType int, listicId string, status int, dobitak float64, broj string) *PushNot {
-	pn := &PushNot{Id: id, Tip: tip, GcmId: gcmId, AppleId: appleId, FcmId: fcmId, DeviceType: deviceType}
+func NewPushNotListic(id int, tip int, lTip int, fcmId string, deviceType int, listicId string, status int, dobitak float64, broj string) *PushNot {
+	pn := &PushNot{Id: id, Tip: tip, FcmId: fcmId, DeviceType: deviceType}
 	if tip == PushNotMsgTipListic {
 		pn.Listic = &PushNotListic{Id: listicId, Tip: lTip, Status: status, Dobitak: dobitak, Broj: broj}
 	}
@@ -79,14 +77,4 @@ func NewPushNotListic(id int, tip int, lTip int, gcmId, appleId, fcmId string, d
 // Da li je poruka za FCM klijent ili FCM topic poruka
 func (m *PushNot) IsFcm() bool {
 	return m.FcmId != "" || m.FcmTopic != ""
-}
-
-// Da li je poruka za GCM klijent
-func (m *PushNot) IsGcm() bool {
-	return m.GcmId != ""
-}
-
-// Da li je poruka za iOS klijent
-func (m *PushNot) IsApn() bool {
-	return m.AppleId != ""
 }

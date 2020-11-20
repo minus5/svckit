@@ -8,9 +8,7 @@ import (
 )
 
 func TestPushNotSerializeListic(t *testing.T) {
-	m := NewPushNotListic(1, PushNotMsgTipListic, 0, "apn", "gcm", "fcm", PushNotDeviceTypeAndroid, "guid", 2, 123.45, "broj")
-	assert.True(t, m.IsApn())
-	assert.True(t, m.IsGcm())
+	m := NewPushNotListic(1, PushNotMsgTipListic, 0, "apn", PushNotDeviceTypeAndroid, "guid", 2, 123.45, "broj")
 	assert.True(t, m.IsFcm())
 	assert.Equal(t, PushNotDeviceTypeAndroid, m.DeviceType)
 
@@ -30,9 +28,7 @@ func TestPushNotSerializeListic(t *testing.T) {
 }
 
 func TestPushNotSerializeTekst(t *testing.T) {
-	m := NewPushNotText(1, PushNotMsgTipPrivatna, "", "", "fcm", PushNotDeviceTypeiOS, "iso medo u ducan")
-	assert.False(t, m.IsApn())
-	assert.False(t, m.IsGcm())
+	m := NewPushNotText(1, PushNotMsgTipPrivatna, "fcm", PushNotDeviceTypeiOS, "iso medo u ducan")
 	assert.True(t, m.IsFcm())
 	assert.Equal(t, PushNotDeviceTypeiOS, m.DeviceType)
 

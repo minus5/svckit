@@ -13,12 +13,8 @@ type PushNotSubscribe struct {
 	IgracId string `json:"igrac_id"`
 	// Uredjaj s kojim se prijavljuje za notifikacije
 	Uredjaj struct {
-		// Google Cloud Messaging device id
-		GcmId string `json:"gcm_id"`
 		// Firebase Cloud Messaging device id
 		FcmId string `json:"fcm_id"`
-		// Apple Cloud Messaging device id
-		AppleId string `json:"apple_id"`
 		// Da li je uredjaj aktivan, ako je false koristi se za deaktivaciju uredjaja
 		Aktivan bool `json:"aktivan"`
 		// Tip uredjaja za primanje push notifikacija, 0 - Android, 1 - iOS, 2 - web
