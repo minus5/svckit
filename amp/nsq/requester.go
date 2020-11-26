@@ -56,7 +56,7 @@ func NewRequester(ctx context.Context) (*Requester, error) {
 }
 
 func resposesTopicName() string {
-	return fmt.Sprintf("z...rsp-%s-%s", env.AppName(), env.NodeName())
+	return fmt.Sprintf("z...rsp-%s-%s", env.AppName(), env.InstanceId())
 }
 
 func (r *Requester) responses(nm *nsq.Message) error {
