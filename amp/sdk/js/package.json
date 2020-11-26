@@ -1,7 +1,7 @@
 {
-  "name": "amp-sdk",
+  "name": "@minus5/amp-sdk",
   "publishConfig": {
-    "registry": "http://npm.dev.minus5.hr"
+    "registry": "https://npm.pkg.github.com/"
   },
   "version": "1.0.20",
   "description": "",
@@ -19,5 +19,6 @@
     "@babel/cli": "^7.6.3",
     "@babel/core": "^7.6.3",
     "@babel/preset-env": "^7.6.3"
-  }
+  },
+  "repository": "ssh://git@github.com:minus5/svckit.git"
 }
