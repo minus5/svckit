@@ -1,0 +1,13 @@
+on:
+  registry_package:
+  workflow_dispatch:
+
+jobs:
+  delete_package_versions:
+    runs-on: ubuntu-latest
+    steps:
+    - id: package-cleanup
+      uses: djelusic/delete-packages-action@v1.2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        keepCnt: 5
