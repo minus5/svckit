@@ -30,7 +30,7 @@ func init() {
 			_, appName = path.Split(wd)
 		}
 	}
-	if job, ok := os.LookupEnv("NOMAD_JOB_NAME"); ok {
+	if job, ok := os.LookupEnv("NOMAD_TASK_NAME"); ok {
 		appName = job
 	}
 
