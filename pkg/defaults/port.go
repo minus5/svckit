@@ -87,5 +87,6 @@ const (
 	PortPlayersAdmin     = "8800"
 	PortAdminAuth        = "8810"
 	PortJuroSync         = "8820"
+	PortBetradarSync     = "8821"
 	PortPlayerDevices    = "8830"
 )
