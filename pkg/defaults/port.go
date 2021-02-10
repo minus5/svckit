@@ -90,4 +90,5 @@ const (
 	PortBetradarSync     = "8821"
 	PortPlayerDevices    = "8830"
 	PortAnalysis         = "8840"
+	PortPGWAircash       = "8850"
 )
