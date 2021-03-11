@@ -92,4 +92,5 @@ const (
 	PortAnalysis         = "8840"
 	PortPGWAircash       = "8850"
 	PortPaymentGateway   = "8860"
+	PortSbk              = "8870"
 )
