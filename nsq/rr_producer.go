@@ -177,6 +177,28 @@ func (s *RrProducer) ReqRsp(topic, typ string, req interface{}, rsp interface{},
 	return nil
 }
 
+// ReqRspBuf sends request and waits for response, passes rsp as []byte
+func (s *RrProducer) ReqRspBuf(topic, typ string, req interface{}, sig chan struct{}, ttl time.Duration, em *ErrorsMapping) ([]byte, error) {
+	if typ == "" {
+		typ = typeToString(req)
+	}
+	p := ReqRspBaseParams{
+		Topic: topic,
+		Typ:   typ,
+		Ttl:   ttl,
+		Sig:   sig,
+		Em:    em,
+	}
+	p.defaults()
+	reqBuf, err := json.Marshal(req)
+	if err != nil {
+		return nil, p.Fatal(err)
+	}
+	p.Req = reqBuf
+	p.correlationId = s.corr.NewCorrelationID(topic, typ, req)
+	return s.ReqRspBase(p)
+}
+
 type ReqRspBaseParams struct {
 	Topic         string
 	Typ           string
