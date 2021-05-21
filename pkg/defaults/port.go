@@ -94,4 +94,5 @@ const (
 	PortPaymentGateway   = "8860"
 	PortSbk              = "8870"
 	PortPGWSkrill        = "8880"
+	PortPGWSubsidiary    = "8890"
 )
