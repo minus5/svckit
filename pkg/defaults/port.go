@@ -96,4 +96,6 @@ const (
 	PortPGWSkrill        = "8880"
 	PortPGWSubsidiary    = "8890"
 	PortOptimove         = "8900"
+	PortCatalog          = "8910"
+	PortCatalogWs        = "8911"
 )
