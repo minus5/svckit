@@ -48,9 +48,9 @@ func (b *mockBroker) Wait()                                  {}
 
 type mockRequester struct{}
 
-func (r *mockRequester) Send(amp.Sender, *amp.Msg) {}
-func (r *mockRequester) Unsubscribe(amp.Sender)    {}
-func (r *mockRequester) Wait()                     {}
+func (r *mockRequester) Send(amp.Subscriber, *amp.Msg) {}
+func (r *mockRequester) Unsubscribe(amp.Subscriber)    {}
+func (r *mockRequester) Wait()                         {}
 
 func testSession(outLen, inLen int) (chan []byte, chan []byte, func(), chan struct{}, func(*amp.Msg)) {
 	out := make(chan []byte, outLen)
@@ -61,9 +61,10 @@ func testSession(outLen, inLen int) (chan []byte, chan []byte, func(), chan stru
 	done := make(chan struct{})
 
 	s := &session{
-		conn:      conn,
-		requester: &mockRequester{},
-		broker:    &mockBroker{},
+		conn:        conn,
+		outMessages: make(chan []*amp.Msg, 256),
+		requester:   &mockRequester{},
+		broker:      &mockBroker{},
 	}
 	go func() {
 		s.loop(ctx)
@@ -133,14 +134,15 @@ func TestQueueDrain(t *testing.T) {
 	done := make(chan struct{})
 	conn := &mockConn{out: out, in: in}
 	s := &session{
-		conn:      conn,
-		requester: &mockRequester{},
-		broker:    &mockBroker{},
+		conn:        conn,
+		outMessages: make(chan []*amp.Msg, 256),
+		requester:   &mockRequester{},
+		broker:      &mockBroker{},
 	}
 	for i := 0; i < 200; i++ {
 		s.Send(&amp.Msg{})
 	}
-	assert.Len(t, s.outQueue, 200)
+	assert.Len(t, s.outMessages, 200)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		s.loop(ctx)
@@ -149,5 +151,5 @@ func TestQueueDrain(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	cancel()
 	<-done
-	assert.Len(t, s.outQueue, 0)
+	assert.Len(t, s.outMessages, 0)
 }
