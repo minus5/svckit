@@ -1,10 +1,9 @@
 package keys
 
 import (
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"github.com/minus5/svckit/pkg/testu"
+	"io/ioutil"
 	"testing"
 
 	simplejson "github.com/minus5/go-simplejson"
@@ -13,10 +12,10 @@ import (
 
 var saveFixtures bool
 
-func init() {
-	flag.BoolVar(&saveFixtures, "save-fixtures", false, "snimi fixture umjesto testiranja spram njih")
-	flag.Parse()
-}
+//func init() {
+//	flag.BoolVar(&saveFixtures, "save-fixtures", false, "snimi fixture umjesto testiranja spram njih")
+//	flag.Parse()
+//}
 
 func TestExtender(t *testing.T) {
 	first := `
