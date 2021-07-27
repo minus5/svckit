@@ -16,7 +16,7 @@ func TestMongo(t *testing.T) {
 	t.Logf("mongo host: %s", m.Host)
 
 	s, err := mongo.Connect(context.Background(),
-		options.Client().ApplyURI(fmt.Sprintf("mongodb://%s/test", m.Host)))
+		options.Client().ApplyURI(fmt.Sprintf("%s/test", m.Host)))
 	assert.Nil(t, err)
 	err = s.Ping(context.Background(), nil)
 	assert.Nil(t, err)
