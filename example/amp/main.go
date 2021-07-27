@@ -35,7 +35,7 @@ func main() {
 	tcpListener := ws.MustOpen(env.Port(wsPortLabel))
 	interupt := signal.InteruptContext()
 	requester := nsq.MustRequester(interupt)
-	broker := broker.New(requester.Current)
+	broker := broker.New(requester.Current, nil)
 	broker.Consume(nsq.Subscribe(interupt, inputTopics))
 	sessions := session.Factory(interupt, broker, requester)
 	defer sessions.Wait()
