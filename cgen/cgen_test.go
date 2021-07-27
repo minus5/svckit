@@ -2,7 +2,6 @@ package cgen_test
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"testing"
 	"time"
@@ -17,10 +16,10 @@ import (
 //   go test --save-fixtures
 var saveFixtures = false
 
-func init() {
-	flag.BoolVar(&saveFixtures, "save-fixtures", false, "snimi fixture umjesto testiranja spram njih")
-	flag.Parse()
-}
+//func init() {
+//	flag.BoolVar(&saveFixtures, "save-fixtures", false, "snimi fixture umjesto testiranja spram njih")
+//	flag.Parse()
+//}
 
 type Event struct {
 	Home     string         `json:"h"`
