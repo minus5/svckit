@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/minus5/svckit/amp"
@@ -117,6 +118,9 @@ func (s *session) readLoop() chan *amp.Msg {
 		for {
 			buf, err := s.conn.Read()
 			if err != nil {
+				if strings.HasPrefix(err.Error(), "malformed") {
+					log.Error(err)
+				}
 				return
 			}
 			if m := amp.ParseCompatibility(buf, s.compatibilityVersion); m != nil {

@@ -3,6 +3,7 @@ package ws
 import (
 	"bytes"
 	"compress/flate"
+	"fmt"
 	"io"
 	"net"
 	"sync/atomic"
@@ -87,7 +88,9 @@ func (c *Conn) Read() ([]byte, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-
+	if header.Length < 0 || header.Length > 1000000 {
+		return nil, fmt.Errorf("malformed: %d -- %t -- %s -- %s", header.Length, c.cap.deflateSupported, c.cap.forwardedFor, c.cap.userAgent)
+	}
 	payload := make([]byte, header.Length)
 	_, err = io.ReadFull(c.tcpConn, payload)
 	if err != nil {
