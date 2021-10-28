@@ -128,7 +128,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			switch key {
 			case "user-agent":
 				cc.userAgent = value
-				if strings.Contains(value, "iPhone OS 15") || strings.Contains(value, "Mac OS X 10_15") {
+				if strings.Contains(value, "OS 15") || strings.Contains(value, "Mac OS X 10_15") {
 					cc.deflateSupported = false
 				}
 			case "x-forwarded-for":
