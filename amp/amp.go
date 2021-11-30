@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"encoding/json"
+	"github.com/minus5/svckit/pkg/compress"
 	"io"
 	"net/url"
 	"strings"
@@ -126,6 +127,13 @@ func Parse(buf []byte) *Msg {
 	}
 	if len(parts) > 1 {
 		m.body = parts[1]
+		body, err := compress.GunzipIf(m.body)
+		if err != nil {
+			log.Error(err)
+			return nil
+		} else {
+			m.body = body
+		}
 	}
 	return m
 }
