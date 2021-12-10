@@ -67,18 +67,18 @@ const (
 	PortShareWs                   = "8581"
 	PortKladomatLogs              = "8590"
 	// Port 8600 is reserved by Consul as default dns forwarding port
-	PortPrematchSbk   = "8610"
-	PortPromo         = "8620"
-	PortWallet        = "8640" // definiram da se zna da je zauzet od strane casino walleta
-	PortNotification  = "8650"
-	PortPlayerAccount = "8660"
-	PortDocscan       = "8670"
-	PortBetBuilder    = "8680"
-	PortWalletAdmin   = "8690"
-	PortVirtuals      = "8700"
-	PortCms           = "8710"
-	PortConsulAlerts  = "8720"
-	// 8740 => crawler-web
+	PortPrematchSbk      = "8610"
+	PortPromo            = "8620"
+	PortWallet           = "8640" // definiram da se zna da je zauzet od strane casino walleta
+	PortNotification     = "8650"
+	PortPlayerAccount    = "8660"
+	PortDocscan          = "8670"
+	PortBetBuilder       = "8680"
+	PortWalletAdmin      = "8690"
+	PortVirtuals         = "8700"
+	PortCms              = "8710"
+	PortConsulAlerts     = "8720"
+	PortCrawlerWeb       = "8740" // 8740 => crawler-web JS app def jer je zauzet
 	PortShareRecommender = "8750"
 	PortCashVoucher      = "8760"
 	PortOIBVerification  = "8770"
@@ -98,4 +98,6 @@ const (
 	PortOptimove         = "8900"
 	PortCatalog          = "8910"
 	PortCatalogWs        = "8911"
+	PortSlipsDBI         = "8920"
+	PortRetail           = "8921"
 )
