@@ -100,4 +100,6 @@ const (
 	PortCatalogWs        = "8911"
 	PortSlipsDBI         = "8920"
 	PortRetail           = "8921"
+	PortPGWPaysafe       = "8940"
+	PortPGWKeksPay       = "8950"
 )
