@@ -125,6 +125,8 @@ func (m *ExpireMap) RemoveId(id string) {
 
 // Size vraca trenutan broj entry-a u mapi
 func (m *ExpireMap) Size() int {
+	m.valuesMutex.RLock()
+	defer m.valuesMutex.RUnlock()
 	return len(m.values)
 }
 
