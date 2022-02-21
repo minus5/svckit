@@ -6,6 +6,7 @@ import (
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
+	"net/url"
 	"text/template"
 )
 
@@ -41,7 +42,7 @@ func fetchKV(name string) (map[string]string, error) {
 		for k, v := range kvs {
 			switch s := v.(type) {
 			case string:
-				ret[k] = s
+				ret[k] = url.QueryEscape(s)
 			}
 		}
 		return ret, nil
