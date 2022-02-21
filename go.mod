@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/Unix4ever/statsd v0.0.0-20160120230120-a8219f1fb9d8 // indirect
+	github.com/aws/aws-sdk-go v1.43.2
 	github.com/cactus/go-statsd-client/statsd v0.0.0-20190302225832-f5dd73501f04 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/davecgh/go-spew v1.1.1
@@ -39,7 +40,7 @@ require (
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pascaldekloe/goe v0.1.0 // indirect
 	github.com/peterbourgon/g2s v0.0.0-20170223122336-d4e7ad98afea // indirect
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/quipo/statsd v0.0.0-20180118161217-3d6a5565f314 // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0 // indirect
@@ -51,8 +52,8 @@ require (
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	go.mongodb.org/mongo-driver v1.3.2
-	golang.org/x/net v0.0.0-20190611141213-3f473d35a33a
+	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 )

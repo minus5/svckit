@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/minus5/svckit/asm"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -57,7 +58,7 @@ func DefaultConnStr() string {
 		}
 	}
 	if cs != "" {
-		kvs, err := dcy.KVs("mongo/" + app)
+		kvs, err := fetchKV("mongo/" + app)
 		_, disabled := kvs["disabled"]
 		if err == nil && !disabled {
 			return connectionStringFromTemplate(cs, kvs["database"], kvs["username"], kvs["password"])
@@ -69,6 +70,19 @@ func DefaultConnStr() string {
 		connStr = fmt.Sprintf("mongodb://%s", strings.Join(addrs.String(), ","))
 	}
 	return connStr
+}
+
+func fetchKV(name string) (map[string]string, error) {
+	kvs, err := asm.GetKV(name)
+	log.S("name", name).B("success", kvs != nil).Info("asm fetch")
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	if kvs != nil {
+		return kvs, nil
+	}
+	return dcy.KVs(name)
 }
 
 func connectionStringFromTemplate(tpl, database, username, password string) string {
