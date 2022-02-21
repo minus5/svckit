@@ -26,9 +26,9 @@ func init() {
 	asmEnabled = true
 }
 
-func GetKV(secretName string) (map[string]string, error) {
+func ParseKV(secretName string, v interface{}) error {
 	if !asmEnabled {
-		return nil, nil
+		return nil
 	}
 	// go-aws-sdk procita sve iz enva osim regije
 	// opcija je da u env za svaki servis stavim AWS_REGION=eu-central-1
@@ -36,7 +36,7 @@ func GetKV(secretName string) (map[string]string, error) {
 	region := "eu-central-1"
 	sess, err := session.NewSession()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	svc := secretsmanager.New(sess,
 		aws.NewConfig().WithRegion(region))
@@ -46,15 +46,10 @@ func GetKV(secretName string) (map[string]string, error) {
 	}
 	result, err := svc.GetSecretValue(input)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	if result.SecretString == nil {
-		return nil, nil
+		return nil
 	}
-	res := map[string]string{}
-	err = json.Unmarshal([]byte(*result.SecretString), &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return json.Unmarshal([]byte(*result.SecretString), v)
 }

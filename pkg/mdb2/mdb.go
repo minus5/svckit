@@ -73,8 +73,9 @@ func DefaultConnStr() string {
 }
 
 func fetchKV(name string) (map[string]string, error) {
-	kvs, err := asm.GetKV(name)
-	log.S("name", name).B("success", kvs != nil).Info("asm fetch")
+	kvs := map[string]string{}
+	err := asm.ParseKV(name, &kvs)
+	log.S("name", name).I("len", len(kvs)).Info("ASM fetched")
 	if err != nil {
 		log.Error(err)
 		return nil, err
