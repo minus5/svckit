@@ -80,7 +80,7 @@ func fetchKV(name string) (map[string]string, error) {
 		log.Error(err)
 		return nil, err
 	}
-	if kvs != nil {
+	if len(kvs) > 0 {
 		return kvs, nil
 	}
 	return dcy.KVs(name)

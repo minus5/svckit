@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/minus5/svckit/asm"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -221,7 +222,7 @@ func DefaultConnStr() string {
 		}
 	}
 	if cs != "" {
-		kvs, err := dcy.KVs("mongo/" + app)
+		kvs, err := fetchKV("mongo/" + app)
 		_, disabled := kvs["disabled"]
 		if err == nil && !disabled {
 			return connectionStringFromTemplate(cs, kvs["database"], kvs["username"], kvs["password"])
@@ -234,6 +235,20 @@ func DefaultConnStr() string {
 		connStr = strings.Join(addrs.String(), ",")
 	}
 	return connStr
+}
+
+func fetchKV(name string) (map[string]string, error) {
+	kvs := map[string]string{}
+	err := asm.ParseKV(name, &kvs)
+	log.S("name", name).I("len", len(kvs)).Info("ASM fetched")
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	if len(kvs) > 0 {
+		return kvs, nil
+	}
+	return dcy.KVs(name)
 }
 
 // MustNew raises fatal is unable to connect to mongo
