@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"github.com/minus5/svckit/asm"
 	"github.com/minus5/svckit/dcy"
-	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/log"
 	"net/url"
 	"text/template"
@@ -16,9 +15,8 @@ type Params struct {
 	ConnectionString string `json:"connectionString"`
 }
 
-func DefaultConnStr() string {
-	app := env.AppName()
-	if kvs, err := fetchKV("mssql/" + app); err == nil && kvs != nil {
+func DefaultConnStr(name string) string {
+	if kvs, err := fetchKV("mssql/" + name); err == nil && kvs != nil {
 		if connStr := kvs["connectionString"]; connStr != "" {
 			return connStr
 		}
