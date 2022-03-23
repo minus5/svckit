@@ -49,15 +49,25 @@ Roles will switch again: First takes over the lead back, second one is waiting.
 
 ## Http interface example
 ```
-go run httpi
+go run httpi_example.go
 ```
-Go to:
+Then run:
+```
+http://localhost:8123/ping
+```
+See header *Application*
 
-* http://localhost:8123/ping         (curl -v see header *Application*)
-* http://localhost:8123/health_check
-* http://localhost:8123/debug/vars   (See svckit.stats key i how it is implemented)
-* http://localhost:8123/debug/pprof
+```
+http://localhost:8123/health_check
+```
 
+```
+ http://localhost:8123/debug/vars
+```
+
+```
+http://localhost:8123/debug/pprof
+```
 
 ## Metrics example
 
