@@ -6,7 +6,9 @@ Your swiss army knife for microservices in Go.
 TBD
 
 ## Library design
-TBD - describe functional areas covered.
+Library covers following functional areas:
+
+* TBD...
 
 ## Examples
-Practical use of library can be found [here](./example).
+Practical usage of the library can be found [here](./example).
