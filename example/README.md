@@ -25,7 +25,7 @@ go run nsq_pub.go
 
 Start consul:
 ```
-  ./start
+./start
 ```  
 Run the application in two terminals:
 ```
@@ -55,7 +55,7 @@ Then run:
 ```
 http://localhost:8123/ping
 ```
-Notice the header *Application* in the response. Also try running following commands:
+Notice HTTP header *Application* in the response. Also try running following commands:
 
 ```
 http://localhost:8123/health_check
@@ -75,7 +75,7 @@ Start consul:
 ```
  ./start
 ```
-The run:
+Then run:
 ```
 go run metric_example.go
 ``` 
