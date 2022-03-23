@@ -55,7 +55,7 @@ Then run:
 ```
 http://localhost:8123/ping
 ```
-See header *Application*
+Notice the header *Application* in the response. Also try running following commands:
 
 ```
 http://localhost:8123/health_check
