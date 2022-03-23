@@ -2,11 +2,11 @@
 
 ## NSQ example
 
-Start consul, NSQ daemon:
+Start consul:
 ```
 ./start
 ```
-In first terminal
+In first terminal:
 ```
 go run nsq_sub.go
 ```     
