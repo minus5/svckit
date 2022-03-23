@@ -1,42 +1,70 @@
-* Nsq primjeri
+# svckit examples
 
-1. Pokrenem consul, nsqd:
-     ./start
-2. U jednom treminalu:
-     go run nsq_sub.go
-   U drugom: 
-     go run nsq_pub.go
+## NSQ example
+
+Start consul, NSQ daemon:
+```
+./start
+```
+In first terminal
+```
+go run nsq_sub.go
+```     
+In second terminal:
+```
+go run nsq_pub.go
+```
 
 
-* Leadership primjer
+## Leadership example
 
-1. Pokrenem consul:
+Start consul:
+```
   ./start
-2. U dva terminala dignem aplikaciju:
+```  
+Run the application in two terminals:
+```
   go run leader_example.go
-3. Zaustavim aplikaciju koja je leader, prezume drugi.
-4. Pokrenem ponovo dvije. Nadjem pid-ove:
-     ps aux | grep leader_example$
-   Posaljem USR1 signal trenutnom leaderu npr.:
-     kill -s USR1 70854
-   Drugi preuzme leadership prvi ceka, posaljem signal drugom:
-     kill -s USR1 70862
-   I ponovim par puta jedno drugo.
+```  
+Stop the application which becomes the leader. The other one will take over.
+Start two apps again, find the pids:
+```
+ps aux | grep leader_example$
+```     
+Send USR1 signal to current leader, e.g.:
+```   
+kill -s USR1 70854
+```  
+Second takes over the lead, first one is waiting. Send the signal to other,e .g.:
+```   
+kill -s USR1 70862
+```  
+And repeat couple times.
 
 
-* Http interface primjer
+## Http interface example
+```
+go run httpi
+```
+Go to:
 
-1. go run httpi
-2. Navigiraj na:
-   http://localhost:8123/ping         (curl -v pa pogledaj header Application)
-   http://localhost:8123/health_check
-   http://localhost:8123/debug/vars   (pogledaj svckit.stats key i kako je implementirano)
-   http://localhost:8123/debug/pprof
+* http://localhost:8123/ping         (curl -v see header Application)
+* http://localhost:8123/health_check
+* http://localhost:8123/debug/vars   (See svckit.stats key i how it is implemented)
+* http://localhost:8123/debug/pprof
 
 
-* Metric
+## Metrics example
 
-1. ./start
-2. go run metric_example
-3. Metrike su zapisane su poslane na udp 8125, tamo slusa statsd_to_nsq koji ih zapise u nsq kanal. Tail-am taj nsq kanal i tamo ih vidim:
-     nsq_tail -topic=stats -lookupd-http-address=localhost:4161
+Start consul:
+```
+ ./start
+```
+The run:
+```
+go run metric_example
+``` 
+The metrics are written and sent to udp 8125. Here *statsd_to_nsq* is listening which writes the metrics to NSQ channel. To see more run:
+```
+nsq_tail -topic=stats -lookupd-http-address=localhost:4161
+```
