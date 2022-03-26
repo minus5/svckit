@@ -1,16 +1,19 @@
 # svckit examples
 
-## NSQ example
-
-Start consul:
+Before running individual examples run in separate terminal following command:
 ```
 ./start
 ```
 
-Note: consul agent can be also started in development mode using command:
-```
-consul agent -data-dir=tmp/consul -dev
-```
+This will internally run [goreman](https://github.com/mattn/goreman) and launch all necessary services (NSQ services + consul) as defined in **Procfile**. Consul agent will be started with services defined in **consul.json**. 
+
+Following admin UIs will be then running on localhost:
+
+* **Consul UI**: http://localhost:8500/
+* **NSQ Admin**: http://localhost:4171/
+
+## NSQ example
+
 In first terminal run:
 ```
 go run nsq_sub.go
@@ -22,11 +25,6 @@ go run nsq_pub.go
 
 
 ## Leadership example
-
-Start consul:
-```
-./start
-```  
 Run the application in two terminals:
 ```
   go run leader_example.go
@@ -70,12 +68,7 @@ http://localhost:8123/debug/pprof
 ```
 
 ## Metrics example
-
-Start consul:
-```
- ./start
-```
-Then run:
+Run:
 ```
 go run metric_example.go
 ``` 
