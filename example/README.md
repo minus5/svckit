@@ -5,7 +5,7 @@ Before running individual examples run in separate terminal following command:
 ./start
 ```
 
-This will internally run [goreman](https://github.com/mattn/goreman) and launch all necessary services (NSQ services + consul) as defined in **Procfile**. Consul agent will be started with services defined in **consul.json**. 
+This will internally run [goreman](https://github.com/mattn/goreman) and launch all necessary services (NSQ services + consul) as defined in [Procfile](./Procfile). Consul agent will be started with services defined in [consul.json](./consul.json). 
 
 Following admin UIs will be then running on localhost:
 

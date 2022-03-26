@@ -21,7 +21,7 @@ Before getting really started familiarize yourself with following core building 
 * [nsq](https://nsq.io/) realtime messaging
 * [consul](https://www.consul.io/) service mesh
 
-Once you have some basic idea, have a look at [example services](https://github.com/minus5/examples-services) utilizing these technologies. To see even more follow the **Examples** section below.
+Once you have some basic idea, have a look at [example services](https://github.com/minus5/examples-services) utilizing these technologies. To see even more follow the [Examples](#examples) section below.
 
 ## Examples
 Practical usage of the library can be found [here](./example).
