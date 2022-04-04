@@ -20,10 +20,11 @@ var (
 // RrConsumer request reponse consumer.
 // Implements consumer side of the request response communication over nsq.
 type RrConsumer struct {
-	topic        string
-	sub          *Consumer
-	producers    map[string]*Producer
-	requeueError error // set this error to requeue only on this
+	topic           string
+	sub             *Consumer
+	producers       map[string]*Producer
+	consumerOptions []func(*options)
+	requeueError    error // set this error to requeue only on this
 	// if nil requeues on all errors
 	sync.Mutex
 }
@@ -73,7 +74,8 @@ func RrSub(topic string, handler func(string, []byte) (interface{}, error), opts
 		}
 		return nil
 	}
-	s.sub = Sub(topic, h, Channel(env.AppName()))
+	s.consumerOptions = append(s.consumerOptions, Channel(env.AppName()))
+	s.sub = Sub(topic, h, s.consumerOptions...)
 	return s
 }
 
@@ -87,6 +89,13 @@ func (s *RrConsumer) apply(opts ...func(*RrConsumer)) {
 func RequeueError(err error) func(*RrConsumer) {
 	return func(s *RrConsumer) {
 		s.requeueError = err
+	}
+}
+
+// ConsumerOptions sets configuration options for the underlying Consumer.
+func ConsumerOptions(opts ...func(*options)) func(*RrConsumer) {
+	return func(s *RrConsumer) {
+		s.consumerOptions = opts
 	}
 }
 
