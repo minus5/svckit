@@ -92,8 +92,8 @@ func RequeueError(err error) func(*RrConsumer) {
 	}
 }
 
-// SetConsumerOptions sets configuration options for the underlying Consumer.
-func SetConsumerOptions(opts ...func(*options)) func(*RrConsumer) {
+// ConsumerOptions sets configuration options for the underlying Consumer.
+func ConsumerOptions(opts ...func(*options)) func(*RrConsumer) {
 	return func(s *RrConsumer) {
 		s.consumerOptions = opts
 	}
