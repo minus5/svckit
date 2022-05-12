@@ -38,6 +38,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
+	github.com/oschwald/geoip2-golang v1.7.0
 	github.com/pascaldekloe/goe v0.1.0 // indirect
 	github.com/peterbourgon/g2s v0.0.0-20170223122336-d4e7ad98afea // indirect
 	github.com/pkg/errors v0.9.1
@@ -45,7 +46,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/smira/go-statsd v1.2.1
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.7.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xdg/stringprep v1.0.0 // indirect
 	github.com/yudai/gojsondiff v1.0.0
