@@ -1,6 +1,7 @@
 package geo
 
 import (
+	"archive/tar"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -15,12 +16,19 @@ import (
 
 	"github.com/minus5/svckit/log"
 	"github.com/nranchev/go-libGeoIP"
+	geoIp2 "github.com/oschwald/geoip2-golang"
 )
 
 const (
 	GetFileRetryIntervalSeconds = 30
-	GeoIPURL                    = "http://updates.maxmind.com/app/update?license_key=MHJmPlgC696x"
+	GeoIpUrlLegacy           	= "http://updates.maxmind.com/app/update?license_key=LICENSE_KEY"
+	GeoIp2Url					= "https://download.maxmind.com/app/geoip_download?edition_id=GeoIP2-Country&license_key=LICENSE_KEY&suffix=tar.gz"
 	GeoIPCheckInterval          = 12 * 60 * time.Minute
+)
+
+const (
+	GeoIpVersionLegacy	uint8 = 1
+	GeoIpVersion2		uint8 = 2
 )
 
 var geoIPCheck *IPCheck
@@ -28,20 +36,27 @@ var lock sync.RWMutex
 
 var whitelist = []string{"212.92.192.0/19"}
 
+var versionUrl = map[uint8]string{
+	GeoIpVersionLegacy: GeoIpUrlLegacy,
+	GeoIpVersion2: 		GeoIp2Url,
+}
+
 // IPCheck is structure used for handling check of ip addresses
 type IPCheck struct {
-	file        string
-	handle      *libgeo.GeoIP
-	cache       map[string]bool
-	IPWhitelist []*net.IPNet
+	file					string
+	handleV1			*libgeo.GeoIP
+	handleV2			*geoIp2.Reader
+	cache 				map[string]bool
+	IPWhitelist			[]*net.IPNet
+	allowedCountryCodes []string
 	sync.RWMutex
 }
 
 // Init initializes geoIPCheck
-func Init(file string) {
+func Init(file string, version uint8, allowedCountryCodes []string) {
 	lock.Lock()
 	defer lock.Unlock()
-	c, err := NewIPCheck(file, whitelist)
+	c, err := NewIPCheck(file, whitelist, version, allowedCountryCodes)
 	if err != nil {
 		log.Errorf("could not initialize Geo IP check from %s", file)
 		return
@@ -52,26 +67,53 @@ func Init(file string) {
 // Default initializes IPCheck with default file if it exists
 func Default() error {
 	for _, p := range strings.Split(os.Getenv("GOPATH"), ":") {
-		path := path.Join(p, "src/pkg/geo/testGeoIP.dat")
-		log.Info("trying to load Geo IP from: %s", path)
-		if _, err := os.Stat(path); err == nil {
-			Init(path)
-			log.Info("loaded default Geo IP: %s", path)
+		pth := path.Join(p, "src/pkg/geo/testGeoIP.dat")
+		log.Info("trying to load Geo IP from: %s", pth)
+		if _, err := os.Stat(pth); err == nil {
+			Init(pth, GeoIpVersionLegacy, []string{"HR"})
+			log.Info("loaded default Geo IP: %s", pth)
 			return nil
 		}
 	}
 	return fmt.Errorf("default Geo IP file doesnt exist")
 }
 
-// NewIPCheck initializes new IPCheck with specified file
-func NewIPCheck(file string, whitelist []string) (*IPCheck, error) {
-	handle, err := libgeo.Load(file)
-	if err != nil {
-		log.Errorf("error NewIpCheck could not open file %s, error: %s", file, err)
-		return nil, err
+// NewIPCheck initializes new IPCheck with specified file and version
+func NewIPCheck(file string, whitelist []string, version uint8, allowedCountryCodes []string) (*IPCheck, error) {
+	ipc := &IPCheck{
+		file: file,
+		cache: make(map[string]bool),
+		IPWhitelist: initIPWhitelist(whitelist),
+		allowedCountryCodes: allowedCountryCodes,
 	}
 
-	return &IPCheck{file: file, handle: handle, cache: make(map[string]bool), IPWhitelist: initIPWhitelist(whitelist)}, nil
+	errorMsg := "error NewIpCheck could not open file %s, error: %s, version: %d\n"
+
+	switch version {
+	case GeoIpVersionLegacy:
+		handleV1, err := libgeo.Load(file)
+		if err != nil {
+			log.Errorf(errorMsg, file, err, version)
+			return nil, err
+		}
+		ipc.handleV1 = handleV1
+		return ipc, nil
+	case GeoIpVersion2:
+		handleV2, err := geoIp2.Open(file)
+		if err != nil {
+			fmt.Printf(errorMsg, file, err, version)
+			pth, err := os.Getwd()
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println(pth)
+			return nil, err
+		}
+		ipc.handleV2 = handleV2
+		return ipc, nil
+	default:
+		return nil, fmt.Errorf("error NewIpCheck unknown geo ip version %d\n", version)
+	}
 }
 
 // Check checks if IP is from specified area
@@ -99,9 +141,31 @@ func (g *IPCheck) Check(ip string) (ret bool) {
 		return true
 	}
 
-	loc := g.handle.GetLocationByIP(ip)
-	if loc != nil {
-		val := loc.CountryCode == "HR"
+	var cc string
+
+	switch {
+	case g.handleV1 != nil:
+		location := g.handleV1.GetLocationByIP(ip)
+		if location != nil {
+			cc = location.CountryCode
+		}
+	case g.handleV2 != nil:
+		i := net.ParseIP(ip)
+		c, err :=g.handleV2.Country(i)
+
+		if err != nil {
+			log.Printf("error geo.Check on IP %s failed with error: %s", ip, err)
+			return false
+		}
+
+		cc = c.Country.IsoCode
+	default:
+		log.Printf("geo ip handle not set")
+		return false
+	}
+
+	if cc != "" {
+		val := contains(g.allowedCountryCodes, cc)
 		g.Lock()
 		defer g.Unlock()
 		g.cache[ip] = val
@@ -146,7 +210,50 @@ func isLocalAddress(ip string) bool {
 	return false
 }
 
-func getGeoIPFile(url, savePath string) error {
+func untarGeoIp2File(savePath string, r io.Reader) (int64, error) {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return 0, err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	foundDb := false
+	for {
+		header, err := tr.Next()
+		switch {
+		case err == io.EOF && !foundDb:
+			return 0, fmt.Errorf("Database file not found in archive.")
+		case err == io.EOF:
+			return 0, nil
+		case err != nil:
+			return 0, err
+		case header == nil:
+			continue
+		}
+
+		if header.Typeflag != tar.TypeReg || !strings.Contains(header.Name, ".mmdb") {
+			continue
+		}
+
+		foundDb = true
+
+		f, err := os.OpenFile(savePath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+		if err != nil {
+			return 0, err
+		}
+		n, err := io.Copy(f, tr)
+		if err != nil {
+			return 0, err
+		}
+		f.Close()
+
+		return n, nil
+	}
+}
+
+func getGeoIPFile(url, savePath string, version uint8) error {
 	dir := filepath.Dir(savePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
@@ -160,6 +267,14 @@ func getGeoIPFile(url, savePath string) error {
 	if err != nil {
 		log.Errorf("unable to parse modification time of GeoIP database")
 		lastModified = time.Now()
+	}
+	if version == GeoIpVersion2 {
+		wn, err := untarGeoIp2File(savePath, res.Body)
+		if err != nil {
+			return err
+		}
+		log.Info("written %d bytes to %s", wn, savePath)
+		return nil
 	}
 	gzReader, err := gzip.NewReader(res.Body)
 	if err != nil {
@@ -214,22 +329,23 @@ func initIPWhitelist(whitelist []string) []*net.IPNet {
 }
 
 // Maintain keeps track of ip database and downloads new version when available
-func Maintain(savePath string) {
-	url := GeoIPURL
+func Maintain(savePath string, version uint8, licenseKey string, allowedCountryCodes []string) {
+	url := versionUrl[version]
+	url = strings.Replace(url, "LICENSE_KEY", licenseKey, 1)
 	interval := GeoIPCheckInterval
 	mt := func() time.Time {
 		for {
 			mt, err := checkGeoIPFile(savePath)
 			if err != nil {
 				log.Error(err)
-				if err := getGeoIPFile(url, savePath); err != nil {
+				if err := getGeoIPFile(url, savePath, version); err != nil {
 					log.Errorf("error getting GeoIP file: %v", err)
 					time.Sleep(GetFileRetryIntervalSeconds * time.Second)
 				}
 			} else {
-				Init(savePath)
+				Init(savePath, version, allowedCountryCodes)
 				if geoIPCheck == nil {
-					if err := getGeoIPFile(url, savePath); err != nil {
+					if err := getGeoIPFile(url, savePath, version); err != nil {
 						log.Errorf("error getting GeoIP file: %v", err)
 						time.Sleep(GetFileRetryIntervalSeconds * time.Second)
 					}
@@ -242,7 +358,7 @@ func Maintain(savePath string) {
 
 	for {
 		time.Sleep(interval)
-		if err := getGeoIPFile(url, savePath); err != nil {
+		if err := getGeoIPFile(url, savePath, version); err != nil {
 			log.Errorf("error getting GeoIP file: %v", err)
 		} else {
 			newMt, err := checkGeoIPFile(savePath)
@@ -252,11 +368,20 @@ func Maintain(savePath string) {
 				log.Info("curent geo ip: %v, new geo ip: %v", mt, newMt)
 				if newMt.After(mt) {
 					log.Info("loading geo ip")
-					Init(savePath)
+					Init(savePath, version, allowedCountryCodes)
 					mt = *newMt
 				}
 			}
 		}
 	}
 
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
