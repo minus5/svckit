@@ -15,7 +15,6 @@ require (
 	github.com/gobwas/httphead v0.1.0
 	github.com/gobwas/ws v1.1.0
 	github.com/google/btree v1.0.0 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/consul v1.4.4
@@ -48,11 +47,10 @@ require (
 	github.com/smira/go-statsd v1.2.1
 	github.com/stretchr/testify v1.7.1
 	github.com/urfave/negroni v1.0.0
-	github.com/xdg/stringprep v1.0.0 // indirect
 	github.com/yudai/gojsondiff v1.0.0
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
-	go.mongodb.org/mongo-driver v1.3.2
+	go.mongodb.org/mongo-driver v1.5.1
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
