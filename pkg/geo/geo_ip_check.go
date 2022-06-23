@@ -23,7 +23,6 @@ const (
 	GetFileRetryIntervalSeconds = 30
 	GeoIpUrlLegacy           	= "http://updates.maxmind.com/app/update?license_key=LICENSE_KEY"
 	GeoIp2Url					= "https://download.maxmind.com/app/geoip_download?edition_id=GeoIP2-Country&license_key=LICENSE_KEY&suffix=tar.gz"
-	GeoIPCheckInterval          = 12 * 60 * time.Minute
 )
 
 const (
@@ -101,12 +100,7 @@ func NewIPCheck(file string, whitelist []string, version uint8, allowedCountryCo
 	case GeoIpVersion2:
 		handleV2, err := geoIp2.Open(file)
 		if err != nil {
-			fmt.Printf(errorMsg, file, err, version)
-			pth, err := os.Getwd()
-			if err != nil {
-				fmt.Println(err)
-			}
-			fmt.Println(pth)
+			log.Errorf(errorMsg, file, err, version)
 			return nil, err
 		}
 		ipc.handleV2 = handleV2
@@ -120,7 +114,7 @@ func NewIPCheck(file string, whitelist []string, version uint8, allowedCountryCo
 func (g *IPCheck) Check(ip string) (ret bool) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("error geo.Check failed: %v", r)
+			log.Errorf("error geo.Check failed: %v", r)
 			ret = true
 		}
 	}()
@@ -151,17 +145,23 @@ func (g *IPCheck) Check(ip string) (ret bool) {
 		}
 	case g.handleV2 != nil:
 		i := net.ParseIP(ip)
-		c, err :=g.handleV2.Country(i)
+
+		if i == nil {
+			log.Errorf("error parsing IP address: %s", ip)
+			return false
+		}
+
+		c, err := g.handleV2.Country(i)
 
 		if err != nil {
-			log.Printf("error geo.Check on IP %s failed with error: %s", ip, err)
-			return false
+			log.Errorf("error geo.Check on IP %s failed with error: %s", ip, err)
+			return true
 		}
 
 		cc = c.Country.IsoCode
 	default:
-		log.Printf("geo ip handle not set")
-		return false
+		log.Errorf("geo ip handle not set")
+		return true
 	}
 
 	if cc != "" {
@@ -171,7 +171,7 @@ func (g *IPCheck) Check(ip string) (ret bool) {
 		g.cache[ip] = val
 		return val
 	}
-	log.Printf("warn ip %s not found in database", ip)
+	log.Errorf("warn ip %s not found in database", ip)
 	return false
 }
 
@@ -190,7 +190,7 @@ func IpOk(ip string) bool {
 	lock.RLock()
 	defer lock.RUnlock()
 	if geoIPCheck == nil {
-		log.Printf("WARN geo ip check not activated")
+		log.Info("WARN geo ip check not activated")
 		return true
 	}
 	return geoIPCheck.Check(ip)
@@ -253,7 +253,24 @@ func untarGeoIp2File(savePath string, r io.Reader) (int64, error) {
 	}
 }
 
+func checkGeoIPSourceUpdateTime(url string) (*time.Time, error) {
+	res, err := http.Head(url)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	lastModified, err := time.Parse(time.RFC1123, res.Header.Get("Last-Modified"))
+
+	return &lastModified, err
+}
+
 func getGeoIPFile(url, savePath string, version uint8) error {
+	if version != GeoIpVersion2 {
+		return fmt.Errorf("database download only available for version %d", GeoIpVersion2)
+	}
 	dir := filepath.Dir(savePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
@@ -263,43 +280,31 @@ func getGeoIPFile(url, savePath string, version uint8) error {
 		return err
 	}
 	defer res.Body.Close()
-	lastModified, err := time.Parse(time.RFC1123, res.Header.Get("Last-Modified"))
-	if err != nil {
-		log.Errorf("unable to parse modification time of GeoIP database")
-		lastModified = time.Now()
-	}
-	if version == GeoIpVersion2 {
-		wn, err := untarGeoIp2File(savePath, res.Body)
-		if err != nil {
-			return err
-		}
-		log.Info("written %d bytes to %s", wn, savePath)
-		return nil
-	}
-	gzReader, err := gzip.NewReader(res.Body)
+
+	tempPath := savePath + ".temp"
+	wn, err := untarGeoIp2File(tempPath, res.Body)
 	if err != nil {
 		return err
 	}
-	defer gzReader.Close()
-	out, err := os.Create(savePath)
-	if err != nil {
+	if geoIPCheck != nil && geoIPCheck.handleV2 != nil {
+		geoIPCheck.handleV2.Close()
+		geoIPCheck.handleV2 = nil
+	}
+	if err := os.Remove(savePath); err != nil {
 		return err
 	}
-	defer out.Close()
-	n, err := io.Copy(out, gzReader)
-	if err != nil {
+	if err := os.Rename(tempPath, savePath); err != nil {
 		return err
 	}
-	log.Info("written %d bytes to %s", n, savePath)
-	out.Close()
-	if err := os.Chtimes(savePath, time.Now(), lastModified); err != nil {
+	if err := os.Chtimes(savePath, time.Now(), time.Now()); err != nil {
 		return err
 	}
+	log.Info("written %d bytes to %s", wn, savePath)
 	return nil
 }
 
 func checkGeoIPFile(path string) (*time.Time, error) {
-	log.Printf("checking geo ip at %s", path)
+	log.Info("checking geo ip at %s", path)
 	fi, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -329,10 +334,9 @@ func initIPWhitelist(whitelist []string) []*net.IPNet {
 }
 
 // Maintain keeps track of ip database and downloads new version when available
-func Maintain(savePath string, version uint8, licenseKey string, allowedCountryCodes []string) {
+func Maintain(savePath string, version uint8, licenseKey string, allowedCountryCodes []string, updateRule func(lastUpdate time.Time) bool) {
 	url := versionUrl[version]
 	url = strings.Replace(url, "LICENSE_KEY", licenseKey, 1)
-	interval := GeoIPCheckInterval
 	mt := func() time.Time {
 		for {
 			mt, err := checkGeoIPFile(savePath)
@@ -357,15 +361,36 @@ func Maintain(savePath string, version uint8, licenseKey string, allowedCountryC
 	}()
 
 	for {
-		time.Sleep(interval)
+		time.Sleep(time.Minute)
+
+		if !updateRule(mt) {
+			continue
+		}
+
+		ut, err := checkGeoIPSourceUpdateTime(url)
+
+		if err != nil {
+			log.Errorf("error checking GeoIP source update time: %v", err)
+			continue
+		}
+
+		log.Info("source update time is: %s", ut.Format(time.RFC1123))
+		log.Info("current database was updated at: %s", mt.Format(time.RFC1123))
+
+		if ut.Before(mt) {
+			log.Info("skipping database version update because latest database is downloaded")
+			continue
+		}
+
 		if err := getGeoIPFile(url, savePath, version); err != nil {
 			log.Errorf("error getting GeoIP file: %v", err)
+			mt = time.Now() // consider updated, skip until next version/day
 		} else {
 			newMt, err := checkGeoIPFile(savePath)
 			if err != nil {
 				log.Errorf("error: %v", err)
 			} else {
-				log.Info("curent geo ip: %v, new geo ip: %v", mt, newMt)
+				log.Info("previous geo ip: %v, new geo ip: %v", mt, newMt)
 				if newMt.After(mt) {
 					log.Info("loading geo ip")
 					Init(savePath, version, allowedCountryCodes)

@@ -74,17 +74,6 @@ func TestGeoIsLocalAddress(t *testing.T) {
 	assert.False(t, isLocalAddress("212.92.207.181"))
 }
 
-func TestGetGeoIPFile(t *testing.T) {
-	fi, err := os.Stat(TestGeoIPFile + ".gz")
-	assert.Nil(t, err)
-	http.HandleFunc("/geoip", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Last-Modified", fi.ModTime().Format(time.RFC1123))
-		http.ServeFile(w, r, TestGeoIPFile+".gz")
-	})
-	go http.ListenAndServe(":12534", nil)
-	assert.Nil(t, getGeoIPFile("http://localhost:12534/geoip", TestGeoIPFile, GeoIpVersionLegacy))
-}
-
 func TestGetGeoIP2File(t *testing.T) {
 	fi, err := os.Stat(TestGeoIP2OriginalFile)
 	assert.Nil(t, err)
