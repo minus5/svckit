@@ -103,4 +103,7 @@ const (
 	PortPGWPaysafe       = "8940"
 	PortPGWKeksPay       = "8950"
 	PortLoyalty          = "8960"
+	PortCommunityApi     = "8970"
+	PortCommunityApiWs   = "8971"
+	PortCommunityApiRest = "8972"
 )
