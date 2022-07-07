@@ -102,4 +102,5 @@ const (
 	PortRetail           = "8921"
 	PortPGWPaysafe       = "8940"
 	PortPGWKeksPay       = "8950"
+	PortLoyalty          = "8960"
 )
