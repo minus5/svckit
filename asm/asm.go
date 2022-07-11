@@ -4,10 +4,11 @@ package asm
 
 import (
 	"encoding/json"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"os"
 )
 
 const (
@@ -27,8 +28,16 @@ func init() {
 }
 
 func ParseKV(secretName string, v interface{}) error {
+	ss, err := GetSecretString(secretName)
+	if err != nil || ss == "" {
+		return err
+	}
+	return json.Unmarshal([]byte(ss), v)
+}
+
+func GetSecretString(secretName string) (string, error) {
 	if !asmEnabled {
-		return nil
+		return "", nil
 	}
 	// go-aws-sdk procita sve iz enva osim regije
 	// opcija je da u env za svaki servis stavim AWS_REGION=eu-central-1
@@ -36,7 +45,7 @@ func ParseKV(secretName string, v interface{}) error {
 	region := "eu-central-1"
 	sess, err := session.NewSession()
 	if err != nil {
-		return err
+		return "", err
 	}
 	svc := secretsmanager.New(sess,
 		aws.NewConfig().WithRegion(region))
@@ -46,10 +55,10 @@ func ParseKV(secretName string, v interface{}) error {
 	}
 	result, err := svc.GetSecretValue(input)
 	if err != nil {
-		return nil
+		return "", err
 	}
 	if result.SecretString == nil {
-		return nil
+		return "", nil
 	}
-	return json.Unmarshal([]byte(*result.SecretString), v)
+	return *result.SecretString, nil
 }
