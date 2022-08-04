@@ -101,7 +101,6 @@ const (
 	PortSlipsDBI         = "8920"
 	PortRetail           = "8921"
 	PortPGWPaysafe       = "8940"
-	PortPGWKeksPay       = "8950"
 	PortLoyalty          = "8960"
 	PortCommunityApi     = "8970"
 	PortCommunityApiWs   = "8971"
