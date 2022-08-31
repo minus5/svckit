@@ -19,6 +19,10 @@ type PushNotSubscribe struct {
 		Aktivan bool `json:"aktivan"`
 		// Tip uredjaja za primanje push notifikacija, 0 - Android, 1 - iOS, 2 - web
 		DeviceType int `json:"device_type"`
+		// Firebase project ID
+		FbProjectId string `json:"fb_project_id"`
+		//app version
+		Version string `json:"verzija"`
 	} `json:"uredjaj"`
 	// Notifikacije na koje se igrac pretplacuje
 	Pretplate struct {
