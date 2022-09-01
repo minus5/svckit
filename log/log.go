@@ -93,6 +93,11 @@ func DisableDebug() {
 	debugLogLevelEnabled = false
 }
 
+// EnableDebug do log Debug messages
+func EnableDebug() {
+	debugLogLevelEnabled = true
+}
+
 func setSyslogOutput(addr string) {
 	sys, err := syslog.Dial("udp", addr, syslog.LOG_LOCAL5, env.AppName())
 	if err != nil {
