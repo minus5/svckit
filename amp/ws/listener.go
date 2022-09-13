@@ -128,7 +128,8 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			switch key {
 			case "user-agent":
 				cc.userAgent = value
-				if strings.Contains(value, "OS 15") || strings.Contains(value, "Mac OS X 10_15") {
+				// na iOS 15, 16, ... ne radi vise web kompresija
+				if strings.Contains(value, "OS 1") || strings.Contains(value, "Mac OS X 10_1") {
 					cc.deflateSupported = false
 				}
 			case "x-forwarded-for":
