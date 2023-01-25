@@ -37,7 +37,7 @@ func main() {
 	requester := nsq.MustRequester(interupt)
 	broker := broker.New(requester.Current, nil)
 	broker.Consume(nsq.Subscribe(interupt, inputTopics))
-	sessions := session.Factory(interupt, broker, requester)
+	sessions := session.Factory(interupt, broker, requester, inputTopics)
 	defer sessions.Wait()
 
 	go debugHTTP()

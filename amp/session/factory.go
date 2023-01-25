@@ -72,16 +72,20 @@ type Sessions struct {
 	wg                 sync.WaitGroup
 	wsConnections      counter
 	poolingConnections counter
+	// topicWhitelist is a list of topics that clients can send requests to.
+	// Empty value means block all.
+	topicWhitelist []string
 }
 
-// Factory creates new seessions factory.
-func Factory(ctx context.Context, broker broker, requester requester) *Sessions {
+// Factory creates new Sessions factory.
+func Factory(ctx context.Context, broker broker, requester requester, topicWhitelist []string) *Sessions {
 	cancelSig, cancelSessions := context.WithCancel(context.Background())
 	s := &Sessions{
-		broker:    broker,
-		requester: requester,
-		cancelSig: cancelSig,
-		closed:    make(chan struct{}),
+		broker:         broker,
+		requester:      requester,
+		cancelSig:      cancelSig,
+		closed:         make(chan struct{}),
+		topicWhitelist: topicWhitelist,
 	}
 
 	go s.waitDone(ctx, cancelSessions)
@@ -93,7 +97,7 @@ func Factory(ctx context.Context, broker broker, requester requester) *Sessions 
 func (s *Sessions) Serve(conn connection) {
 	s.wg.Add(1)
 	s.wsConnections.Up()
-	serve(s.cancelSig, conn, s.requester, s.broker, amp.CompatibilityVersionDefault)
+	serve(s.cancelSig, conn, s.requester, s.broker, s.topicWhitelist, amp.CompatibilityVersionDefault)
 	s.wg.Done()
 	s.wsConnections.Down()
 }
@@ -103,7 +107,7 @@ func (s *Sessions) Serve(conn connection) {
 func (s *Sessions) ServeV1(conn connection) {
 	s.wg.Add(1)
 	s.wsConnections.Up()
-	serve(s.cancelSig, conn, s.requester, s.broker, amp.CompatibilityVersion1)
+	serve(s.cancelSig, conn, s.requester, s.broker, s.topicWhitelist, amp.CompatibilityVersion1)
 	s.wg.Done()
 	s.wsConnections.Down()
 }

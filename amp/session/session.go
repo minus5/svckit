@@ -28,6 +28,7 @@ type session struct {
 		aliveMessages int
 		maxQueueLen   int
 	}
+	topicWhitelist       []string
 	compatibilityVersion uint8
 	overflow             chan struct{}
 	overflowRead         chan struct{}
@@ -35,10 +36,17 @@ type session struct {
 
 // serve starts new session
 // Blocks until session is finished.
-func serve(cancelSig context.Context, conn connection, req requester, brk broker,
-	compatibilityVersion uint8) {
+func serve(
+	cancelSig context.Context,
+	conn connection,
+	req requester,
+	brk broker,
+	topicWhitelist []string,
+	compatibilityVersion uint8,
+) {
 	overflow := make(chan struct{}, 1)
 	s := &session{
+		topicWhitelist:       topicWhitelist,
 		conn:                 conn,
 		requester:            req,
 		broker:               brk,
@@ -137,10 +145,15 @@ func (s *session) receive(m *amp.Msg) {
 	case amp.Ping:
 		s.Send(m.Pong())
 	case amp.Request:
-		// TODO what URI-a are ok, make filter
+		if !s.isMessageTopicWhitelisted(m) {
+			return
+		}
+
 		m.Meta = s.conn.Meta()
+
 		s.requester.Send(s, m)
 	case amp.Subscribe:
+
 		s.broker.Subscribe(s, m.Subscriptions)
 	case amp.Meta:
 		s.conn.SetMeta(m.Meta)
@@ -205,4 +218,14 @@ func (s *session) connClose() {
 
 func (s *session) Meta() map[string]string {
 	return s.conn.Meta()
+}
+
+func (s *session) isMessageTopicWhitelisted(msg *amp.Msg) bool {
+	for _, topic := range s.topicWhitelist {
+		if topic == msg.Topic() {
+			return true
+		}
+	}
+
+	return false
 }
