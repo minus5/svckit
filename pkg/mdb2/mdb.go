@@ -5,14 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/minus5/svckit/asm"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"reflect"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/minus5/svckit/asm"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/env"
@@ -364,8 +365,18 @@ func (mdb *Mdb) ResetIndexCache() {
 	// probably not needed but leaving for backward compatibility for now
 }
 
-// EnsureIndex creates index if it doesn't already exist
+// EnsureIndex creates sparse index if it doesn't already exist
+// NOTE: the index created will be sparse. If you need basic index see EnsureNonSparseIndex
 func (mdb *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) error {
+	return mdb.ensureIndex(col, key, expireAfter, true)
+}
+
+// EnsureNonSparseIndex creates non-sparse index if it doesn't already exist
+func (mdb *Mdb) EnsureNonSparseIndex(col string, key []string, expireAfter time.Duration) error {
+	return mdb.ensureIndex(col, key, expireAfter, false)
+}
+
+func (mdb *Mdb) ensureIndex(col string, key []string, expireAfter time.Duration, sparse bool) error {
 	c := mdb.db.Collection(col)
 	parsedKeys, err := parseIndexKey(key)
 	if err != nil {
@@ -375,7 +386,7 @@ func (mdb *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration)
 	index.Keys = parsedKeys.key
 	options := options.Index().
 		SetBackground(true).
-		SetSparse(true).
+		SetSparse(sparse).
 		SetName(parsedKeys.name)
 	if expireAfter > 0 {
 		options.SetExpireAfterSeconds(int32(expireAfter / time.Second))
