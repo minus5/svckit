@@ -80,6 +80,9 @@ func (s *Broker) Replay(name string) []*amp.Msg {
 	return msgs
 }
 
+// Created method is required to satisfy sessions.broker interface
+func (s *Broker) Created(c amp.Sender) {}
+
 // Subscribe consumer to topics defined c.Topics()
 // amp.Sender should call this on each change ih his Topics list.
 func (s *Broker) Subscribe(c amp.Sender, newNames map[string]int64) {

@@ -40,6 +40,7 @@ type Backend struct {
 	Type              string `json:"type,omitempty"`
 	Id                string `json:"id,omitempty"`
 	IgracId           string `json:"igrac_id,omitempty"`
+	AccountType       int    `json:"account_type,omitempty"`
 	No                int    `json:"no,omitempty"`
 	From              string `json:"from,omitempty"`
 	To                string `json:"to,omitempty"`
@@ -232,6 +233,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 		DocAction   string `json:"doc_action"`
 		Action      string `json:"action"`
 		IgracId     string `json:"igrac_id"`
+		AccountType int    `json:"account_type"`
 		From        string `json:"from"`
 		To          string `json:"to"`
 		Ts          int    `json:"ts"`
@@ -283,6 +285,7 @@ func parseHeader(rawHeader []byte) (*Backend, error) {
 	return &Backend{
 		Type:              header.Type,
 		IgracId:           header.IgracId,
+		AccountType:       header.AccountType,
 		Id:                header.Id,
 		No:                header.No,
 		IsDel:             header.DocAction == "del" || header.Action == "del" || header.IsDel || header.Obrisan,

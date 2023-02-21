@@ -35,6 +35,8 @@ func (c *mockConn) DeflateSupported() bool     { return false }
 func (c *mockConn) Headers() map[string]string { return nil }
 func (c *mockConn) No() uint64                 { return 0 }
 func (c *mockConn) Meta() map[string]string    { return nil }
+func (c *mockConn) GetRemoteIp() string        { return "" }
+func (c *mockConn) GetCookie() string          { return "" }
 func (c *mockConn) Close() error {
 	close(c.in)
 	return nil
@@ -45,6 +47,7 @@ type mockBroker struct{}
 
 func (b *mockBroker) Subscribe(amp.Sender, map[string]int64) {}
 func (b *mockBroker) Unsubscribe(amp.Sender)                 {}
+func (b *mockBroker) Created(amp.Sender)                     {}
 func (b *mockBroker) Wait()                                  {}
 
 type mockRequester struct {

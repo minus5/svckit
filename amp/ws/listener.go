@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -137,11 +136,8 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 					cc.forwardedFor += " "
 				}
 				cc.forwardedFor += value
-			// case "cookie":
-			// 	cc.cookies = parseCookies(value)
-			// 	for k, v := range cc.cookies {
-			// 		log.S("key", k).S("value", v).Debug("cookie")
-			// 	}
+			case "cookie":
+				cc.cookie = value
 			default:
 				log.S("key", key).S("value", value).Debug("header")
 			}
@@ -163,20 +159,4 @@ func parseQueryString(uri []byte) map[string]string {
 		qs[k] = strings.Join(v, ",")
 	}
 	return qs
-}
-
-func parseCookies(rawCookies string) map[string]string {
-	if rawCookies == "" {
-		return nil
-	}
-	header := http.Header{}
-	header.Add("Cookie", rawCookies)
-	request := http.Request{
-		Header: header,
-	}
-	cookies := make(map[string]string)
-	for _, c := range request.Cookies() {
-		cookies[c.Name] = c.Value
-	}
-	return cookies
 }

@@ -28,6 +28,7 @@ type connCap struct {
 	userAgent        string
 	forwardedFor     string
 	meta             map[string]string
+	cookie           string
 }
 
 var (
@@ -150,6 +151,14 @@ func (c *Conn) SetMeta(m map[string]string) {
 	for k, v := range m {
 		c.cap.meta[k] = v
 	}
+}
+
+func (c *Conn) GetRemoteIp() string {
+	return c.cap.forwardedFor
+}
+
+func (c *Conn) GetCookie() string {
+	return c.cap.cookie
 }
 
 // undeflate uncomresses websocket payload

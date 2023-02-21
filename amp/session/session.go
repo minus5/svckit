@@ -60,6 +60,7 @@ func serve(
 }
 
 func (s *session) loop(cancelSig context.Context) {
+	s.broker.Created(s)
 	inMessages := s.readLoop()  // messages from the client
 	exitSig := cancelSig.Done() // aplication exit signal
 
@@ -148,12 +149,9 @@ func (s *session) receive(m *amp.Msg) {
 		if !s.isMessageTopicWhitelisted(m) {
 			return
 		}
-
 		m.Meta = s.conn.Meta()
-
 		s.requester.Send(s, m)
 	case amp.Subscribe:
-
 		s.broker.Subscribe(s, m.Subscriptions)
 	case amp.Meta:
 		s.conn.SetMeta(m.Meta)
@@ -218,6 +216,14 @@ func (s *session) connClose() {
 
 func (s *session) Meta() map[string]string {
 	return s.conn.Meta()
+}
+
+func (s *session) GetRemoteIp() string {
+	return s.conn.GetRemoteIp()
+}
+
+func (s *session) GetCookie() string {
+	return s.conn.GetCookie()
 }
 
 func (s *session) isMessageTopicWhitelisted(msg *amp.Msg) bool {

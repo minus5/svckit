@@ -15,6 +15,7 @@ type requester interface {
 }
 
 type broker interface {
+	Created(sender amp.Sender)
 	Subscribe(amp.Sender, map[string]int64) // subscribe to the topics
 	Unsubscribe(amp.Sender)                 // unsubscribe from all topics
 	Wait()                                  // wait for clean exit
@@ -29,6 +30,8 @@ type connection interface {
 	Close() error                              // close connection
 	Meta() map[string]string                   // session metadata, set by the client
 	SetMeta(map[string]string)                 // set session metadata
+	GetRemoteIp() string
+	GetCookie() string
 }
 
 type counter struct {
