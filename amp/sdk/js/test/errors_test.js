@@ -11,14 +11,6 @@ describe('errors', function() {
     assert(!e.isApplication);
   });
 
-  it('should create pooling error message', function() {
-    let str = "code: 503, service unavaiable";
-    let e = errors.pooling(503, "service unavaiable");
-    assert.equal(str, e.message);
-    assert(e.isTransport);
-    assert(!e.isApplication);
-  });
-
   it('should create server side error message', function() {
     let str = "something happened";
     let msg = {error: {message: str}};

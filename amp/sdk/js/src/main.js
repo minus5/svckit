@@ -124,9 +124,9 @@ module.exports = function(config) {
   }
 
   function subscribe(msg) {
-    if (!transport.ready) {
-      return;
-    }
+    // if (!transport.ready) {
+    //   return;
+    // }
     msg = msg || sub.message();
     send(msg, failHandlers.ignore);
   }

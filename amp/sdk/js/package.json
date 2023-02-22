@@ -3,7 +3,7 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "",
   "main": "lib/main.js",
   "scripts": {
@@ -13,12 +13,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "nanoajax": "^0.4.3"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.3",
     "@babel/core": "^7.6.3",
-    "@babel/preset-env": "^7.6.3"
+    "@babel/preset-env": "^7.6.3",
+    "babel-cli": "^6.26.0"
   },
   "repository": "ssh://git@github.com:minus5/svckit.git"
 }
