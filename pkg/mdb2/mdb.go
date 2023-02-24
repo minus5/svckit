@@ -366,17 +366,27 @@ func (mdb *Mdb) ResetIndexCache() {
 }
 
 // EnsureIndex creates sparse index if it doesn't already exist
-// NOTE: the index created will be sparse. If you need basic index see EnsureNonSparseIndex
+// The index will by default be sparse and built in background
 func (mdb *Mdb) EnsureIndex(col string, key []string, expireAfter time.Duration) error {
-	return mdb.ensureIndex(col, key, expireAfter, true)
+	opts := options.Index().
+		SetBackground(true).
+		SetSparse(true)
+	if expireAfter > 0 {
+		opts.SetExpireAfterSeconds(int32(expireAfter / time.Second))
+	}
+
+	return mdb.ensureIndex(col, key, opts)
 }
 
-// EnsureNonSparseIndex creates non-sparse index if it doesn't already exist
-func (mdb *Mdb) EnsureNonSparseIndex(col string, key []string, expireAfter time.Duration) error {
-	return mdb.ensureIndex(col, key, expireAfter, false)
+// EnsureCustomIndex creates index with the specified options if it doesn't already exist
+// NOTE: IndexOptions#Name will always be overridden to obey legacy naming system derived from key values
+func (mdb *Mdb) EnsureCustomIndex(col string, key []string, options *options.IndexOptions) error {
+	return mdb.ensureIndex(col, key, options)
 }
 
-func (mdb *Mdb) ensureIndex(col string, key []string, expireAfter time.Duration, sparse bool) error {
+// ensureIndex ensures index exist. Uses legacy key parsing for backward compatibility meaning that
+// name is automatically set from the key values
+func (mdb *Mdb) ensureIndex(col string, key []string, indexOptions *options.IndexOptions) error {
 	c := mdb.db.Collection(col)
 	parsedKeys, err := parseIndexKey(key)
 	if err != nil {
@@ -384,14 +394,8 @@ func (mdb *Mdb) ensureIndex(col string, key []string, expireAfter time.Duration,
 	}
 	index := mongo.IndexModel{}
 	index.Keys = parsedKeys.key
-	options := options.Index().
-		SetBackground(true).
-		SetSparse(sparse).
-		SetName(parsedKeys.name)
-	if expireAfter > 0 {
-		options.SetExpireAfterSeconds(int32(expireAfter / time.Second))
-	}
-	index.Options = options
+	index.Options = indexOptions.SetName(parsedKeys.name)
+
 	_, err = c.Indexes().CreateOne(context.Background(), index)
 	return err
 }
