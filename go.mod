@@ -28,7 +28,7 @@ require (
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
-	github.com/miekg/dns v1.1.6 // indirect
+	github.com/miekg/dns v1.1.25 // indirect
 	github.com/minus5/go-simplejson v0.5.1-0.20190518182223-8af509724a86
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
