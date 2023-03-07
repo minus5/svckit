@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/minus5/svckit/log"
+	"github.com/minus5/svckit/pkg/testu2/mongo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +22,35 @@ type obj struct {
 
 type obj2 struct {
 	Id interface{} `bson:"_id"`
+}
+
+type db2 struct {
+	Mdb
+}
+
+const (
+	testDbName         = "test_mdb"
+	testCollectionName = "col"
+	testTopic          = "test.topic"
+)
+
+var mongoSrv *mongo.Mongo
+var db *db2
+
+func TestMain(m *testing.M) {
+	// starts test mongo server
+	mongoSrv = mongo.New()
+	log.SetOutput(ioutil.Discard)
+
+	os.Exit(m.Run())
+}
+
+func setup(t *testing.T) {
+	db = &db2{}
+	if err := db.Init(DefaultConnStr(), MajoritySafe(), Name(testDbName)); err != nil {
+		log.Fatalf("failed to open connection: %s", err)
+		return
+	}
 }
 
 var testCacheDir = "./tmp/cacheDir"
@@ -110,4 +142,27 @@ func _id(o interface{}) interface{} {
 			typeOfT.Field(i).Name, f.Type(), f.Interface(), t, t.Get("bson"))
 	}
 	return nil
+}
+
+func TestMongoSerde(t *testing.T) {
+	setup(t)
+	m := map[string]interface{}{
+		"a": 12345,
+		"b": map[string]interface{}{
+			"i":   12345678901235,
+			"i64": int64(12345678901235),
+			"i32": int32(1234567),
+		},
+		"c": 12345678901234,
+	}
+	db.SaveId(testCollectionName, 2513, m)
+
+	var res map[string]interface{}
+	db.ReadId(testCollectionName, 2513, &res)
+
+	assert.Equal(t, m["a"], res["a"])
+	assert.Equal(t, int64(m["b"].(map[string]interface{})["i"].(int)), res["b"].(map[string]interface{})["i"])
+	assert.Equal(t, m["b"].(map[string]interface{})["i64"].(int64), res["b"].(map[string]interface{})["i64"])
+	assert.Equal(t, int(m["b"].(map[string]interface{})["i32"].(int32)), res["b"].(map[string]interface{})["i32"])
+	assert.Equal(t, int64(m["c"].(int)), res["c"])
 }
