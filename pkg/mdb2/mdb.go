@@ -194,7 +194,12 @@ func (mdb *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 	// this code matches mgo behavior and allows to decode interface{} as JSON
 	// https://jira.mongodb.org/browse/GODRIVER-988
 	tM := reflect.TypeOf(bson.M{})
-	reg := bson.NewRegistryBuilder().RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM).Build()
+	reg := bson.NewRegistryBuilder().RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM).
+		// Read int32 as int (when deserializing into interface{}) for backward compatibility
+		RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0))).
+		// Read bson.Array as []interface{} for backward compatibility
+		RegisterTypeMapEntry(bsontype.Array, reflect.TypeOf([]interface{}{})).
+		Build()
 	mdb.clientOptions.SetRegistry(reg)
 
 	mdb.checkPointIn = time.Minute
