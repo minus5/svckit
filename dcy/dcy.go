@@ -164,6 +164,7 @@ func noConsulTestMode() {
 	domain = "sd"
 	dc = "dev"
 	nodeName = "node01"
+	federatedDcs = []string{dc}
 	cache["test1"] = []Address{
 		{"127.0.0.1", 12345},
 		{"127.0.0.1", 12348},
@@ -187,6 +188,11 @@ func noConsulTestMode() {
 	}
 	cache["nsqlookupd-http"] = []Address{
 		{"127.0.0.1", 4161},
+	}
+
+	// add federated service notation to cache for all existing services - {service-name}-{datacenter}
+	for k, v := range cache {
+		cache[fmt.Sprintf("%s-%s", k, dc)] = v
 	}
 }
 

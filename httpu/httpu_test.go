@@ -27,7 +27,11 @@ func TestNewRequest(t *testing.T) {
 	assert.Equal(t, "http://localhost/", r.URL.String())
 }
 
+// TestNewRequestDcy must be run with the following command: SVCKIT_DCY_CONSUL=- bash -c 'go test -v --run=TestNewRequestDcy'
+// SVCKIT_DCY_CONSUL=- env variable will trigger 'noConsulTestMode' in the init() function of dcy package,
+// while calling go test with bash -c ensures that both env variable setup and test will be run in the same shell process.
 func TestNewRequestDcy(t *testing.T) {
+	t.Skip("requires dcy setup via SVCKIT_DCY_CONSUL=- env variable")
 	r, err := NewRequest("GET", "http://test2.service.sd/foo", nil)
 	if !assert.NoError(t, err) {
 		t.FailNow()
