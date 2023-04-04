@@ -5,7 +5,7 @@ const (
 	TypeAppVersion          = "app_version"
 	TypeMojiListici         = "moji_listici"
 	TypeMojiListiciTip      = "moji_listici_tip"
-	TypeMojiListici2        = "moji_listici2"
+	TypeMojiListiciSeek     = "moji_listici_seek"
 	TypeSync                = "sync"
 	TypeListic              = "listic"
 	TypeDodajListic         = "dodaj_listic"

@@ -20,7 +20,7 @@ type Listici struct {
 	Tip         string `json:"tip"`
 }
 
-type ListiciV2 struct {
+type ListiciSeek struct {
 	VrstaUplate     string `json:"vrsta_uplate"`
 	Tip             string `json:"tip"`
 	Status          int64  `json:"status"`
@@ -51,8 +51,8 @@ func ParseListici(body string, isTestIgrac bool) (*Listici, error) {
 	return l, nil
 }
 
-func ParseListiciV2(body string, isTestIgrac bool) (*ListiciV2, error) {
-	l := &ListiciV2{}
+func ParseListiciSeek(body string, isTestIgrac bool) (*ListiciSeek, error) {
+	l := &ListiciSeek{}
 	if err := json.Unmarshal([]byte(body), l); err != nil {
 		log.Printf("[ERROR] %s while parsing %s", err, body)
 		return nil, err
