@@ -198,6 +198,10 @@ func (p *pooler) Meta() map[string]string {
 	return p.meta
 }
 
+func (p *pooler) Headers() map[string]string {
+	return nil
+}
+
 func (p *pooler) waitOne(app context.Context, interval time.Duration) {
 	select {
 	case <-app.Done():

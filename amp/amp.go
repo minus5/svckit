@@ -76,6 +76,7 @@ type Sender interface {
 	Meta() map[string]string
 	Send(m *Msg)
 	SendMsgs(ms []*Msg)
+	Headers() map[string]string
 }
 
 // BodyMarshaler nesto sto se zna zapakovati

@@ -226,6 +226,10 @@ func (s *session) GetCookie() string {
 	return s.conn.GetCookie()
 }
 
+func (s *session) Headers() map[string]string {
+	return s.conn.Headers()
+}
+
 func (s *session) isMessageTopicWhitelisted(msg *amp.Msg) bool {
 	for _, topic := range s.topicWhitelist {
 		if topic == msg.Topic() {

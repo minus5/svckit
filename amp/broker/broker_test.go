@@ -30,6 +30,10 @@ func (c *testConsumer) Meta() map[string]string {
 	return make(map[string]string)
 }
 
+func (c *testConsumer) Headers() map[string]string {
+	return make(map[string]string)
+}
+
 func TestDvaTopica(t *testing.T) {
 	log.Discard()
 	s := New(nil, nil)

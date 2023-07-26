@@ -84,7 +84,9 @@ func (l *listener) onConn(tc net.Conn) {
 }
 
 func (l *listener) upgrade(tc net.Conn) (connCap, error) {
-	cc := connCap{}
+	cc := connCap{
+		headers: map[string]string{},
+	}
 
 	ug := ws.Upgrader{
 		// podrzava li klijent websocket permessage-deflate
@@ -124,6 +126,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 		OnHeader: func(k, v []byte) error {
 			key := strings.ToLower(string(k))
 			value := string(v)
+			cc.headers[key] = value
 			switch key {
 			case "user-agent":
 				cc.userAgent = value

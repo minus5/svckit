@@ -28,6 +28,7 @@ type connCap struct {
 	userAgent        string
 	forwardedFor     string
 	meta             map[string]string
+	headers          map[string]string
 	cookie           string
 }
 
@@ -58,7 +59,7 @@ func newConn(tc net.Conn, cap connCap) *Conn {
 
 // Headers usefull http headers
 func (c *Conn) Headers() map[string]string {
-	return nil
+	return c.cap.headers
 }
 
 // Write writes payload to the websocket connection.
