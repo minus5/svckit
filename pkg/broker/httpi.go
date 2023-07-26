@@ -57,7 +57,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		return nil
 	}
 
-	sendChan := make(chan *Message, 1024)
+	sendChan := make(chan *Message, 128)
 	go func() {
 		for m := range sendChan {
 			if closing {
@@ -71,8 +71,11 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 	}()
 
 	unsubscribe := func() {
-		closing = true
-		go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
+		if !closing {
+			closing = true
+			close(sendChan)
+			go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
+		}
 	}
 
 	sendToCh := func(m *Message) {
@@ -83,10 +86,10 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 				log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.GetData()).ErrorS("unable to send last message")
 				unsubscribe()
 			}
-
 		}
 	}
 
+	heartbeat := time.Tick(20 * time.Second)
 	for {
 		select {
 		case <-closeCh:
@@ -97,14 +100,19 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 			unsubscribe()
 		case m := <-msgsCh:
 			if m == nil {
-				close(sendChan) //msgsCh closan, nema sto za slati
 				return
+			}
+			if closing {
+				continue
 			}
 			sendToCh(m)
 			if m.Event == "status" && string(m.GetData()) == "done" {
 				unsubscribe()
 			}
-		case <-time.After(20 * time.Second):
+		case <-heartbeat:
+			if closing {
+				continue
+			}
 			sendToCh(NewMessage("heartbeat", []byte(time.Now().Format(time.RFC3339)), nil))
 		}
 	}

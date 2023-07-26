@@ -143,13 +143,12 @@ func (b *Broker) Subscribe() chan *Message {
 }
 
 // Unsubscribe mice subscribera iz liste subscribera ako postoji
+// Zatvara channel neovisno o brisanju subscribera
 func (b *Broker) Unsubscribe(ch chan *Message) {
 	b.Lock()
-	defer b.Unlock()
-	if _, ok := b.subscribers[ch]; ok {
-		delete(b.subscribers, ch)
-		close(ch)
-	}
+	delete(b.subscribers, ch)
+	b.Unlock()
+	close(ch)
 }
 
 func (b *Broker) full(msg *Message) {
