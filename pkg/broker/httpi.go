@@ -18,7 +18,6 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
 		return
 	}
-	closing := false // flag da zaatvaramo konekciju
 	closeCh := w.(http.CloseNotifier).CloseNotify()
 
 	//header-i potrebni za sse
@@ -57,36 +56,8 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		return nil
 	}
 
-	sendChan := make(chan *Message, 128)
-	go func() {
-		for m := range sendChan {
-			if closing {
-				continue
-			}
-			err := send(m.Event, string(m.GetData()))
-			if extraWork != nil {
-				extraWork(m, err)
-			}
-		}
-	}()
-
 	unsubscribe := func() {
-		if !closing {
-			closing = true
-			close(sendChan)
-			go b.Unsubscribe(msgsCh) // zatvara msgsCh nakon unsubscribe-a
-		}
-	}
-
-	sendToCh := func(m *Message) {
-		select {
-		case sendChan <- m:
-		default:
-			if !closing {
-				log.S("client_id", clientID).I("send_len", len(sendChan)).S("event", m.Event).J("data", m.GetData()).ErrorS("unable to send last message")
-				unsubscribe()
-			}
-		}
+		b.Unsubscribe(msgsCh) // Unsubscribe sa brokera i zatvara channel
 	}
 
 	heartbeat := time.Tick(20 * time.Second)
@@ -95,25 +66,30 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		case <-closeCh:
 			log.S("client_id", clientID).Info("Client disconnected")
 			unsubscribe()
+			return
 		case <-closeSignal:
 			log.S("client_id", clientID).Info("Server close")
 			unsubscribe()
+			return
 		case m := <-msgsCh:
 			if m == nil {
+				log.S("client_id", clientID).Info("Broker closed channel")
 				return
 			}
-			if closing {
-				continue
+			err := send(m.Event, string(m.GetData()))
+			if extraWork != nil {
+				extraWork(m, err)
 			}
-			sendToCh(m)
 			if m.Event == "status" && string(m.GetData()) == "done" {
 				unsubscribe()
+				return
 			}
 		case <-heartbeat:
-			if closing {
-				continue
+			m := NewMessage("heartbeat", []byte(time.Now().Format(time.RFC3339)), nil)
+			err := send(m.Event, string(m.GetData()))
+			if extraWork != nil {
+				extraWork(m, err)
 			}
-			sendToCh(NewMessage("heartbeat", []byte(time.Now().Format(time.RFC3339)), nil))
 		}
 	}
 }
