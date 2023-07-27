@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"github.com/minus5/svckit/log"
 	"sync"
 	"time"
 )
@@ -100,8 +101,8 @@ func (b *Broker) State() *Message {
 // activeSubscribers vraca kopiju aktivnih subscribera
 func (b *Broker) activeSubscribers() map[chan *Message]bool {
 	subs := make(map[chan *Message]bool)
-	b.Lock()
-	defer b.Unlock()
+	b.RLock()
+	defer b.RUnlock()
 	for ch, fullSent := range b.subscribers {
 		subs[ch] = fullSent
 	}
@@ -110,10 +111,9 @@ func (b *Broker) activeSubscribers() map[chan *Message]bool {
 
 // removeSubscribers mice sve subscribere sa brokera
 func (b *Broker) removeSubscribers() {
-	subs := b.activeSubscribers()
 	b.removeLock.Lock()
 	defer b.removeLock.Unlock()
-	for ch := range subs {
+	for ch := range b.subscribers {
 		b.Unsubscribe(ch)
 	}
 }
@@ -129,7 +129,8 @@ func (b *Broker) setSubscriber(ch chan *Message, sentFull bool) {
 // - salje full prije nego doda subscribera u listu za primanje diff-ova
 func (b *Broker) Subscribe() chan *Message {
 	// log.S("topic", b.topic).Debug("subscribe")
-	ch := make(chan *Message)
+	ch := make(chan *Message, 128)
+	b.setSubscriber(ch, false)
 	if b.state != nil {
 		go func() {
 			b.removeLock.RLock()
@@ -160,11 +161,18 @@ func (b *Broker) full(msg *Message) {
 }
 
 func (b *Broker) diff(msg *Message) {
-	b.RLock()
-	defer b.RUnlock()
+	b.Lock()
+	defer b.Unlock()
+
 	for c, sentFull := range b.subscribers {
 		if sentFull {
-			c <- msg
+			select {
+			case c <- msg:
+			default:
+				log.I("send_len", len(c)).S("event", msg.Event).J("data", msg.GetData()).ErrorS("unable to send last message")
+				delete(b.subscribers, c)
+				close(c)
+			}
 		}
 	}
 }
