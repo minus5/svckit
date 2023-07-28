@@ -130,7 +130,6 @@ func (b *Broker) setSubscriber(ch chan *Message, sentFull bool) {
 func (b *Broker) Subscribe() chan *Message {
 	// log.S("topic", b.topic).Debug("subscribe")
 	ch := make(chan *Message, 128)
-	b.setSubscriber(ch, false)
 	if b.state != nil {
 		go func() {
 			b.removeLock.RLock()
