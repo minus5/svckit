@@ -26,7 +26,7 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/urfave/negroni v1.0.0
 	github.com/yudai/gojsondiff v1.0.0
-	go.mongodb.org/mongo-driver v1.11.2
+	go.mongodb.org/mongo-driver v1.11.9
 	golang.org/x/net v0.7.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/yaml.v2 v2.4.0
