@@ -142,7 +142,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			case "cookie":
 				cc.cookie = value
 			default:
-				log.S("key", key).S("value", value).Debug("header")
+				cc.headers[key] = value
 			}
 			return nil
 		},
