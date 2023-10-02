@@ -60,7 +60,7 @@ func (l *listener) loop() {
 	for {
 		tc, err := l.ln.Accept() // cekamo na novu tcp konekciju (tc)
 		if err != nil {
-			//log.Debug("listener end")
+			// log.Debug("listener end")
 			return
 		}
 		wg.Add(1)
@@ -142,6 +142,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			case "cookie":
 				cc.cookie = value
 			default:
+				log.S("key", string(k)).S("value", value).Info("header")
 				cc.headers[key] = value
 			}
 			return nil
