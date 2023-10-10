@@ -1,5 +1,8 @@
-/* Postavljanje opcija pattern ukraden od: http://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+/*
+	Postavljanje opcija pattern ukraden od: http://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+
 Primjer:
+
 	consumer := nsq.MustNewConsumer("listici.novi", handler,
 		nsq.MaxInFlight(200),
 		nsq.Channel("my-app#ephemeral"),
@@ -104,5 +107,12 @@ func Concurrency(c int) func(*options) {
 func Ordered() func(*options) {
 	return func(o *options) {
 		o.concurrency = 1
+	}
+}
+
+// LogLevelDebug sets log level to Debug for underlying go-nsq package.
+func LogLevelDebug() func(*options) {
+	return func(o *options) {
+		o.logLevel = gonsq.LogLevelDebug
 	}
 }
