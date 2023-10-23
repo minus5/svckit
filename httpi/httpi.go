@@ -14,6 +14,8 @@ import (
 	"github.com/urfave/negroni"
 )
 
+type Middleware negroni.Handler
+
 func NewRouter() *Router {
 	return &Router{
 		muxRouter: mux.NewRouter(),
@@ -52,7 +54,7 @@ func (r *Router) Subrouter(path string) *Router {
 	}
 }
 
-//isto kao gore raspetlja url varijable
+// isto kao gore raspetlja url varijable
 func (r *Router) RouteVars(path string,
 	f func(http.ResponseWriter, *http.Request, map[string]string)) *mux.Route {
 	return r.muxRouter.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
@@ -64,16 +66,16 @@ func (r *Router) RouteVars(path string,
 // Start http server. Set port to listen and optionaly switches.
 // Example:
 //
-//   httpi.Start(":8123", httpi.LogRequests())
-func (r *Router) Start(listen string) {
-	r.Go(listen)
+//	httpi.Start(":8123", httpi.LogRequests())
+func (r *Router) Start(listen string, mws ...Middleware) {
+	r.Go(listen, mws...)
 	signal.WaitForInterupt()
 }
 
-func (r *Router) Go(listen string) {
+func (r *Router) Go(listen string, mws ...Middleware) {
 	go func() {
 		log.S("lib", "svckit/httpi").S("listen", listen).Info("starting")
-		err := http.ListenAndServe(listen, r.Handler())
+		err := http.ListenAndServe(listen, r.Handler(mws...))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -81,7 +83,7 @@ func (r *Router) Go(listen string) {
 }
 
 // Handler create http handler.
-func (r *Router) Handler() *negroni.Negroni {
+func (r *Router) Handler(mws ...Middleware) *negroni.Negroni {
 	if !r.noDebug {
 		//ping
 		r.muxRouter.HandleFunc("/ping", PingHttpResponse)
@@ -96,6 +98,9 @@ func (r *Router) Handler() *negroni.Negroni {
 	handlers := []negroni.Handler{negroni.NewRecovery(), NewStats()}
 	if r.log {
 		handlers = append(handlers, NewRequestLogger())
+	}
+	for _, mw := range mws {
+		handlers = append(handlers, negroni.Handler(mw))
 	}
 	n := negroni.New(handlers...)
 	if !r.noDebug {
@@ -144,7 +149,7 @@ func Subrouter(path string) *Router {
 	}
 }
 
-//isto kao gore raspetlja url varijable
+// isto kao gore raspetlja url varijable
 func RouteVars(path string, f func(http.ResponseWriter, *http.Request, map[string]string)) *mux.Route {
 	return defaultRouter.RouteVars(path, f)
 }
@@ -152,9 +157,9 @@ func RouteVars(path string, f func(http.ResponseWriter, *http.Request, map[strin
 // Start http server. Set port to listen and optionaly switches.
 // Example:
 //
-//   httpi.Start(":8123", httpi.LogRequests())
-func Start(listen string) {
-	defaultRouter.Start(listen)
+//	httpi.Start(":8123", httpi.LogRequests())
+func Start(listen string, mws ...Middleware) {
+	defaultRouter.Start(listen, mws...)
 }
 
 // Handler create http handler.
