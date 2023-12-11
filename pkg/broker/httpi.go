@@ -60,7 +60,8 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 		b.Unsubscribe(msgsCh) // Unsubscribe sa brokera i zatvara channel
 	}
 
-	heartbeat := time.Tick(20 * time.Second)
+	heartbeat := time.NewTicker(20 * time.Second)
+	defer heartbeat.Stop()
 	for {
 		select {
 		case <-closeCh:
@@ -84,7 +85,7 @@ func StreamingSSE(w http.ResponseWriter, r *http.Request, b *Broker, closeSignal
 				unsubscribe()
 				return
 			}
-		case <-heartbeat:
+		case <-heartbeat.C:
 			m := NewMessage("heartbeat", []byte(time.Now().Format(time.RFC3339)), nil)
 			err := send(m.Event, string(m.GetData()))
 			if extraWork != nil {
