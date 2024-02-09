@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"reflect"
 	"strings"
 	"text/template"
@@ -219,7 +220,7 @@ func (mdb *Mdb) Init(connStr string, opts ...func(db *Mdb)) error {
 	}
 
 	if mdb.cacheDir != "" {
-		mdb.cache, err = newCache(mdb)
+		mdb.cache, err = newCache(mdb, reg)
 		if err != nil {
 			return err
 		}
@@ -547,4 +548,15 @@ func IsDup(err error) bool {
 		}
 	}
 	return false
+}
+
+// IsUnackWrite checks if error is unacknowledged write error
+func IsUnackWrite(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return errors.Is(err, mongo.ErrUnacknowledgedWrite) ||
+		errors.Is(err, driver.ErrUnacknowledgedWrite) ||
+		err.Error() == mongo.ErrUnacknowledgedWrite.Error()
 }

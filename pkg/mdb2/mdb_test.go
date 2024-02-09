@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -57,7 +58,7 @@ var testCacheDir = "./tmp/cacheDir"
 
 func TestCacheAdd(t *testing.T) {
 	db := &Mdb{name: "dbName", cacheDir: testCacheDir}
-	c, err := newCache(db)
+	c, err := newCache(db, bson.DefaultRegistry)
 	assert.Nil(t, err)
 
 	err = c.add("obj", 1, &obj{Id: 1})
@@ -71,7 +72,7 @@ func TestCacheAdd(t *testing.T) {
 	assert.Equal(t, []string{"obj.1", "obj.2", "obj.3"}, ls)
 	t.Logf("%v", ls)
 
-	c2, err := newCache(db)
+	c2, err := newCache(db, bson.DefaultRegistry)
 	assert.Nil(t, err)
 	assert.Len(t, c2.m, 3)
 
@@ -165,4 +166,33 @@ func TestMongoSerde(t *testing.T) {
 	assert.Equal(t, m["b"].(map[string]interface{})["i64"].(int64), res["b"].(map[string]interface{})["i64"])
 	assert.Equal(t, int(m["b"].(map[string]interface{})["i32"].(int32)), res["b"].(map[string]interface{})["i32"])
 	assert.Equal(t, int64(m["c"].(int)), res["c"])
+}
+
+func TestMongoCacheSerde(t *testing.T) {
+	db := &db2{}
+	if err := db.Init(DefaultConnStr(), Name(testDbName), CacheRoot("./tmp/tests/cache")); err != nil {
+		log.Fatalf("failed to open connection: %s", err)
+		return
+	}
+	m := map[string]interface{}{
+		"a": 12345,
+		"b": map[string]interface{}{
+			"i":   12345678901235,
+			"i64": int64(12345678901235),
+			"i32": int32(1234567),
+		},
+		"c": 12345678901234,
+	}
+	db.SaveId(testCollectionName, 2513, m)
+
+	var res map[string]interface{}
+	db.ReadId(testCollectionName, 2513, &res)
+
+	assert.Equal(t, m["a"], res["a"])
+	assert.Equal(t, int64(m["b"].(map[string]interface{})["i"].(int)), res["b"].(map[string]interface{})["i"])
+	assert.Equal(t, m["b"].(map[string]interface{})["i64"].(int64), res["b"].(map[string]interface{})["i64"])
+	assert.Equal(t, int(m["b"].(map[string]interface{})["i32"].(int32)), res["b"].(map[string]interface{})["i32"])
+	assert.Equal(t, int64(m["c"].(int)), res["c"])
+
+	db.cache.purge()
 }

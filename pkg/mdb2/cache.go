@@ -2,6 +2,7 @@ package mdb2
 
 import (
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -19,7 +20,9 @@ type cache struct {
 	sync.Mutex
 }
 
-func newCache(mdb *Mdb) (*cache, error) {
+var codecRegistry *bsoncodec.Registry
+
+func newCache(mdb *Mdb, registry *bsoncodec.Registry) (*cache, error) {
 	if err := os.MkdirAll(mdb.cacheDir, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -27,6 +30,8 @@ func newCache(mdb *Mdb) (*cache, error) {
 		m:   make(map[string]*cacheItem),
 		mdb: mdb,
 	}
+
+	codecRegistry = registry
 	c.init()
 	return c, nil
 }
@@ -56,7 +61,7 @@ func (c *cache) init() {
 		}
 		// deserialize to get Id in appropriate type
 		o := &obj{}
-		if err := bson.Unmarshal(raw, o); err == nil {
+		if err := bson.UnmarshalWithRegistry(codecRegistry, raw, o); err == nil {
 			id = o.Id
 		}
 
@@ -126,7 +131,7 @@ func (c *cache) purge() {
 		delete(c.m, k)
 		c.Unlock()
 		err := c.mdb.saveId(i.col, "saveId", i.id, i.o())
-		if err != nil {
+		if err != nil && !IsUnackWrite(err) {
 			log.S("col", i.col).S("id", fmt.Sprintf("%v", i.id)).Error(err)
 		}
 		c.Lock()
@@ -134,7 +139,7 @@ func (c *cache) purge() {
 			c.Unlock()
 			continue
 		}
-		if err == nil {
+		if err == nil || IsUnackWrite(err) {
 			// remove from disk
 			err2 := os.Remove(i.fn)
 			if err2 != nil {
@@ -175,5 +180,5 @@ func (i *cacheItem) o() *bson.Raw {
 }
 
 func (i *cacheItem) unmarshal(o interface{}) error {
-	return bson.Unmarshal(i.raw, o)
+	return bson.UnmarshalWithRegistry(codecRegistry, i.raw, o)
 }
