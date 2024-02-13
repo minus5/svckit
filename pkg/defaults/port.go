@@ -109,4 +109,5 @@ const (
 	PortCommunityAdminApiWs = "8976"
 	PortKladomatNgApi       = "8980"
 	PortKladomatNgAdmin     = "8981"
+	PortCommunityProfile    = "8990"
 )
