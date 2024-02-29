@@ -60,7 +60,7 @@ func resposesTopicName() string {
 }
 
 func (r *Requester) responses(nm *nsq.Message) error {
-	m := amp.Parse(nm.Body)
+	m := amp.ParseFromBackend(nm.Body)
 	r.reply(m.CorrelationID, m)
 	return nil
 }
@@ -91,7 +91,7 @@ func (r *Requester) Send(e amp.Subscriber, m *amp.Msg) {
 	rm := m.Request()
 	rm.CorrelationID = correlationID
 	rm.ReplyTo = r.topic
-	buf := rm.Marshal()
+	buf := rm.MarshalForBackend()
 
 	go func() {
 		err := r.producer.PublishTo(m.Topic(), buf)

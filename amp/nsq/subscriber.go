@@ -19,7 +19,7 @@ type subscriber struct {
 func (s *subscriber) onMessage(m *nsq.Message) error {
 	s.msgs.Add(1)
 	defer s.msgs.Done()
-	am := amp.Parse(m.Body)
+	am := amp.ParseFromBackend(m.Body)
 	if am == nil {
 		return nil
 	}

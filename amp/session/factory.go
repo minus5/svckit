@@ -22,14 +22,16 @@ type broker interface {
 }
 
 type connection interface {
-	Read() ([]byte, error)                     // get client message
-	Write(payload []byte, deflated bool) error // send message to the client
-	DeflateSupported() bool                    // does websocket connection support per message deflate
-	Headers() map[string]string                // http headers we got on connection open
-	No() uint64                                // connection identifier (for grouping logs)
-	Close() error                              // close connection
-	Meta() map[string]string                   // session metadata, set by the client
-	SetMeta(map[string]string)                 // set session metadata
+	Read() ([]byte, error)                       // get client message
+	Write(payload []byte, deflated bool) error   // send message to the client
+	DeflateSupported() bool                      // does websocket connection support per message deflate
+	Headers() map[string]string                  // http headers we got on connection open
+	SetBackendHeaders(headers map[string]string) // set BackendHeaders
+	GetBackendHeaders() map[string]string        // get BackendHeaders
+	No() uint64                                  // connection identifier (for grouping logs)
+	Close() error                                // close connection
+	Meta() map[string]string                     // session metadata, set by the client
+	SetMeta(map[string]string)                   // set session metadata
 	GetRemoteIp() string
 	GetCookie() string
 }

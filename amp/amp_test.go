@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestURI(t *testing.T) {
@@ -43,8 +44,70 @@ func TestPublish(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	m := Parse(nil)
-	assert.Nil(t, m)
+	tests := []struct {
+		name string
+		in   []byte
+		want *Msg
+	}{
+		{
+			name: "it should return nil if input is nil",
+			in:   nil,
+			want: nil,
+		},
+		{
+			name: "it should parse the message, ignoring values in 'h' field",
+			in:   []byte(`{"t":2,"u":"some.topic/method","i":4,"b":{"topic.one":1},"m":{"a":"b"},"h":{"a":"b"}}`),
+			want: &Msg{
+				Type:          Request,
+				URI:           "some.topic/method",
+				CorrelationID: 4,
+				Subscriptions: map[string]int64{
+					"topic.one": 1,
+				},
+				Meta: map[string]string{
+					"a": "b",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Parse(tt.in)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseFromBackend(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []byte
+		want *Msg
+	}{
+		{
+			name: "it should return nil if input is nil",
+			in:   nil,
+			want: nil,
+		},
+		{
+			name: "it should parse the message",
+			in:   []byte(`{"t":2,"u":"some.topic/method","i":4,"h":{"a":"b"}}`),
+			want: &Msg{
+				Type:          Request,
+				URI:           "some.topic/method",
+				CorrelationID: 4,
+				BackendHeaders: map[string]string{
+					"a": "b",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ParseFromBackend(tt.in)
+			require.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestParseV1Subscribe(t *testing.T) {
@@ -98,4 +161,167 @@ func TestParseV1Subscriptions(t *testing.T) {
 	assert.Equal(t, m.Subscriptions["sportsbook/m"], int64(94067395))
 	assert.Equal(t, m.Subscriptions["sportsbook/s_4"], int64(1))
 	assert.Equal(t, m.Subscriptions["sportsbook/s_5"], int64(2))
+}
+
+func TestMsg_Marshal(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *Msg
+		want []byte
+	}{
+		{
+			name: "it should marshal the message without body",
+			in: &Msg{
+				Type:          Response,
+				CorrelationID: 4,
+				Error: &Error{
+					Message: "error",
+				},
+				URI:        "some.topic",
+				Ts:         12,
+				UpdateType: Full,
+				Replay:     Replay,
+				CacheDepth: 5,
+				Meta: map[string]string{
+					"a": "b",
+				},
+			},
+			want: append(
+				[]byte(`{"t":3,"i":4,"e":{"m":"error"},"u":"some.topic","s":12,"p":1,"l":1,"d":5,"m":{"a":"b"}}`),
+				[]byte("\n")...,
+			),
+		},
+		{
+			name: "it should marshal the message",
+			in: &Msg{
+				Type:          Response,
+				CorrelationID: 4,
+				Error: &Error{
+					Message: "error",
+				},
+				URI:        "some.topic",
+				Ts:         12,
+				UpdateType: Full,
+				Replay:     Replay,
+				CacheDepth: 5,
+				Meta: map[string]string{
+					"a": "b",
+				},
+				body: []byte(`{"foo":"bar"}`),
+			},
+			want: append(
+				append(
+					[]byte(`{"t":3,"i":4,"e":{"m":"error"},"u":"some.topic","s":12,"p":1,"l":1,"d":5,"m":{"a":"b"}}`),
+					[]byte("\n")...,
+				),
+				[]byte(`{"foo":"bar"}`)...,
+			),
+		},
+		{
+			name: "it should marshal the message that contains BackendHeaders without adding that headers to the marshalled payload",
+			in: &Msg{
+				Type:          Response,
+				CorrelationID: 4,
+				Error: &Error{
+					Message: "error",
+				},
+				URI:        "some.topic",
+				Ts:         12,
+				UpdateType: Full,
+				Replay:     Replay,
+				CacheDepth: 5,
+				Meta: map[string]string{
+					"a": "b",
+				},
+				BackendHeaders: map[string]string{
+					"foo": "bar",
+					"bar": "baz",
+				},
+				body: []byte(`{"foo":"bar"}`),
+			},
+			want: append(
+				append(
+					[]byte(`{"t":3,"i":4,"e":{"m":"error"},"u":"some.topic","s":12,"p":1,"l":1,"d":5,"m":{"a":"b"}}`),
+					[]byte("\n")...,
+				),
+				[]byte(`{"foo":"bar"}`)...,
+			),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.in.Marshal()
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestMsg_MarshalForBackend(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *Msg
+		want []byte
+	}{
+		{
+			name: "it should marshal the message without body",
+			in: &Msg{
+				Type:          Response,
+				CorrelationID: 4,
+				Meta: map[string]string{
+					"a": "b",
+				},
+			},
+			want: append(
+				[]byte(`{"t":3,"i":4,"m":{"a":"b"}}`),
+				[]byte("\n")...,
+			),
+		},
+		{
+			name: "it should marshal the message",
+			in: &Msg{
+				Type:          Response,
+				CorrelationID: 4,
+				Meta: map[string]string{
+					"a": "b",
+				},
+				body: []byte(`{"foo":"bar"}`),
+			},
+			want: append(
+				append(
+					[]byte(`{"t":3,"i":4,"m":{"a":"b"}}`),
+					[]byte("\n")...,
+				),
+
+				[]byte(`{"foo":"bar"}`)...,
+			),
+		},
+		{
+			name: "it should marshal the message that contains BackendHeaders, adding that headers to the marshalled payload",
+			in: &Msg{
+				Type:          Response,
+				CorrelationID: 4,
+				Meta: map[string]string{
+					"a": "b",
+				},
+				BackendHeaders: map[string]string{
+					"c": "d",
+				},
+				body: []byte(`{"foo":"bar"}`),
+			},
+			want: append(
+				append(
+					[]byte(`{"t":3,"i":4,"m":{"a":"b"},"h":{"c":"d"}}`),
+					[]byte("\n")...,
+				),
+
+				[]byte(`{"foo":"bar"}`)...,
+			),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.in.MarshalForBackend()
+			require.Equal(t, tt.want, got)
+		})
+	}
 }

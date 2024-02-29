@@ -18,8 +18,9 @@ type Conn struct {
 	tcpConn net.Conn
 	cap     connCap
 	no      uint64
-	//	receive    chan []byte
-	//	receiveErr error
+
+	// backendHeaders can only be set and read on the backend.
+	backendHeaders map[string]string
 }
 
 // connCap connection capabilities and usefull atributes
@@ -52,7 +53,6 @@ func newConn(tc net.Conn, cap connCap) *Conn {
 		tcpConn: tc,
 		cap:     cap,
 		no:      no(),
-		// receive: make(chan []byte),
 	}
 	return c
 }
@@ -60,6 +60,20 @@ func newConn(tc net.Conn, cap connCap) *Conn {
 // Headers usefull http headers
 func (c *Conn) Headers() map[string]string {
 	return c.cap.headers
+}
+
+func (c *Conn) SetBackendHeaders(headers map[string]string) {
+	if c.backendHeaders == nil {
+		c.backendHeaders = make(map[string]string)
+	}
+
+	for k, v := range headers {
+		c.backendHeaders[k] = v
+	}
+}
+
+func (c *Conn) GetBackendHeaders() map[string]string {
+	return c.backendHeaders
 }
 
 // Write writes payload to the websocket connection.
