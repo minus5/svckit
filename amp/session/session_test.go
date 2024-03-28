@@ -13,8 +13,18 @@ import (
 )
 
 type mockConn struct {
+	t *testing.T
+
 	in  chan []byte
 	out chan []byte
+
+	WantBackendHeaders     int
+	gotBackendHeadersCalls int
+	ReturnBackendHeaders   map[string]string
+
+	WantMetaCalls int
+	gotMetaCalls  int
+	ReturnMeta    map[string]string
 }
 
 func (c *mockConn) Read() ([]byte, error) {
@@ -31,17 +41,41 @@ func (c *mockConn) Write(payload []byte, deflated bool) error {
 	c.out <- payload
 	return nil
 }
-func (c *mockConn) DeflateSupported() bool     { return false }
+func (c *mockConn) DeflateSupported() bool { return false }
+
+func (c *mockConn) SetBackendHeaders(_ map[string]string) {}
+
+func (c *mockConn) GetBackendHeaders() map[string]string {
+	c.gotBackendHeadersCalls++
+
+	require.True(c.t, c.WantBackendHeaders >= c.gotBackendHeadersCalls)
+
+	return c.ReturnBackendHeaders
+}
+
 func (c *mockConn) Headers() map[string]string { return nil }
 func (c *mockConn) No() uint64                 { return 0 }
-func (c *mockConn) Meta() map[string]string    { return nil }
-func (c *mockConn) GetRemoteIp() string        { return "" }
-func (c *mockConn) GetCookie() string          { return "" }
+
+func (c *mockConn) Meta() map[string]string {
+	c.gotMetaCalls++
+
+	require.True(c.t, c.WantMetaCalls >= c.gotMetaCalls)
+
+	return c.ReturnMeta
+}
+
+func (c *mockConn) GetRemoteIp() string { return "" }
+func (c *mockConn) GetCookie() string   { return "" }
 func (c *mockConn) Close() error {
 	close(c.in)
 	return nil
 }
 func (c *mockConn) SetMeta(m map[string]string) {}
+
+func (c *mockConn) Assert(t *testing.T) {
+	require.Equal(t, c.WantBackendHeaders, c.gotBackendHeadersCalls)
+	require.Equal(t, c.WantMetaCalls, c.gotMetaCalls)
+}
 
 type mockBroker struct{}
 
@@ -55,12 +89,28 @@ type mockRequester struct {
 
 	WantSendCalls int
 	gotSendCalls  int
+	WantMsgs      []*amp.Msg
 }
 
-func (r *mockRequester) Send(subscriber amp.Subscriber, msg *amp.Msg) {
+func (r *mockRequester) Send(_ amp.Subscriber, msg *amp.Msg) {
 	r.gotSendCalls++
-
 	require.True(r.t, r.WantSendCalls >= r.gotSendCalls)
+
+	want := r.WantMsgs[r.gotSendCalls-1]
+
+	// explicitly comparing only public fields
+	require.Equal(r.t, want.Type, msg.Type)
+	require.Equal(r.t, want.ReplyTo, msg.ReplyTo)
+	require.Equal(r.t, want.CorrelationID, msg.CorrelationID)
+	require.Equal(r.t, want.Error, msg.Error)
+	require.Equal(r.t, want.URI, msg.URI)
+	require.Equal(r.t, want.Ts, msg.Ts)
+	require.Equal(r.t, want.UpdateType, msg.UpdateType)
+	require.Equal(r.t, want.Replay, msg.Replay)
+	require.Equal(r.t, want.Subscriptions, msg.Subscriptions)
+	require.Equal(r.t, want.CacheDepth, msg.CacheDepth)
+	require.Equal(r.t, want.Meta, msg.Meta)
+	require.Equal(r.t, want.BackendHeaders, msg.BackendHeaders)
 }
 
 func (r *mockRequester) Unsubscribe(amp.Subscriber) {}
@@ -179,7 +229,6 @@ func Test_session_receive(t *testing.T) {
 		requester      mockRequester
 		topicWhitelist []string
 	}
-
 	tests := []struct {
 		name   string
 		fields fields
@@ -191,8 +240,35 @@ func Test_session_receive(t *testing.T) {
 				requester: mockRequester{
 					t:             t,
 					WantSendCalls: 1,
+					WantMsgs: []*amp.Msg{
+						{
+							Type: amp.Request,
+							URI:  "whitelisted.req/method",
+							Meta: map[string]string{
+								"a": "b",
+								"c": "d",
+							},
+							BackendHeaders: map[string]string{
+								"foo": "bar",
+								"bar": "baz",
+							},
+						},
+					},
 				},
 				topicWhitelist: []string{"whitelisted.req"},
+				conn: mockConn{
+					t:             t,
+					WantMetaCalls: 1,
+					ReturnMeta: map[string]string{
+						"a": "b",
+						"c": "d",
+					},
+					WantBackendHeaders: 1,
+					ReturnBackendHeaders: map[string]string{
+						"foo": "bar",
+						"bar": "baz",
+					},
+				},
 			},
 			in: &amp.Msg{
 				Type: amp.Request,
@@ -226,6 +302,7 @@ func Test_session_receive(t *testing.T) {
 			s.receive(tt.in)
 
 			tt.fields.requester.Assert(t)
+			tt.fields.conn.Assert(t)
 		})
 	}
 }

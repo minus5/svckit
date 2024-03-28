@@ -8,7 +8,7 @@ import (
 func Publish(topic string, in <-chan *amp.Msg) chan *amp.Msg {
 	pub := nsq.Pub(topic)
 	publish := func(m *amp.Msg) {
-		pub.Publish(m.Marshal())
+		pub.Publish(m.MarshalForBackend())
 	}
 	out := make(chan *amp.Msg, 16)
 	go func() {
@@ -34,7 +34,7 @@ func (p *Publisher) loop(in <-chan *amp.Msg) {
 
 	pub := nsq.Pub("")
 	publish := func(m *amp.Msg) {
-		pub.PublishTo(m.Topic(), m.Marshal())
+		pub.PublishTo(m.Topic(), m.MarshalForBackend())
 	}
 
 	for m := range in {

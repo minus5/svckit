@@ -41,7 +41,7 @@ func (r *Responder) loop(in <-chan *amp.Msg) {
 		if rm == nil || m.ReplyTo == "" {
 			continue
 		}
-		if err := pub.PublishTo(m.ReplyTo, rm.Marshal()); err != nil {
+		if err := pub.PublishTo(m.ReplyTo, rm.MarshalForBackend()); err != nil {
 			log.Error(err)
 		}
 	}

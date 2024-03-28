@@ -150,6 +150,7 @@ func (s *session) receive(m *amp.Msg) {
 			return
 		}
 		m.Meta = s.conn.Meta()
+		m.BackendHeaders = s.conn.GetBackendHeaders()
 		s.requester.Send(s, m)
 	case amp.Subscribe:
 		s.broker.Subscribe(s, m.Subscriptions)

@@ -73,13 +73,13 @@ func ParseV1Subscriptions(buf []byte) *Msg {
 
 // Marshal packs message for sending on the wire
 func (m *Msg) MarshalV1() []byte {
-	buf, _ := m.marshal(CompressionNone, CompatibilityVersion1)
+	buf, _ := m.marshal(CompressionNone, CompatibilityVersion1, jsonSerializer)
 	return buf
 }
 
 // MarshalDeflate packs and compress message
 func (m *Msg) MarshalV1Deflate() ([]byte, bool) {
-	return m.marshal(CompressionDeflate, CompatibilityVersion1)
+	return m.marshal(CompressionDeflate, CompatibilityVersion1, jsonSerializer)
 }
 
 func (m *Msg) marshalV1header() []byte {
