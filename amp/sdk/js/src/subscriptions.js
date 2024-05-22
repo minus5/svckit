@@ -1,7 +1,7 @@
 const amp = require("./amp.js"),
     merge = require("./merge.js");
 
-module.exports = function(onChangeHandler, v1, transformBody) {
+module.exports = function(onChangeHandler, v1, transformBody, skipLists) {
 
   let subscriptions = {};
 
@@ -90,7 +90,7 @@ module.exports = function(onChangeHandler, v1, transformBody) {
       if (!s.full) {
         s.full = {};
       }
-      merge(s.full, msg.body);
+      merge(s.full, msg.body, skipLists);
       data = {full: null, diff: msg.body, merged: s.full};
       break;
     case amp.updateType.append:

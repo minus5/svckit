@@ -110,7 +110,7 @@ module.exports = function(config) {
   }
 
   transport.ws = Ws(urls.ws(), onMessage, onWsChange, config.v1);
-  let sub    = Sub(subscribe, config.v1, config.transformBody);
+  let sub    = Sub(subscribe, config.v1, config.transformBody, config.skipLists);
   let req    = Req();
 
   let failHandlers = {

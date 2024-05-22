@@ -80,7 +80,9 @@ function addLists(parent) {
   }
 };
 
-module.exports = function(full, diff) {
+module.exports = function(full, diff, skipLists) {
   merge(full, diff);
-  addLists(full);
+  if (!skipLists) { 
+    addLists(full);
+  }
 };
