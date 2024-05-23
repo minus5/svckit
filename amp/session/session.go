@@ -75,8 +75,9 @@ func (s *session) loop(cancelSig context.Context) {
 	defer s.logStats()
 
 	if preSub := s.Meta()["preSub"]; preSub != "" {
+		chanName := fmt.Sprintf("sportsbook/%s", preSub)
 		s.broker.Subscribe(s, map[string]int64{
-			preSub: 0,
+			chanName: 0,
 		})
 	}
 
@@ -160,7 +161,8 @@ func (s *session) receive(m *amp.Msg) {
 		s.requester.Send(s, m)
 	case amp.Subscribe:
 		if preSub := s.Meta()["preSub"]; preSub != "" {
-			m.Subscriptions[preSub] = 0
+			chanName := fmt.Sprintf("sportsbook/%s", preSub)
+			m.Subscriptions[chanName] = 0
 		}
 		s.broker.Subscribe(s, m.Subscriptions)
 	case amp.Meta:
