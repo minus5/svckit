@@ -74,6 +74,13 @@ func (s *session) loop(cancelSig context.Context) {
 
 	defer s.logStats()
 
+	if preSub := s.Meta()["preSub"]; preSub != "" {
+		log.S("preSub", preSub).Info("preSub")
+		s.broker.Subscribe(s, map[string]int64{
+			preSub: 0,
+		})
+	}
+
 	for {
 		select {
 		case <-alive.C:
