@@ -4,6 +4,10 @@ package mongo
 
 import (
 	"bytes"
+	"context"
+	"go.mongodb.org/mongo-driver/bson"
+	mgo "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,19 +15,17 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 )
 
 // Mongo controls a MongoDB server process to be used within test suites.
 type Mongo struct {
-	session    *mgo.Session
+	session    *mgo.Client
 	output     bytes.Buffer
 	server     *exec.Cmd
 	serverExit chan struct{}
 	DbPath     string
 	Host       string
+	ctx        context.Context
 }
 
 // New creates new MongoDB server to be used within test suites.
@@ -32,7 +34,7 @@ func New() *Mongo {
 	if err != nil {
 		log.Fatal(err)
 	}
-	m := &Mongo{DbPath: dir, serverExit: make(chan struct{})}
+	m := &Mongo{DbPath: dir, serverExit: make(chan struct{}), ctx: context.Background()}
 	m.start()
 	return m
 }
@@ -53,7 +55,6 @@ func (dbs *Mongo) start() {
 	if dbs.DbPath == "" {
 		panic("DBServer.SetPath must be called before using the server")
 	}
-	mgo.SetStats(true)
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		panic("unable to listen on a local address: " + err.Error())
@@ -66,8 +67,8 @@ func (dbs *Mongo) start() {
 		"--dbpath", dbs.DbPath,
 		"--bind_ip", "127.0.0.1",
 		"--port", strconv.Itoa(addr.Port),
-		"--nojournal",
 	}
+
 	dbs.server = exec.Command("mongod", args...)
 	dbs.server.Stdout = &dbs.output
 	dbs.server.Stderr = &dbs.output
@@ -123,7 +124,7 @@ func (dbs *Mongo) closeSession() {
 	if dbs.session == nil {
 		return
 	}
-	dbs.session.Close()
+	dbs.session.Disconnect(dbs.ctx)
 	dbs.session = nil
 }
 
@@ -148,27 +149,28 @@ func (dbs *Mongo) stopServer(kill bool) {
 
 func (dbs *Mongo) shutdownServer() error {
 	session := dbs.Session()
-	defer session.Close()
-	return session.DB("admin").Run(bson.D{{Name: "shutdown", Value: 1}}, nil)
+	defer session.Disconnect(dbs.ctx)
+	r := session.Database("admin").RunCommand(dbs.ctx, bson.D{{"shutdown", 1}})
+	return r.Err()
 }
 
 // Session returns a new session to the server. The returned session
 // must be closed after the test is done with it.
 //
 // The first Session obtained from a DBServer will start it.
-func (dbs *Mongo) Session() *mgo.Session {
+func (dbs *Mongo) Session() *mgo.Client {
 	if dbs.server == nil {
 		dbs.start()
 	}
 	if dbs.session == nil {
-		mgo.ResetStats()
 		var err error
-		dbs.session, err = mgo.Dial(dbs.Host + "/test")
+		dbs.session, err = mgo.Connect(dbs.ctx, options.Client().ApplyURI("mongodb://"+dbs.Host+"/test"))
+
 		if err != nil {
 			panic(err)
 		}
 	}
-	return dbs.session.Copy()
+	return dbs.session
 }
 
 // Wipe drops all created databases and their data.
@@ -181,8 +183,8 @@ func (dbs *Mongo) Session() *mgo.Session {
 // there is a session leak.
 func (dbs *Mongo) Wipe() {
 	session := dbs.Session()
-	defer session.Close()
-	names, err := session.DatabaseNames()
+	defer session.Disconnect(dbs.ctx)
+	names, err := session.ListDatabaseNames(dbs.ctx, bson.D{{}})
 	if err != nil {
 		panic(err)
 	}
@@ -190,7 +192,7 @@ func (dbs *Mongo) Wipe() {
 		switch name {
 		case "admin", "local", "config":
 		default:
-			err = session.DB(name).DropDatabase()
+			err = session.Database(name).Drop(dbs.ctx)
 			if err != nil {
 				panic(err)
 			}
