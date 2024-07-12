@@ -23,7 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 var (
@@ -459,7 +458,7 @@ func getMetricKey(defaultMetricKey string, metrics ...string) string {
 
 type indexKeyInfo struct {
 	name string
-	key  bsonx.Doc
+	key  bson.D
 }
 
 // parseIndexKey provides backward compatibility with mgo driver for index definition
@@ -506,14 +505,14 @@ func parseIndexKey(key []string) (*indexKeyInfo, error) {
 		}
 		if kind == "text" {
 			if !isText {
-				keyInfo.key = keyInfo.key.Append("_fts", bsonx.String("text"))
-				keyInfo.key = keyInfo.key.Append("_ftsx", bsonx.Int32(1))
+				keyInfo.key = append(keyInfo.key, bson.E{Key: "_fts", Value: "text"})
+				keyInfo.key = append(keyInfo.key, bson.E{Key: "_ftsx", Value: 1})
 				isText = true
 			}
 		} else if kind != "" {
-			keyInfo.key = keyInfo.key.Append(field, bsonx.String(kind))
+			keyInfo.key = append(keyInfo.key, bson.E{Key: field, Value: kind})
 		} else {
-			keyInfo.key = keyInfo.key.Append(field, bsonx.Int32(order))
+			keyInfo.key = append(keyInfo.key, bson.E{Key: field, Value: order})
 		}
 	}
 	if keyInfo.name == "" {
