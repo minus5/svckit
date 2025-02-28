@@ -2,11 +2,12 @@ package mssql
 
 import (
 	"bytes"
+	"net/url"
+	"text/template"
+
 	"github.com/minus5/svckit/asm"
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/log"
-	"net/url"
-	"text/template"
 )
 
 type Params struct {
@@ -35,7 +36,7 @@ func fetchKV(name string) (map[string]string, error) {
 		log.Error(err)
 		return nil, err
 	}
-	if len(kvs) > 1 {
+	if len(kvs) > 0 {
 		ret := map[string]string{}
 		for k, v := range kvs {
 			switch s := v.(type) {
