@@ -35,11 +35,12 @@ const (
 	KeySrcMsgID = "src_msg_id"
 )
 
-//Backend - poruka koja dolazi iz backend servisa
+// Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
 	Type              string `json:"type,omitempty"`
 	Id                string `json:"id,omitempty"`
 	IgracId           string `json:"igrac_id,omitempty"`
+	ClientId          int    `json:"client_id,omitempty"`
 	AccountType       int    `json:"account_type,omitempty"`
 	No                int    `json:"no,omitempty"`
 	From              string `json:"from,omitempty"`
@@ -321,7 +322,7 @@ func (b *Backend) RootType() string {
 	return strings.Replace(strings.TrimSuffix(strings.TrimSuffix(b.Type, "/full"), "/diff"), "/", ".", -1)
 }
 
-//todo - test za ovo
+// todo - test za ovo
 func (b *Backend) FileName() string {
 	fn := strings.Replace(b.Type, "/", "_", -1)
 	if b.No != -1 {
@@ -508,7 +509,7 @@ func (b *Backend) SameDc(dc string) bool {
 	return b.Dc == dc
 }
 
-//UnmarshalBody - json unmarshal body-ja
+// UnmarshalBody - json unmarshal body-ja
 func (b *Backend) UnmarshalBody(v interface{}) error {
 	if err := json.Unmarshal(b.Body, v); err != nil {
 		log.Printf("[ERROR] %s while parsing %s", err, b.Body)
