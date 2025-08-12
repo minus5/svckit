@@ -14,9 +14,9 @@ import (
 	"os/exec"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Mongo controls a MongoDB server process to be used within test suites.
@@ -68,7 +68,6 @@ func (dbs *Mongo) start() {
 		"--dbpath", dbs.DbPath,
 		"--bind_ip", "127.0.0.1",
 		"--port", strconv.Itoa(addr.Port),
-		"--nojournal",
 	}
 	dbs.server = exec.Command("mongod", args...)
 	dbs.server.Stdout = &dbs.output
