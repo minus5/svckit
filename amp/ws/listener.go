@@ -4,6 +4,7 @@ package ws
 import (
 	"context"
 	"fmt"
+	"github.com/gobwas/httphead"
 	"net"
 	"net/url"
 	"strings"
@@ -88,32 +89,41 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 	}
 
 	ug := ws.Upgrader{
-		// podrzava li klijent websocket permessage-deflate
-		//ExtensionCustom: func(f []byte, os []httphead.Option) ([]httphead.Option, bool) {
-		//	os = make([]httphead.Option, 0)
-		//	field := string(f)
-		//	// skip deflating for kladomat, implementation in Chromium is buggy, constantly reconnects
-		//	if cc.meta["klad"] != "" {
-		//		return os, true
-		//	}
-		//	if strings.Contains(field, "permessage-deflate") && !cc.deflateSupported {
-		//		params := map[string]string{
-		//			"client_no_context_takeover": "",
-		//			"server_no_context_takeover": "",
-		//		}
-		//		os = append(os, httphead.NewOption("permessage-deflate", params))
-		//		cc.deflateSupported = true
-		//	}
-		//	// iPhone (WebKit) salje po starom standardu
-		//	if strings.Contains(field, "x-webkit-deflate-frame") && !cc.deflateSupported {
-		//		params := map[string]string{
-		//			"no_context_takeover": "",
-		//		}
-		//		os = append(os, httphead.NewOption("x-webkit-deflate-frame", params))
-		//		cc.deflateSupported = true
-		//	}
-		//	return os, true
-		//},
+		//podrzava li klijent websocket permessage-deflate
+		ExtensionCustom: func(f []byte, os []httphead.Option) ([]httphead.Option, bool) {
+			os = make([]httphead.Option, 0)
+			field := string(f)
+			value := cc.userAgent
+			//only POS
+			/*if !strings.Contains(value, "websocket-sharp/1.0") {
+				return os, true
+			}*/
+			// working version, ios, firefox, brave
+			if strings.Contains(value, "OS 1") || strings.Contains(value, "OS 2") || strings.Contains(value, "Mac OS X 10_1") || value == "" {
+				return os, true
+			}
+			// skip deflating for kladomat, implementation in Chromium is buggy, constantly reconnects
+			if cc.meta["klad"] != "" {
+				return os, true
+			}
+			if strings.Contains(field, "permessage-deflate") && !cc.deflateSupported {
+				params := map[string]string{
+					"client_no_context_takeover": "",
+					"server_no_context_takeover": "",
+				}
+				os = append(os, httphead.NewOption("permessage-deflate", params))
+				cc.deflateSupported = true
+			}
+			// iPhone (WebKit) salje po starom standardu
+			if strings.Contains(field, "x-webkit-deflate-frame") && !cc.deflateSupported {
+				params := map[string]string{
+					"no_context_takeover": "",
+				}
+				os = append(os, httphead.NewOption("x-webkit-deflate-frame", params))
+				cc.deflateSupported = true
+			}
+			return os, true
+		},
 		OnRequest: func(uri []byte) error {
 			cc.meta = parseQueryString(uri)
 			for k, v := range cc.meta {
