@@ -107,9 +107,13 @@ func ConsumerOptions(opts ...func(*options)) func(*RrConsumer) {
 // RrAsyncSub creates RrConsumer in async mode
 // Hendler gets type, correlationId, and body.
 // It is users reposibility to call Pub with that correlationId and response.
-func RrAsyncSub(topic string, handler func(string, string, []byte) error) *RrConsumer {
+func RrAsyncSub(topic string, handler func(string, string, []byte) error, opts ...func(*RrConsumer)) *RrConsumer {
+	s := &RrConsumer{
+		topic:     topic,
+		producers: make(map[string]*Producer),
+	}
+	s.apply(opts...)
 	h := func(m *Message) error {
-
 
 		eReq, err := NewEnvelope(m.Body)
 
