@@ -114,8 +114,14 @@ func RrAsyncSub(topic string, handler func(string, string, []byte) error) *RrCon
 			return nil
 		}
 		correlationId := fmt.Sprintf("%s|%s|%s", eReq.Type, eReq.CorrelationId, eReq.ReplyTo)
+
+		// DisableAutoResponse + Requeue on handle error
+		// Previouse code didnt engage backoff, resulted in retry storm
 		if err := handler(eReq.Type, correlationId, eReq.Body); err != nil {
-			return err
+			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Error(err)
+			m.DisableAutoResponse()
+			m.Requeue(RequeueDelay)
+			return nil
 		}
 		return nil
 	}
