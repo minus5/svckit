@@ -1,4 +1,4 @@
-module nsqbugs
+module nsq_test
 
 go 1.22.2
 
