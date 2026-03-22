@@ -39,10 +39,14 @@ func RrSub(topic string, handler func(string, []byte) (interface{}, error), opts
 	}
 	s.apply(opts...)
 	h := func(m *Message) error {
+		
 		// zapakiraj poruku u envelope
 		eReq, err := NewEnvelope(m.Body)
+
+		// return nil on parse error, malformed envelope can never be fixed by retrying (infinite message loop), discard malformed envelope
 		if err != nil {
-			return err
+			log.S("body", string(m.Body)).Error(err)
+			return nil
 		}
 		// provjeri da li je expired
 		if eReq.Expired() {
@@ -105,9 +109,14 @@ func ConsumerOptions(opts ...func(*options)) func(*RrConsumer) {
 // It is users reposibility to call Pub with that correlationId and response.
 func RrAsyncSub(topic string, handler func(string, string, []byte) error) *RrConsumer {
 	h := func(m *Message) error {
+
+
 		eReq, err := NewEnvelope(m.Body)
+
+		// Discard malformed envelope, do not requeue
 		if err != nil {
-			return err
+			log.S("body", string(m.Body)).Error(err)
+			return nil
 		}
 		if eReq.Expired() {
 			log.S("type", eReq.Type).S("correlationId", eReq.CorrelationId).Info("expired")
