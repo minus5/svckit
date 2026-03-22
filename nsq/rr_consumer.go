@@ -178,10 +178,14 @@ func (s *RrConsumer) pub(topic string) *Producer {
 
 // Close implements gracefully stop.
 func (s *RrConsumer) Close() {
-	if s.sub == nil {
-		return
+	if s.sub != nil {
+		s.sub.Close()
 	}
-	s.sub.Close()
+	s.Lock()
+	defer s.Unlock()
+	for _, p := range s.producers {
+		p.Close()
+	}
 }
 
 // StartClosing will initiate a graceful stop of the Consumer (permanent)
