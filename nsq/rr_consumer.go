@@ -190,9 +190,27 @@ func (s *RrConsumer) Close() {
 // Receive on returned chan to block until this process completes
 func (s *RrConsumer) StartClosing() chan int {
 	if s.sub == nil {
+		s.Lock()
+		for _, p := range s.producers {
+			p.Close()
+		}
+		s.Unlock()
 		return nil
 	}
-	return s.sub.StartClosing()
+
+	stopChan := s.sub.StartClosing()
+
+	done := make(chan int, 1)
+	go func() {
+		v := <-stopChan
+		s.Lock()
+		for _, p := range s.producers {
+			p.Close()
+		}
+		s.Unlock()
+		done <- v
+	}()
+	return done
 }
 
 type Server interface {
