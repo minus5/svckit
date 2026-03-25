@@ -138,11 +138,8 @@ func RrAsyncSub(topic string, handler func(string, string, []byte) error, opts .
 		}
 		return nil
 	}
-	return &RrConsumer{
-		topic:     topic,
-		sub:       Sub(topic, h),
-		producers: make(map[string]*Producer),
-	}
+	s.sub = Sub(topic, h)
+	return s
 }
 
 // Pub replay for asycn sub.
