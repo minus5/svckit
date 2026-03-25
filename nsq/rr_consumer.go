@@ -138,7 +138,8 @@ func RrAsyncSub(topic string, handler func(string, string, []byte) error, opts .
 		}
 		return nil
 	}
-	s.sub = Sub(topic, h)
+	s.consumerOptions = append(s.consumerOptions, Channel(env.AppName()))
+	s.sub = Sub(topic, h, s.consumerOptions...)
 	return s
 }
 
