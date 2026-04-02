@@ -146,6 +146,10 @@ func CreateBackendNoGzip(typ string, no int, body []byte) []byte {
 	return createBackend(typ, no, 0, body, compress.EncodingNone)
 }
 
+func CreateBackendEncoded(typ string, no int, body []byte, encoding compress.Encoding) []byte {
+	return createBackend(typ, no, 0, body, encoding)
+}
+
 func createBackend(typ string, no int, ts int, body []byte, encoding compress.Encoding) []byte {
 	header := map[string]interface{}{
 		"type": typ,
