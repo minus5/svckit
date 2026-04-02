@@ -145,6 +145,81 @@ func cacheAdd(b []byte) {
 	}
 }
 
+func TestZstd(t *testing.T) {
+	input := []byte("iso medo u ducan nije rekao dobar dan")
+
+	compressed := Zstd(input)
+	assert.True(t, IsZstd(compressed))
+	assert.False(t, IsZstd(input))
+
+	out, err := Unzstd(compressed)
+	assert.Nil(t, err)
+	assert.Equal(t, input, out)
+}
+
+func TestSnappy(t *testing.T) {
+	input := []byte("iso medo u ducan nije rekao dobar dan")
+
+	compressed := Snappy(input)
+	assert.True(t, IsSnappy(compressed))
+	assert.False(t, IsSnappy(input))
+
+	out, err := Unsnappy(compressed)
+	assert.Nil(t, err)
+	assert.Equal(t, input, out)
+}
+
+func TestLz4(t *testing.T) {
+	input := []byte("iso medo u ducan nije rekao dobar dan")
+
+	compressed := Lz4(input)
+	assert.True(t, IsLz4(compressed))
+	assert.False(t, IsLz4(input))
+
+	out, err := Unlz4(compressed)
+	assert.Nil(t, err)
+	assert.Equal(t, input, out)
+}
+
+func TestDetect(t *testing.T) {
+	input := []byte("iso medo u ducan nije rekao dobar dan")
+
+	assert.Equal(t, EncodingGzip, Detect(Gzip(input)))
+	assert.Equal(t, EncodingZstd, Detect(Zstd(input)))
+	assert.Equal(t, EncodingSnappy, Detect(Snappy(input)))
+	assert.Equal(t, EncodingLz4, Detect(Lz4(input)))
+	assert.Equal(t, EncodingNone, Detect(input))
+}
+
+func TestDecompressIf(t *testing.T) {
+	input := []byte("iso medo u ducan nije rekao dobar dan")
+
+	cases := []struct {
+		name     string
+		compress func([]byte) []byte
+		encoding Encoding
+	}{
+		{"gzip", Gzip, EncodingGzip},
+		{"zstd", Zstd, EncodingZstd},
+		{"snappy", Snappy, EncodingSnappy},
+		{"lz4", Lz4, EncodingLz4},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, enc, err := DecompressIf(tc.compress(input))
+			assert.Nil(t, err)
+			assert.Equal(t, input, out)
+			assert.Equal(t, tc.encoding, enc)
+		})
+	}
+
+	// uncompressed passthrough
+	out, enc, err := DecompressIf(input)
+	assert.Nil(t, err)
+	assert.Equal(t, input, out)
+	assert.Equal(t, EncodingNone, enc)
+}
+
 // BenchmarkGzip benchmark za gzip da vidim potrosnju memorije
 // Pokrecem da radi samo BenchmarkGzip
 // go test -v -run NOTest -benchmem -benchtime 10s -bench BenchmarkGzip -memprofile=mem0.out

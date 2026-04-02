@@ -1,7 +1,7 @@
 package msgs
 
 import (
-	"io/ioutil"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -53,7 +53,35 @@ func TestTecajnaManifest(t *testing.T) {
 }
 
 func TestMsgGzip(t *testing.T) {
-	content, err := ioutil.ReadFile("./fixtures/backend_gz")
+	content, err := os.ReadFile("./fixtures/backend_gz")
+	assert.Nil(t, err)
+	msg := parseAsBackend(content)
+	assert.NotNil(t, msg)
+	assert.Equal(t, "pero", msg.Type)
+	assert.Equal(t, "iso medo u ducan", msg.bodyStr())
+}
+
+func TestMsgZstd(t *testing.T) {
+	content, err := os.ReadFile("./fixtures/backend_zstd")
+	assert.Nil(t, err)
+	msg := parseAsBackend(content)
+	assert.NotNil(t, msg)
+	assert.Equal(t, "pero", msg.Type)
+	assert.Equal(t, "iso medo u ducan", msg.bodyStr())
+}
+
+
+func TestMsgSnappy(t *testing.T) {
+	content, err := os.ReadFile("./fixtures/backend_snappy")
+	assert.Nil(t, err)
+	msg := parseAsBackend(content)
+	assert.NotNil(t, msg)
+	assert.Equal(t, "pero", msg.Type)
+	assert.Equal(t, "iso medo u ducan", msg.bodyStr())
+}
+
+func TestMsgLz4(t *testing.T) {
+	content, err := os.ReadFile("./fixtures/backend_lz4")
 	assert.Nil(t, err)
 	msg := parseAsBackend(content)
 	assert.NotNil(t, msg)
@@ -62,7 +90,7 @@ func TestMsgGzip(t *testing.T) {
 }
 
 func TestMsgLiveDogadjaj(t *testing.T) {
-	content, err := ioutil.ReadFile("./fixtures/live_dogadjaj_web2_6430239_full")
+	content, err := os.ReadFile("./fixtures/live_dogadjaj_web2_6430239_full")
 	assert.Nil(t, err)
 	msg := parseAsBackend(content)
 	assert.NotNil(t, msg)
@@ -87,7 +115,7 @@ func TestIsFullIsDiff(t *testing.T) {
 }
 
 func TestCreateBackend(t *testing.T) {
-	buf := createBackend("pero", 12, 14, nil, true)
+	buf := createBackend("pero", 12, 14, nil, "gzip")
 	assert.NotNil(t, buf)
 
 	buf = CreateBackendNoGzip("pero", 12, nil)

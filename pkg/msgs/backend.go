@@ -37,25 +37,25 @@ const (
 
 // Backend - poruka koja dolazi iz backend servisa
 type Backend struct {
-	Type              string `json:"type,omitempty"`
-	Id                string `json:"id,omitempty"`
-	IgracId           string `json:"igrac_id,omitempty"`
-	ClientId          int    `json:"client_id,omitempty"`
-	AccountType       int    `json:"account_type,omitempty"`
-	No                int    `json:"no,omitempty"`
-	From              string `json:"from,omitempty"`
-	To                string `json:"to,omitempty"`
-	IsDel             bool   `json:"is_del,omitempty"`
-	Ts                int    `json:"ts,omitempty"`
-	Dc                string `json:"dc,omitempty"`
-	Version           string `json:"version,omitempty"`
-	Encoding          string `json:"encoding,omitempty"`
-	MessageType       string `json:"message_type,omitempty"`
-	SrcMsgID          string `json:"src_msg_id,omitempty"`
-	NSQReqRspEnvelope        // NSQ Req/Rsp message envelope, za potrebe prebacivanja NSQ Req/Rsp poruka sa nsq_to_ws
-	Body              []byte `json:"-"` //raspakovan body
-	RawBody           []byte `json:"-"`
-	RawHeader         []byte `json:"-"`
+	Type              string            `json:"type,omitempty"`
+	Id                string            `json:"id,omitempty"`
+	IgracId           string            `json:"igrac_id,omitempty"`
+	ClientId          int               `json:"client_id,omitempty"`
+	AccountType       int               `json:"account_type,omitempty"`
+	No                int               `json:"no,omitempty"`
+	From              string            `json:"from,omitempty"`
+	To                string            `json:"to,omitempty"`
+	IsDel             bool              `json:"is_del,omitempty"`
+	Ts                int               `json:"ts,omitempty"`
+	Dc                string            `json:"dc,omitempty"`
+	Version           string            `json:"version,omitempty"`
+	Encoding          compress.Encoding `json:"encoding,omitempty"`
+	MessageType       string            `json:"message_type,omitempty"`
+	SrcMsgID          string            `json:"src_msg_id,omitempty"`
+	NSQReqRspEnvelope                   // NSQ Req/Rsp message envelope, za potrebe prebacivanja NSQ Req/Rsp poruka sa nsq_to_ws
+	Body              []byte            `json:"-"` //raspakovan body
+	RawBody           []byte            `json:"-"`
+	RawHeader         []byte            `json:"-"`
 	rawMsg            []byte
 	jsonBody          *simplejson.Json
 }
@@ -139,14 +139,14 @@ func CreateBackendDel(typ string) []byte {
 }
 
 func CreateBackend(typ string, no int, body []byte) []byte {
-	return createBackend(typ, no, 0, body, true)
+	return createBackend(typ, no, 0, body, compress.EncodingGzip)
 }
 
 func CreateBackendNoGzip(typ string, no int, body []byte) []byte {
-	return createBackend(typ, no, 0, body, false)
+	return createBackend(typ, no, 0, body, compress.EncodingNone)
 }
 
-func createBackend(typ string, no int, ts int, body []byte, shouldCompress bool) []byte {
+func createBackend(typ string, no int, ts int, body []byte, encoding compress.Encoding) []byte {
 	header := map[string]interface{}{
 		"type": typ,
 	}
@@ -158,14 +158,27 @@ func createBackend(typ string, no int, ts int, body []byte, shouldCompress bool)
 	} else {
 		header["ts"] = time.Now().UnixNano()
 	}
-	if shouldCompress && len(body) > GzipMsgSizeLimit {
-		body = compress.Gzip(body)
-		header["encoding"] = "gzip"
+	if encoding != "" && len(body) > GzipMsgSizeLimit {
+		body, encoding = compressBody(body, encoding)
+		header["encoding"] = encoding
 	}
 	buf, _ := json.Marshal(header)
 	buf = append(buf, HeaderSeparator...)
 	buf = append(buf, body...)
 	return buf
+}
+
+func compressBody(body []byte, encoding compress.Encoding) ([]byte, compress.Encoding) {
+	switch encoding {
+	case compress.EncodingZstd:
+		return compress.Zstd(body), compress.EncodingZstd
+	case compress.EncodingSnappy:
+		return compress.Snappy(body), compress.EncodingSnappy
+	case compress.EncodingLz4:
+		return compress.Lz4(body), compress.EncodingLz4
+	default:
+		return compress.Gzip(body), compress.EncodingGzip
+	}
 }
 
 func Header(key string, value interface{}) func(map[string]interface{}) {
@@ -174,11 +187,19 @@ func Header(key string, value interface{}) func(map[string]interface{}) {
 	}
 }
 
-var gzipKey = "__gzipKey__"
+var encodingKey = "__encodingKey__"
 
 func NoGzip() func(map[string]interface{}) {
 	return func(h map[string]interface{}) {
-		h[gzipKey] = false
+		h[encodingKey] = compress.EncodingNone
+	}
+}
+
+// WithEncoding sets the compression algorithm for BackendFactory.
+// See compress.Encoding for possible values.
+func WithEncoding(encoding compress.Encoding) func(map[string]any) {
+	return func(h map[string]any) {
+		h[encodingKey] = encoding
 	}
 }
 
@@ -189,14 +210,14 @@ func BackendFactory(typ string, body []byte, opts ...func(map[string]interface{}
 	for _, o := range opts {
 		o(header)
 	}
-	shouldCompress := true
-	if v, ok := header[gzipKey]; ok {
-		shouldCompress = v.(bool)
-		delete(header, gzipKey)
+	encoding := compress.EncodingGzip
+	if v, ok := header[encodingKey]; ok {
+		encoding = v.(compress.Encoding)
+		delete(header, encodingKey)
 	}
-	if shouldCompress && len(body) > GzipMsgSizeLimit {
-		body = compress.Gzip(body)
-		header["encoding"] = "gzip"
+	if encoding != "" && len(body) > GzipMsgSizeLimit {
+		body, encoding = compressBody(body, encoding)
+		header["encoding"] = encoding
 	}
 	buf, _ := json.Marshal(header)
 	buf = append(buf, HeaderSeparator...)
@@ -205,7 +226,7 @@ func BackendFactory(typ string, body []byte, opts ...func(map[string]interface{}
 }
 
 func CreateBackendTs(typ string, no int, ts int, body []byte) []byte {
-	return createBackend(typ, no, ts, body, true)
+	return createBackend(typ, no, ts, body, compress.EncodingGzip)
 }
 
 func parseAsBackend(buf []byte) *Backend {
@@ -213,42 +234,46 @@ func parseAsBackend(buf []byte) *Backend {
 	rawHeader := parts[0]
 	msg, err := parseHeader(rawHeader)
 	if len(parts) == 1 || err != nil {
-		msg.Body, _ = compress.GunzipIf(buf)
+		msg.Body, _, _ = compress.DecompressIf(buf)
 		msg.RawBody = buf
 		msg.RawHeader = nil
 		return msg
 	}
 	body := parts[1]
 	msg.RawBody = body
-	msg.Body, _ = compress.GunzipIf(body)
+	var detected compress.Encoding
+	msg.Body, detected, _ = compress.DecompressIf(body)
+	if msg.Encoding != compress.EncodingNone && detected != compress.EncodingNone && detected != msg.Encoding {
+		log.Printf("[WARN] encoding mismatch: header says %q but detected %q", msg.Encoding, detected)
+	}
 	msg.rawMsg = buf
 	return msg
 }
 
 func parseHeader(rawHeader []byte) (*Backend, error) {
 	header := struct {
-		DocType     string `json:"doc_type"`
-		Type        string `json:"type"`
-		DocId       string `json:"doc_id"`
-		Id          string `json:"id"`
-		DocAction   string `json:"doc_action"`
-		Action      string `json:"action"`
-		IgracId     string `json:"igrac_id"`
-		AccountType int    `json:"account_type"`
-		From        string `json:"from"`
-		To          string `json:"to"`
-		Ts          int    `json:"ts"`
-		No          int    `json:"no"`
-		MsgNo       int    `json:"msg_no"`
-		Encoding    string `json:"encoding"`
-		DeletedId   string `json:"_deleted_id"`
-		IsDel       bool   `json:"is_del"`
-		Id2         string `json:"_id"`
-		Dc          string `json:"dc"`
-		Version     string `json:"version"`
-		MessageType string `json:"message_type,omitempty"`
-		SrcMsgID    string `json:"src_msg_id,omitempty"`
-		Obrisan     bool   `json:"obrisan"`
+		DocType     string            `json:"doc_type"`
+		Type        string            `json:"type"`
+		DocId       string            `json:"doc_id"`
+		Id          string            `json:"id"`
+		DocAction   string            `json:"doc_action"`
+		Action      string            `json:"action"`
+		IgracId     string            `json:"igrac_id"`
+		AccountType int               `json:"account_type"`
+		From        string            `json:"from"`
+		To          string            `json:"to"`
+		Ts          int               `json:"ts"`
+		No          int               `json:"no"`
+		MsgNo       int               `json:"msg_no"`
+		Encoding    compress.Encoding `json:"encoding"`
+		DeletedId   string            `json:"_deleted_id"`
+		IsDel       bool              `json:"is_del"`
+		Id2         string            `json:"_id"`
+		Dc          string            `json:"dc"`
+		Version     string            `json:"version"`
+		MessageType string            `json:"message_type,omitempty"`
+		SrcMsgID    string            `json:"src_msg_id,omitempty"`
+		Obrisan     bool              `json:"obrisan"`
 		NSQReqRspEnvelope
 	}{
 		No:      -1,
@@ -366,7 +391,7 @@ func (b *Backend) pack() []byte {
 	if b.jsonBody != nil {
 		b.Body, _ = b.jsonBody.Encode()
 		b.RawBody = b.Body
-		b.Encoding = ""
+		b.Encoding = compress.EncodingNone
 	}
 	//igracid i no imaju defaulte koji se ne serijaliziraju lijepo uz ommitempty, pa malo kemijam oko toga
 	//volio bi neko inteligentnije rjesenje
