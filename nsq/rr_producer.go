@@ -71,7 +71,7 @@ func defaultErrorParser(s string) error {
 	if s == "" {
 		return nil
 	}
-	return fmt.Errorf(s)
+	return errors.New(s)
 }
 
 // RrProducerConsumerOptions sets configuration options for the underlying Consumer of RrProducer.

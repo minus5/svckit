@@ -121,12 +121,12 @@ func (r *mockRequester) Assert(t *testing.T) {
 	require.Equal(t, r.WantSendCalls, r.gotSendCalls)
 }
 
-func testSession(outLen, inLen int) (chan []byte, chan []byte, func(), chan struct{}, func(*amp.Msg)) {
+func testSession(t *testing.T, outLen, inLen int) (chan []byte, chan []byte, func(), chan struct{}, func(*amp.Msg)) {
 	out := make(chan []byte, outLen)
 	in := make(chan []byte, inLen)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	conn := &mockConn{out: out, in: in}
+	conn := &mockConn{t: t, WantMetaCalls: 1, out: out, in: in}
 	done := make(chan struct{})
 
 	s := &session{
@@ -147,7 +147,7 @@ func TestAlive(t *testing.T) {
 	aliveBefore := aliveInterval
 	aliveInterval = time.Millisecond
 
-	out, _, cancel, done, _ := testSession(1024, 0)
+	out, _, cancel, done, _ := testSession(t, 1024, 0)
 	time.Sleep(16 * time.Millisecond)
 	cancel()
 	<-done
@@ -170,7 +170,7 @@ func msgCID(buf []byte) int {
 }
 
 func TestOrderedMessages(t *testing.T) {
-	out, _, cancel, done, send := testSession(3, 3)
+	out, _, cancel, done, send := testSession(t, 3, 3)
 
 	send(ping(1))
 	send(ping(2))
@@ -184,7 +184,7 @@ func TestOrderedMessages(t *testing.T) {
 }
 
 func TestPingPong(t *testing.T) {
-	out, in, cancel, done, _ := testSession(3, 3)
+	out, in, cancel, done, _ := testSession(t, 3, 3)
 
 	in <- ping(1).Marshal()
 	in <- ping(2).Marshal()
@@ -201,7 +201,7 @@ func TestQueueDrain(t *testing.T) {
 	out := make(chan []byte, 1000)
 	in := make(chan []byte, 1000)
 	done := make(chan struct{})
-	conn := &mockConn{out: out, in: in}
+	conn := &mockConn{t: t, WantMetaCalls: 1, out: out, in: in}
 	s := &session{
 		conn:        conn,
 		outMessages: make(chan []*amp.Msg, 256),
