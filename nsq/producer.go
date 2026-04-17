@@ -3,12 +3,12 @@ package nsq
 import (
 	"github.com/minus5/svckit/log"
 
-	gonsq "github.com/nsqio/go-nsq"
+	nsqx "github.com/minus5/go-nsqx"
 )
 
 type Producer struct {
 	topic       string
-	nsqProducer *gonsq.Producer
+	nsqProducer *nsqx.Producer
 }
 
 func MustNewProducer(topic string, opts ...func(*options)) *Producer {
@@ -23,8 +23,8 @@ func NewProducer(topic string, opts ...func(*options)) (*Producer, error) {
 	o := getDefaults().clone()
 	o.apply(opts...)
 
-	cfg := gonsq.NewConfig()
-	p, err := gonsq.NewProducer(o.nsqdTCPAddr, cfg)
+	cfg := o.toNsqxConfig()
+	p, err := nsqx.NewProducer(o.nsqdTCPAddr, cfg)
 	if err != nil {
 		return nil, err
 	}

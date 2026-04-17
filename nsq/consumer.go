@@ -2,16 +2,15 @@ package nsq
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/minus5/svckit/dcy"
 	"github.com/minus5/svckit/log"
 
-	gonsq "github.com/nsqio/go-nsq"
+	nsqx "github.com/minus5/go-nsqx"
 )
 
 type Consumer struct {
-	nsqConsumer *gonsq.Consumer
+	nsqConsumer *nsqx.Consumer
 	logger      func() *log.Agregator
 	lookups     dcy.Addresses
 }
@@ -20,7 +19,7 @@ type nsqHandler struct {
 	fn func(*Message) error
 }
 
-func (h *nsqHandler) HandleMessage(m *gonsq.Message) error {
+func (h *nsqHandler) HandleMessage(m *nsqx.Message) error {
 	// javi periodicki nsqd-u da je procesiranje jos u tijeku
 	stop := every(DefaultMsgTouchInterval, m.Touch)
 	defer close(stop)
@@ -44,19 +43,19 @@ func NewConsumer(topic string, handler func(*Message) error,
 	o := getDefaults().clone()
 	o.apply(opts...)
 
-	cfg := gonsq.NewConfig()
-	cfg.MaxInFlight = o.maxInFlight
-	cfg.LookupdPollInterval = 10 * time.Second
-	cfg.OutputBufferSize = -1
-	cfg.OutputBufferTimeout = -1
+	cfg := o.toNsqxConfig()
 
-	c, err := gonsq.NewConsumer(topic, o.channel, cfg)
+	c, err := nsqx.NewConsumer(topic, o.channel, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	c.SetLogger(o.logger, o.logLevel)
-	c.AddConcurrentHandlers(&nsqHandler{fn: handler}, o.concurrency)
+	c.AddConcurrentHandlers(&nsqHandler{fn: handler}, o.Concurrency())
+
+	// Use shared Discovery so all consumers in the process share one lookupd poller
+	disc := getDiscovery(o)
+	c.SetDiscovery(disc)
 
 	err = c.ConnectToNSQLookupds(o.lookupds.String())
 	if err != nil {
@@ -71,41 +70,50 @@ func NewConsumer(topic string, handler func(*Message) error,
 		},
 	}
 
-	co.logger().I("maxInFlight", o.maxInFlight).I("concurrency", o.concurrency).Debug("starting consumer")
+	co.logger().I("maxInFlight", o.maxInFlight).I("concurrency", o.Concurrency()).Debug("starting consumer")
 	dcy.Subscribe(LookupdHTTPServiceName, co.onLookupChanges)
 	dcy.SubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, co.onLookupChanges)
 	return co, nil
 }
 
 func (c *Consumer) onLookupChanges(as dcy.Addresses) {
+	// dcy.Addresses lookupd returns all lookupds from Consul, based on service name
+	// and service tags (eg. nsqlookupd-tcp and tcp.nsqlookupd will return same IP twice)
+	// -> this should maybe be added to dcy pkg
+	seen := make(map[string]struct{})
+	var unique []string
 	for _, a := range as {
-		if err := c.nsqConsumer.ConnectToNSQLookupd(a.String()); err != nil {
-			logger().Error(err)
+		s := a.String()
+		if _, dup := seen[s]; !dup {
+			seen[s] = struct{}{}
+			unique = append(unique, s)
 		}
 	}
-	for _, a := range c.lookups {
-		if !as.Contains(a) {
-			if err := c.nsqConsumer.DisconnectFromNSQLookupd(a.String()); err != nil {
-				logger().Error(err)
-			}
-		}
-	}
+
+	// Update shared Discovery address list, it will use
+	// these new addresses on the next cache miss/poll cycle
+	disc := getDiscovery(getDefaults())
+	disc.SetAddrs(unique)
 	c.lookups = as
-	c.logger().S("lookupds", fmt.Sprintf("%v", as)).Debug("lookupds update")
+	c.logger().S("lookupds", fmt.Sprintf("%v", unique)).Info("lookupds update") // if too much logs, set Debug
 }
 
 func (c *Consumer) Close() {
 	dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
 	dcy.UnsubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, c.onLookupChanges)
 	c.nsqConsumer.Stop()
-	<-c.nsqConsumer.StopChan
 }
 
-// StartClosing will initiate a graceful stop of the Consumer (permanent)
-// Receive on returned chan to block until this process completes
+// StartClosing will initiate a graceful stop of the Consumer (permanent),
+// receive on returned chan to block until this process completes
 func (c *Consumer) StartClosing() chan int {
 	dcy.Unsubscribe(LookupdHTTPServiceName, c.onLookupChanges)
 	dcy.UnsubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, c.onLookupChanges)
 	c.nsqConsumer.Stop()
-	return c.nsqConsumer.StopChan
+	// go-nsqx Stop() is synchronous, it blocks until fully stopped,
+	// return a closed channel to maintain the same API shape
+	// TODO - Maybe change this later?
+	ch := make(chan int)
+	close(ch)
+	return ch
 }

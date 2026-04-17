@@ -3,25 +3,25 @@ package nsq
 import (
 	"time"
 
-	gonsq "github.com/nsqio/go-nsq"
+	nsqx "github.com/minus5/go-nsqx"
 )
 
-// Presipavam da klijent ne bi morao referencirati go-nsq package.
+// Presipavam da klijent ne bi morao referencirati go-nsqx package.
 type Message struct {
-	nsqm        *gonsq.Message
-	ID          gonsq.MessageID
+	nsqm        *nsqx.Message
+	ID          nsqx.MessageID
 	Body        []byte
-	Timestamp   int64
+	Timestamp   int64 // unix nanoseconds — preserved from original API
 	Attempts    uint16
 	NSQDAddress string
 }
 
-func newMessage(m *gonsq.Message) *Message {
+func newMessage(m *nsqx.Message) *Message {
 	return &Message{
 		nsqm:        m,
 		ID:          m.ID,
 		Body:        m.Body,
-		Timestamp:   m.Timestamp,
+		Timestamp:   m.Timestamp.UnixNano(),
 		Attempts:    m.Attempts,
 		NSQDAddress: m.NSQDAddress,
 	}

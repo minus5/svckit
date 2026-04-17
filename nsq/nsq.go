@@ -14,7 +14,7 @@ import (
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/signal"
 
-	gonsq "github.com/nsqio/go-nsq"
+	nsqx "github.com/minus5/go-nsqx"
 )
 
 const (
@@ -25,7 +25,6 @@ const (
 	LookupdHTTPServiceTag       = "http"
 	EnvNsqd                     = "SVCKIT_NSQD"
 	DefaultMsgTouchInterval     = time.Second * 30
-	//NsqdTCPServiceName      = "nsqd-tcp"
 )
 
 var (
@@ -33,8 +32,9 @@ var (
 	Pub = MustNewProducer
 	Sub = MustNewConsumer
 
-	defaults *options
-	initMu   sync.Mutex
+	defaults  *options
+	initMu    sync.Mutex
+	discovery *nsqx.Discovery // shared across all consumers
 )
 
 func getDefaults() *options {
@@ -62,7 +62,7 @@ func initDefaults() {
 		channel:     fmt.Sprintf("%s-%s", env.AppName(), env.InstanceId()),
 		nsqdTCPAddr: "127.0.0.1:4150",
 		lookupds:    dcy.Addresses{dcy.Address{Address: "127.0.0.1", Port: 4161}},
-		logLevel:    gonsq.LogLevelWarning,
+		logLevel:    nsqx.LogLevelWarning,
 		logger:      &nsqLogger{},
 	}
 	if e, ok := os.LookupEnv(EnvNsqd); ok && e != "" {
@@ -95,6 +95,17 @@ func initDefaults() {
 	if err := signal.WithExponentialBackoff(connect); err != nil {
 		logger().Fatal(err)
 	}
+}
+
+// getDiscovery returns the shared Discovery instance
+func getDiscovery(o *options) *nsqx.Discovery {
+	initMu.Lock()
+	defer initMu.Unlock()
+	if discovery == nil {
+		cfg := o.toNsqxConfig()
+		discovery = nsqx.NewDiscovery(o.lookupds.String(), cfg, o.logger)
+	}
+	return discovery
 }
 
 func logger() *log.Agregator {
