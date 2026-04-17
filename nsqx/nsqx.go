@@ -84,7 +84,7 @@ func initDefaults() {
 			return dcy.ErrNotFound
 		}
 		defaults.lookupds = addrs
-		logger().S("lookupds", fmt.Sprintf("%v", defaults.lookupds.String())).Debug("init lookupds")
+		logger().S("lookupds", fmt.Sprintf("%v", defaults.lookupds.String())).Info("init lookupds")
 		return nil
 	}
 	if err := signal.WithExponentialBackoff(connect); err != nil {
