@@ -17,10 +17,12 @@ type Message struct {
 }
 
 func newMessage(m *nsqx.Message) *Message {
+	body := make([]byte, len(m.Body))
+	copy(body, m.Body)
 	return &Message{
 		nsqm:        m,
 		ID:          m.ID,
-		Body:        m.Body,
+		Body:        body,
 		Timestamp:   m.Timestamp.UnixNano(),
 		Attempts:    m.Attempts,
 		NSQDAddress: m.NSQDAddress,

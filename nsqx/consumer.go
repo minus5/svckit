@@ -67,7 +67,20 @@ func NewConsumer(topic string, handler func(*Message) error,
 		},
 	}
 
-	co.logger().I("maxInFlight", o.maxInFlight).I("concurrency", o.Concurrency()).Info("starting consumer")
+	// log options on start
+	co.logger().
+		I("MaxInFlight", o.maxInFlight).
+		I("Concurrency", o.Concurrency()).
+		I("ZeroCopyThrshld", o.zeroCopyThreshold).
+		I("AckBatchSize", o.ackBatchSize).
+		I("ProducerPipelines", o.producerPipelines).
+		I("MaxAttempts", int(o.maxAttempts)).
+		I("CircuitBreakerThrshld", int(o.circuitBreakerThreshold)).
+		I("OutputBuffSize", o.outputBufferSize).
+		S("BackoffAlg", o.backoffAlgorithm.String()).
+		S("Compression", o.compression.String()).
+		Info("starting consumer")
+
 	dcy.Subscribe(LookupdHTTPServiceName, co.onLookupChanges)
 	dcy.SubscribeByTag(LookupdHTTPServiceNameByTag, LookupdHTTPServiceTag, co.onLookupChanges)
 	return co, nil

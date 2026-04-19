@@ -21,6 +21,7 @@ const (
 	LookupdHTTPServiceTag       = "http"
 	EnvNsqd                     = "SVCKIT_NSQD"
 	DefaultMsgTouchInterval     = time.Second * 30
+	DefaultStatsdPrefix         = "nsq." // to keep the same as nsqd prefix, maybe change for diff?
 )
 
 var (
@@ -52,13 +53,19 @@ func Set(opts ...func(*options)) {
 
 func initDefaults() {
 	defaults = &options{
-		maxInFlight: DefaultMaxInFlight,
-		concurrency: DefaultConcurrency,
-		channel:     fmt.Sprintf("%s-%s", env.AppName(), env.InstanceId()),
-		nsqdTCPAddr: "127.0.0.1:4150",
-		lookupds:    dcy.Addresses{dcy.Address{Address: "127.0.0.1", Port: 4161}},
-		logLevel:    nsqx.LogLevelWarning,
-		logger:      &nsqLogger{},
+		maxInFlight:          DefaultMaxInFlight,
+		concurrency:          DefaultConcurrency,
+		channel:              fmt.Sprintf("%s-%s", env.AppName(), env.InstanceId()),
+		nsqdTCPAddr:          "127.0.0.1:4150",
+		lookupds:             dcy.Addresses{dcy.Address{Address: "127.0.0.1", Port: 4161}},
+		logLevel:             nsqx.LogLevelWarning,
+		zeroCopyThreshold:    0,                 // always copy, so that messages are not truncated
+		backoffAlgorithm:     nsqx.BackoffFixed, // Fixed backoff every FixedInterval
+		backoffFixedInterval: 2 * time.Second,
+		logger:               &nsqLogger{},
+		lookupdPollInterval:  15 * time.Second, // see how will this behave in prod, current nsq pulls every 10s from consul
+		lookupdCacheTTL:      10 * time.Second,
+		lookupdPollTimeout:   5 * time.Second,
 	}
 	if e, ok := os.LookupEnv(EnvNsqd); ok && e != "" {
 		defaults.nsqdTCPAddr = e
@@ -89,6 +96,13 @@ func initDefaults() {
 	}
 	if err := signal.WithExponentialBackoff(connect); err != nil {
 		logger().Fatal(err)
+	}
+	// statsd metrics for every topic/channel, new with nsqx
+	if addr, ok := os.LookupEnv("STATSD_LOGGER_ADDRESS"); ok && addr != "" {
+		defaults.statsdAddr = addr
+		defaults.metricsBackend = nsqx.MetricsStatsd
+		defaults.statsdPrefix = fmt.Sprintf("%s.", env.AppName())
+		logger().S("statsd", defaults.statsdAddr).Info("init statsd")
 	}
 }
 

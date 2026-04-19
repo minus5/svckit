@@ -149,6 +149,8 @@ func (o *options) toNsqxConfig() *nsqx.Config {
 	cfg.MaxInFlight = o.maxInFlight
 	cfg.WorkerConcurrency = o.Concurrency()
 	cfg.LogLevel = o.logLevel
+	cfg.ZeroCopyThreshold = o.zeroCopyThreshold
+	cfg.BackoffAlgorithm = o.backoffAlgorithm
 
 	if o.dialTimeout > 0 {
 		cfg.DialTimeout = o.dialTimeout
@@ -195,9 +197,6 @@ func (o *options) toNsqxConfig() *nsqx.Config {
 	if o.maxAttempts > 0 {
 		cfg.MaxAttempts = o.maxAttempts
 	}
-	if o.backoffAlgorithm != 0 {
-		cfg.BackoffAlgorithm = o.backoffAlgorithm
-	}
 	if o.backoffBaseDelay > 0 {
 		cfg.BackoffBaseDelay = o.backoffBaseDelay
 	}
@@ -242,9 +241,6 @@ func (o *options) toNsqxConfig() *nsqx.Config {
 	}
 	if o.deflateLevel > 0 {
 		cfg.DeflateLevel = o.deflateLevel
-	}
-	if o.zeroCopyThreshold > 0 {
-		cfg.ZeroCopyThreshold = o.zeroCopyThreshold
 	}
 	if o.ackBatchSize > 0 {
 		cfg.AckBatchSize = o.ackBatchSize

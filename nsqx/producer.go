@@ -28,6 +28,14 @@ func NewProducer(topic string, opts ...func(*options)) (*Producer, error) {
 		return nil, err
 	}
 	p.SetLogger(o.logger, o.logLevel)
+	// log on start
+	logger().S("topic", topic).
+		I("ProducerPipelines", o.producerPipelines).
+		I("ZeroCopyThrshld", o.zeroCopyThreshold).
+		I("BatchMaxSize", o.batchMaxSize).
+		I("OutputBuffSize", o.outputBufferSize).
+		S("Nsqd", o.nsqdTCPAddr).
+		Info("starting producer")
 	return &Producer{nsqProducer: p, topic: topic}, nil
 }
 

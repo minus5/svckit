@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/consul/api v1.18.0
 	github.com/json-iterator/go v1.1.12
 	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
-	github.com/minus5/go-nsqx v1.0.0
+	github.com/minus5/go-nsqx v1.0.1-0.20260418103232-cae33d0b0a16
 	github.com/minus5/go-simplejson v0.5.1-0.20190518182223-8af509724a86
 	github.com/nranchev/go-libGeoIP v0.0.0-20170629073846-d6d4a9a4c7e8
 	github.com/nsqio/go-nsq v1.1.0
