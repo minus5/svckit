@@ -60,7 +60,13 @@ func resposesTopicName() string {
 }
 
 func (r *Requester) responses(nm *nsq.Message) error {
+	if nm == nil {
+		return nil
+	}
 	m := amp.ParseFromBackend(nm.Body)
+	if m == nil {
+		return nil
+	}
 	r.reply(m.CorrelationID, m)
 	return nil
 }
