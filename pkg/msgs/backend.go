@@ -105,7 +105,7 @@ func NewBackendFromTopic(buf []byte, topic string) *Backend {
 		m.Type = topic
 	}
 	switch topic {
-	case "listici.novi", "listici.novi_backend_api", "listici.promjene", "listici.dopuna", "listici":
+	case "listici.novi", "listici.novi_backend_api", "listici.promjene", "listici.svc.promjene", "listici.dopuna", "listici":
 		if hh && !m.IsDel {
 			d := struct{ Obrisan bool }{}
 			json.Unmarshal(m.Body, &d)
