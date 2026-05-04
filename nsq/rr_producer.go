@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	DefaultTimeout = time.Hour
+	DefaultTimeout = 5 * time.Second
 	ErrTimeout     = errors.New("timeout")
 	ErrStopped     = errors.New("stopped")
 	rrProducers    = make(map[string]*RrProducer)
