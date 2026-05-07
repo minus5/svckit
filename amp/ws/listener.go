@@ -170,7 +170,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 	}
 	_, err := ug.Upgrade(tc)
 	if ohErr := checkOriginHost(cc.headers["origin"], cc.host); ohErr != nil {
-		log.S("origin", cc.headers["origin"]).S("host", cc.host).Error(fmt.Errorf("bad ws origin: %s", ohErr))
+		log.S("origin", cc.headers["origin"]).S("host", cc.host).S("forwarded-for", cc.forwardedFor).Error(fmt.Errorf("bad ws origin: %s", ohErr))
 		//return cc, ohErr
 	}
 	return cc, err
