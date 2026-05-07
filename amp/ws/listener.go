@@ -126,6 +126,10 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			}
 			return nil
 		},
+		OnHost: func(host []byte) error {
+			cc.host = string(host)
+			return nil
+		},
 		// ocitvamo ostale bitne http headere
 		OnHeader: func(k, v []byte) error {
 			key := strings.ToLower(string(k))
@@ -165,7 +169,23 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 		},
 	}
 	_, err := ug.Upgrade(tc)
+	if ohErr := checkOriginHost(cc.headers["origin"], cc.host); ohErr != nil {
+		log.S("origin", cc.headers["origin"]).S("host", cc.host).Error(fmt.Errorf("bad ws origin: %s", ohErr))
+		//return cc, ohErr
+	}
 	return cc, err
+}
+
+func checkOriginHost(origin, host string) error {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return fmt.Errorf("invalid origin header: %s", origin)
+	}
+	originHost := u.Hostname()
+	if originHost != host {
+		return fmt.Errorf("origin %q does not match host %q", origin, host)
+	}
+	return nil
 }
 
 func parseQueryString(uri []byte) map[string]string {

@@ -29,6 +29,7 @@ type connCap struct {
 	deflateDisabled  bool
 	userAgent        string
 	forwardedFor     string
+	host             string
 	meta             map[string]string
 	headers          map[string]string
 	cookie           string
