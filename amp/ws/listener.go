@@ -177,15 +177,25 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 }
 
 func checkOriginHost(origin, host string) error {
+	if origin == "" {
+		return nil
+	}
 	u, err := url.Parse(origin)
 	if err != nil {
 		return fmt.Errorf("invalid origin header: %s", origin)
 	}
-	originHost := u.Hostname()
-	if originHost != host {
+	if sld(u.Hostname()) != sld(host) {
 		return fmt.Errorf("origin %q does not match host %q", origin, host)
 	}
 	return nil
+}
+
+func sld(host string) string {
+	parts := strings.Split(host, ".")
+	if len(parts) <= 2 {
+		return host
+	}
+	return strings.Join(parts[len(parts)-2:], ".")
 }
 
 func parseQueryString(uri []byte) map[string]string {
