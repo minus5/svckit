@@ -20,15 +20,16 @@ import (
 const (
 	DefaultMaxInFlight          = 256
 	DefaultConcurrency          = 16
-	LookupdHTTPServiceName      = "nsqlookupd-http"
 	LookupdHTTPServiceNameByTag = "nsqlookupd"
 	LookupdHTTPServiceTag       = "http"
 	EnvNsqd                     = "SVCKIT_NSQD"
+	EnvNsqLookupd               = "SVCKIT_NSQLOOKUPD_SERVICE"
 	DefaultMsgTouchInterval     = time.Second * 30
 	//NsqdTCPServiceName      = "nsqd-tcp"
 )
 
 var (
+	LookupdHTTPServiceName = "nsqlookupd-http"
 	//Aliasi za lijepsi api
 	Pub = MustNewProducer
 	Sub = MustNewConsumer
@@ -68,6 +69,10 @@ func initDefaults() {
 	if e, ok := os.LookupEnv(EnvNsqd); ok && e != "" {
 		defaults.nsqdTCPAddr = e
 		logger().S("nsqd", defaults.nsqdTCPAddr).Debug("init nsqd")
+	}
+	if e, ok := os.LookupEnv(EnvNsqLookupd); ok && e != "" {
+		LookupdHTTPServiceName = e
+		logger().S("nsqlookupd service name", LookupdHTTPServiceName).Debug("init nsqlookupd")
 	}
 	connect := func() error {
 		var addrs dcy.Addresses
