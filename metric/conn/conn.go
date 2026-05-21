@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"github.com/minus5/svckit/env"
 	"github.com/minus5/svckit/httpi"
 	"github.com/minus5/svckit/log"
 	"github.com/minus5/svckit/metric/prometheus"
@@ -9,7 +8,7 @@ import (
 	"os"
 )
 
-func Connect() func() {
+func Connect(prefix string) func() {
 	defer func() {
 		log.Info("metrics initialized")
 	}()
@@ -20,6 +19,10 @@ func Connect() func() {
 		return func() {}
 	}
 	log.S("target", "statsd").Info("metrics init")
-	statsd.Dial(statsd.MetricPrefix(env.AppName()))
+	opts := []statsd.Option{}
+	if prefix != "" {
+		opts = append(opts, statsd.MetricPrefix(prefix))
+	}
+	statsd.MustDial(opts...)
 	return statsd.Close
 }
