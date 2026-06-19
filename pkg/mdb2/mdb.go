@@ -251,10 +251,11 @@ func (mdb *Mdb) Ping() bool {
 // Use wraps handler function with timing metric
 func (mdb *Mdb) Use(col string, metricKey string, handler func(*mongo.Collection) error) error {
 	c := mdb.db.Collection(col)
-	var err error
-	metric.Timing("db."+metricKey, func() {
-		err = handler(c)
-	})
+	stopwatch := metric.NewStopwatch()
+	err := handler(c)
+	duration := stopwatch.GetNs()
+	metric.Time("db."+metricKey, duration)
+	metric.TimeL("mdb", map[string]string{"metric_key": metricKey}, duration)
 	return err
 }
 
@@ -267,10 +268,11 @@ func (mdb *Mdb) Use2(col string, handler func(*mongo.Collection) error) error {
 func (mdb *Mdb) UseSafe(col string, metricKey string, handler func(*mongo.Collection) error) error {
 	// create new database object so options can be changed regardless of original
 	c := mdb.client.Database(mdb.name, options.Database().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))).Collection(col)
-	var err error
-	metric.Timing("db."+metricKey, func() {
-		err = handler(c)
-	})
+	stopwatch := metric.NewStopwatch()
+	err := handler(c)
+	duration := stopwatch.GetNs()
+	metric.Time("db."+metricKey, duration)
+	metric.TimeL("mdb", map[string]string{"metric_key": metricKey}, duration)
 	return err
 }
 

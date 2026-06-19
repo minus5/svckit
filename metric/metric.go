@@ -29,9 +29,12 @@ func init() {
 // Interface definition for all metric implementations.
 type Metric interface {
 	Counter(name string, values ...int)
+	CounterL(name string, labels map[string]string, values ...int)
 	Gauge(name string, value int)
+	GaugeL(name string, labels map[string]string, value int)
 	Timing(name string, f func())
 	Time(name string, duration int)
+	TimeL(name string, labels map[string]string, duration int)
 	WithPrefix(prefix string) Metric
 	AppendSuffix(suffix string) Metric
 }
@@ -47,9 +50,19 @@ func Counter(name string, values ...int) {
 	driver.Counter(name, values...)
 }
 
+// Increments counter name with labels for sum(values), defaulting to 1.
+func CounterL(name string, labels map[string]string, values ...int) {
+	driver.CounterL(name, labels, values...)
+}
+
 // Submits/Updates a gauge type.
 func Gauge(name string, value int) {
 	driver.Gauge(name, value)
+}
+
+// Submits/Updates a gauge type with labels.
+func GaugeL(name string, labels map[string]string, value int) {
+	driver.GaugeL(name, labels, value)
 }
 
 // Measures execution time for f and submits it as timing type.
@@ -60,6 +73,11 @@ func Timing(name string, f func()) {
 // Submits a statsd type.
 func Time(name string, duration int) {
 	driver.Time(name, duration)
+}
+
+// Submits a timing metric with labels.
+func TimeL(name string, labels map[string]string, duration int) {
+	driver.TimeL(name, labels, duration)
 }
 
 // Returns a Metric with a different prefix

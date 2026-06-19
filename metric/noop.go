@@ -7,7 +7,15 @@ func (*Noop) Counter(name string, values ...int) {
 	return
 }
 
+func (*Noop) CounterL(name string, labels map[string]string, values ...int) {
+	return
+}
+
 func (*Noop) Gauge(name string, value int) {
+	return
+}
+
+func (*Noop) GaugeL(name string, labels map[string]string, value int) {
 	return
 }
 
@@ -18,6 +26,10 @@ func (*Noop) Timing(name string, f func()) {
 }
 
 func (*Noop) Time(name string, duration int) {
+	return
+}
+
+func (*Noop) TimeL(name string, labels map[string]string, duration int) {
 	return
 }
 

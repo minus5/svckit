@@ -15,7 +15,15 @@ func (*Dev) Counter(name string, values ...int) {
 	return
 }
 
+func (*Dev) CounterL(name string, labels map[string]string, values ...int) {
+	return
+}
+
 func (*Dev) Gauge(name string, value int) {
+	return
+}
+
+func (*Dev) GaugeL(name string, labels map[string]string, value int) {
 	return
 }
 
@@ -27,6 +35,10 @@ func (*Dev) Timing(name string, f func()) {
 }
 
 func (*Dev) Time(name string, duration int) {
+	return
+}
+
+func (*Dev) TimeL(name string, labels map[string]string, duration int) {
 	return
 }
 

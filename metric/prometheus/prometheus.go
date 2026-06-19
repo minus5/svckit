@@ -10,6 +10,7 @@ package prometheus
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 
@@ -29,21 +30,27 @@ type Prometheus struct {
 }
 
 type shared struct {
-	registry   *prom.Registry
-	mu         sync.Mutex
-	counters   map[string]prom.Counter
-	gauges     map[string]prom.Gauge
-	histograms map[string]prom.Histogram
+	registry      *prom.Registry
+	mu            sync.Mutex
+	counters      map[string]prom.Counter
+	gauges        map[string]prom.Gauge
+	histograms    map[string]prom.Histogram
+	counterVecs   map[string]*prom.CounterVec
+	gaugeVecs     map[string]*prom.GaugeVec
+	histogramVecs map[string]*prom.HistogramVec
 }
 
 // Init creates the Prometheus driver and sets it as the global metric driver.
 func Init() {
 	defaultRegistry = prom.NewRegistry()
 	s := &shared{
-		registry:   defaultRegistry,
-		counters:   make(map[string]prom.Counter),
-		gauges:     make(map[string]prom.Gauge),
-		histograms: make(map[string]prom.Histogram),
+		registry:      defaultRegistry,
+		counters:      make(map[string]prom.Counter),
+		gauges:        make(map[string]prom.Gauge),
+		histograms:    make(map[string]prom.Histogram),
+		counterVecs:   make(map[string]*prom.CounterVec),
+		gaugeVecs:     make(map[string]*prom.GaugeVec),
+		histogramVecs: make(map[string]*prom.HistogramVec),
 	}
 	metric.Set(&Prometheus{shared: s})
 }
@@ -133,6 +140,80 @@ func (p *Prometheus) Timing(name string, f func()) {
 // Time records duration (nanoseconds) as a histogram observation in seconds.
 func (p *Prometheus) Time(name string, duration int) {
 	p.getHistogram(name).Observe(float64(duration) / 1e9)
+}
+
+func sortedLabelNames(labels map[string]string) []string {
+	names := make([]string, 0, len(labels))
+	for k := range labels {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func (p *Prometheus) getCounterVec(name string, labelNames []string) *prom.CounterVec {
+	k := p.key(name)
+	p.shared.mu.Lock()
+	defer p.shared.mu.Unlock()
+	if cv, ok := p.shared.counterVecs[k]; ok {
+		return cv
+	}
+	cv := prom.NewCounterVec(prom.CounterOpts{Name: k, Help: k}, labelNames)
+	p.shared.registry.MustRegister(cv)
+	p.shared.counterVecs[k] = cv
+	return cv
+}
+
+// CounterL increments the named counter with labels by sum(values), defaulting to 1.
+func (p *Prometheus) CounterL(name string, labels map[string]string, values ...int) {
+	value := 1
+	if len(values) > 0 {
+		value = 0
+		for _, v := range values {
+			value += v
+		}
+	}
+	p.getCounterVec(name, sortedLabelNames(labels)).With(prom.Labels(labels)).Add(float64(value))
+}
+
+func (p *Prometheus) getGaugeVec(name string, labelNames []string) *prom.GaugeVec {
+	k := p.key(name)
+	p.shared.mu.Lock()
+	defer p.shared.mu.Unlock()
+	if gv, ok := p.shared.gaugeVecs[k]; ok {
+		return gv
+	}
+	gv := prom.NewGaugeVec(prom.GaugeOpts{Name: k, Help: k}, labelNames)
+	p.shared.registry.MustRegister(gv)
+	p.shared.gaugeVecs[k] = gv
+	return gv
+}
+
+// GaugeL sets the named gauge with labels to value.
+func (p *Prometheus) GaugeL(name string, labels map[string]string, value int) {
+	p.getGaugeVec(name, sortedLabelNames(labels)).With(prom.Labels(labels)).Set(float64(value))
+}
+
+func (p *Prometheus) getHistogramVec(name string, labelNames []string) *prom.HistogramVec {
+	k := p.key(name)
+	p.shared.mu.Lock()
+	defer p.shared.mu.Unlock()
+	if hv, ok := p.shared.histogramVecs[k]; ok {
+		return hv
+	}
+	hv := prom.NewHistogramVec(prom.HistogramOpts{
+		Name:    k,
+		Help:    k,
+		Buckets: prom.DefBuckets,
+	}, labelNames)
+	p.shared.registry.MustRegister(hv)
+	p.shared.histogramVecs[k] = hv
+	return hv
+}
+
+// TimeL records duration (nanoseconds) with labels as a histogram observation in seconds.
+func (p *Prometheus) TimeL(name string, labels map[string]string, duration int) {
+	p.getHistogramVec(name, sortedLabelNames(labels)).With(prom.Labels(labels)).Observe(float64(duration) / 1e9)
 }
 
 // WithPrefix returns a Metric with the given prefix.

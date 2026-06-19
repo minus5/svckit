@@ -158,6 +158,15 @@ func newStatsd(prefix string, client client) *Statsd {
 	}
 }
 
+// CounterL is a no-op for statsd (labels not supported).
+func (i *Statsd) CounterL(name string, labels map[string]string, values ...int) {}
+
+// GaugeL is a no-op for statsd (labels not supported).
+func (i *Statsd) GaugeL(name string, labels map[string]string, value int) {}
+
+// TimeL is a no-op for statsd (labels not supported).
+func (i *Statsd) TimeL(name string, labels map[string]string, duration int) {}
+
 // Counter increments counter name for sum(values).
 // If called witohout values will increment for 1.
 func (i *Statsd) Counter(name string, values ...int) {
