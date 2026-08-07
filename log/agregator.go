@@ -142,12 +142,13 @@ func (a *Agregator) timeFile(t time.Time, file string, line int) {
 
 // return as quoted string
 var (
-	LevelDebug  = `"debug"`
-	LevelInfo   = `"info"`
-	LevelError  = `"error"`
-	LevelFatal  = `"fatal"`
-	LevelNotice = `"notice"`
-	LevelEvent  = `"event"`
+	LevelDebug   = `"debug"`
+	LevelInfo    = `"info"`
+	LevelError   = `"error"`
+	LevelFatal   = `"fatal"`
+	LevelNotice  = `"notice"`
+	LevelEvent   = `"event"`
+	LevelWarning = `"warning"`
 )
 
 // unquoted versions
@@ -213,6 +214,12 @@ func (a *Agregator) Notice(msg string) {
 
 func (a *Agregator) Event(msg string) {
 	a.level = LevelEvent
+	a.msg = msg
+	a.write()
+}
+
+func (a *Agregator) Warning(msg string) {
+	a.level = LevelWarning
 	a.msg = msg
 	a.write()
 }
