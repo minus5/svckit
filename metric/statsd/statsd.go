@@ -3,6 +3,7 @@ package statsd
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -133,6 +134,7 @@ func Dial(opts ...Option) error {
 		api.SendQueueCapacity(o.sendQueueCapacity),
 		api.SendLoopCount(o.sendLoopCount),
 		api.MaxPacketSize(o.maxPacketSize),
+		api.TagStyle(api.TagFormatDatadog),
 		api.Logger(golog.New(&logRedir{packetsLostNotice: false}, "", 0)),
 	)
 
@@ -158,14 +160,46 @@ func newStatsd(prefix string, client client) *Statsd {
 	}
 }
 
-// CounterL is a no-op for statsd (labels not supported).
-func (i *Statsd) CounterL(name string, labels map[string]string, values ...int) {}
+// CounterL increments counter name for sum(values) with labels sent as statsd tags.
+// If called without values will increment for 1.
+func (i *Statsd) CounterL(name string, labels map[string]string, values ...int) {
+	value := 1
+	if len(values) > 0 {
+		value = 0
+		for _, v := range values {
+			value += v
+		}
+	}
+	i.client.Incr(i.handlePrefix(name), int64(value), tags(labels)...)
+}
 
-// GaugeL is a no-op for statsd (labels not supported).
-func (i *Statsd) GaugeL(name string, labels map[string]string, value int) {}
+// GaugeL submits/updates a statsd gauge type with labels sent as statsd tags.
+func (i *Statsd) GaugeL(name string, labels map[string]string, value int) {
+	i.client.Gauge(i.handlePrefix(name), int64(value), tags(labels)...)
+}
 
-// TimeL is a no-op for statsd (labels not supported).
-func (i *Statsd) TimeL(name string, labels map[string]string, duration int) {}
+// TimeL submits a statsd timing type with labels sent as statsd tags.
+func (i *Statsd) TimeL(name string, labels map[string]string, duration int) {
+	i.client.Timing(i.handlePrefix(name), int64(duration), tags(labels)...)
+}
+
+// tags converts a labels map to statsd tags, sorted by label name so the
+// emitted line is deterministic.
+func tags(labels map[string]string) []api.Tag {
+	if len(labels) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	t := make([]api.Tag, 0, len(keys))
+	for _, k := range keys {
+		t = append(t, api.StringTag(k, labels[k]))
+	}
+	return t
+}
 
 // Counter increments counter name for sum(values).
 // If called witohout values will increment for 1.
