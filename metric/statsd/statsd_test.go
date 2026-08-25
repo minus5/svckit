@@ -1,3 +1,7 @@
+// Run these tests with SVCKIT_DCY_CONSUL=-- set (or a local Consul agent on
+// 127.0.0.1:8500). This package imports svckit/dcy, whose init dials Consul
+// and log.Fatals after about a minute when it is absent; the env.InTest guard
+// cannot fire because testing flags are registered only after package inits.
 package statsd
 
 import (
@@ -6,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/minus5/svckit/metric"
 	api "github.com/smira/go-statsd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,27 +97,30 @@ func TestLabelVariantsWithoutLabels(t *testing.T) {
 	assert.Empty(t, f.gaugeTags)
 }
 
-// The exact wire line, through the real go-statsd client with the DogStatsD
-// tag style Dial configures: tags trail the type as `|#k:v,k:v`, and a space
-// inside a tag value passes through untouched. statsd_exporter parses this
-// dialect by default and exposes each tag as a Prometheus label. The InfluxDB
-// style was rejected on purpose: its tags sit inside the name section, so a
-// raw-statsd relay to graphite would mint one graphite metric name per tag
-// combination.
+// The exact wire line, through the production path: Dial builds the client,
+// so this test pins the DogStatsD tag style Dial configures (go-statsd
+// defaults to InfluxDB, so a dropped option regresses the dialect silently),
+// and the emit goes through the metric package the way callers reach it.
+// Tags trail the type as `|#k:v,k:v`, and a space inside a tag value passes
+// through untouched. statsd_exporter parses this dialect by default and
+// exposes each tag as a Prometheus label. The InfluxDB style was rejected on
+// purpose: its tags sit inside the name section, so a raw-statsd relay to
+// graphite would mint one graphite metric name per tag combination.
 func TestGaugeLWireFormat(t *testing.T) {
 	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
 	require.NoError(t, err)
 	defer conn.Close()
 
-	c := api.NewClient(conn.LocalAddr().String(),
-		api.TagStyle(api.TagFormatDatadog),
-		api.FlushInterval(time.Millisecond),
-	)
-	s := newStatsd("retail_pl.", c)
+	require.NoError(t, Dial(
+		StatsDAddr(conn.LocalAddr().String()),
+		MetricPrefix("retail_pl"),
+	))
+	t.Cleanup(func() {
+		Close()
+		metric.Set(metric.NewNoop())
+	})
 
-	defer c.Close()
-
-	s.GaugeL("ssbt_frontend_version", map[string]string{
+	metric.GaugeL("ssbt_frontend_version", map[string]string{
 		"version":       "2026.0820.094120",
 		"terminal_name": "SSBT 5007_1",
 	}, 1787564529)
