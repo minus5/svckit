@@ -160,8 +160,6 @@ func newStatsd(prefix string, client client) *Statsd {
 	}
 }
 
-// CounterL increments counter name for sum(values) with labels sent as statsd tags.
-// If called without values will increment for 1.
 func (i *Statsd) CounterL(name string, labels map[string]string, values ...int) {
 	value := 1
 	if len(values) > 0 {
@@ -173,18 +171,14 @@ func (i *Statsd) CounterL(name string, labels map[string]string, values ...int) 
 	i.client.Incr(i.handlePrefix(name), int64(value), tags(labels)...)
 }
 
-// GaugeL submits/updates a statsd gauge type with labels sent as statsd tags.
 func (i *Statsd) GaugeL(name string, labels map[string]string, value int) {
 	i.client.Gauge(i.handlePrefix(name), int64(value), tags(labels)...)
 }
 
-// TimeL submits a statsd timing type with labels sent as statsd tags.
 func (i *Statsd) TimeL(name string, labels map[string]string, duration int) {
 	i.client.Timing(i.handlePrefix(name), int64(duration), tags(labels)...)
 }
 
-// tags converts a labels map to statsd tags, sorted by label name so the
-// emitted line is deterministic.
 func tags(labels map[string]string) []api.Tag {
 	if len(labels) == 0 {
 		return nil
