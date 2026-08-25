@@ -110,11 +110,12 @@ func TestGaugeLWireFormat(t *testing.T) {
 	)
 	s := newStatsd("retail_pl.", c)
 
+	defer c.Close()
+
 	s.GaugeL("ssbt_frontend_version", map[string]string{
 		"version":       "2026.0820.094120",
 		"terminal_name": "SSBT 5007_1",
 	}, 1787564529)
-	require.NoError(t, c.Close())
 
 	require.NoError(t, conn.SetReadDeadline(time.Now().Add(2*time.Second)))
 	buf := make([]byte, 1024)
