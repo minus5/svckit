@@ -160,6 +160,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKjuso=
 github.com/miekg/dns v1.1.41 h1:WMszZWJG0XmzbK9FEmzH2TVcqYzFesusSIB41b8KHxY=
 github.com/miekg/dns v1.1.41/go.mod h1:p6aan82bvRIyn+zDIv9xYNUpwa73JcSh9BKwknJysuI=
+github.com/minus5/go-nsqx v1.0.1-0.20260418103232-cae33d0b0a16 h1:I1gKMN7Av8zos39zW3/H8HI+SWwKDoKPxWz2GVtOnFY=
+github.com/minus5/go-nsqx v1.0.1-0.20260418103232-cae33d0b0a16/go.mod h1:U0qLktCviUuRBuVAbKq/Oq7EQmObdp4g2CWrizN5fMo=
 github.com/minus5/go-simplejson v0.5.1-0.20190518182223-8af509724a86 h1:bsm6+lQ2ea4dD6ZzGCz6GHXxmfU0ludQ4Cjxm7h/D9o=
 github.com/minus5/go-simplejson v0.5.1-0.20190518182223-8af509724a86/go.mod h1:eBPLk8FJ9uc035DnbHAWvINeYXIIVduZe5EILao6s7o=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
