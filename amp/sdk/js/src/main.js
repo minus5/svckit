@@ -29,7 +29,7 @@ module.exports = function(config) {
     },
     ws() {
       const host = config.host || window.location.hostname;
-      let protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+      let protocol = config.protocol || (window.location.protocol === 'https:' ? 'wss://' : 'ws://');
       return urls.addMeta(
           protocol + host + urls.port() + urls.path(urls.paths.api)
       );
