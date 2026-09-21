@@ -180,18 +180,89 @@ func ParseWithMeta(buf []byte, query url.Values) *Msg {
 // and the receiver appends back (RFC 7692 section 7.2.1).
 var syncFlushMarker = []byte{0x00, 0x00, 0xff, 0xff}
 
+// flateReader is what flate.NewReader returns, with the reset method spelled
+// out so the type assertion happens in one place.
+type flateReader interface {
+	io.ReadCloser
+	flate.Resetter
+}
+
+// flateWriterPool and flateReaderPool reuse the (large) DEFLATE compressor and
+// decompressor state across messages. flate.NewWriter allocates ~1 MB of window
+// and hash tables on every call -- on a 5 KB message that is over 99% of the
+// whole compression path, regardless of payload size -- and Reset lets a pooled
+// instance be reused instead. Each call takes its own instance, so concurrent
+// use is safe.
+//
+// Only the codec state is pooled. Payload buffers are returned to the caller,
+// cached in Msg.payloads and handed to a websocket writer that may still be
+// sending them, so they are never recycled.
+var (
+	flateWriterPool = sync.Pool{New: func() interface{} {
+		w, _ := flate.NewWriter(io.Discard, flate.DefaultCompression)
+		return w
+	}}
+	flateReaderPool = sync.Pool{New: func() interface{} {
+		return flate.NewReader(bytes.NewReader(nil)).(flateReader)
+	}}
+)
+
+// emptyReader is what a pooled decompressor is reset to on the way back into the
+// pool: it drops the reference to the caller's payload without dropping the
+// decompressor's own read buffer. flate.Resetter keeps that 4 KB bufio.Reader
+// across resets, but only while it is handed a plain io.Reader -- reset it with
+// something that is already an io.ByteReader (bytes.Reader, say) and it throws
+// the buffer away, to be reallocated on the next message.
+type emptyReader struct{}
+
+func (emptyReader) Read([]byte) (int, error) { return 0, io.EOF }
+
 // Undeflate decodes a websocket deflated message
 func Undeflate(data []byte) []byte {
+	r := flateReaderPool.Get().(flateReader)
+	defer func() {
+		// Drop the reference to data so the pool does not pin the caller's
+		// buffer, then return the reader to the pool. Reset also clears any
+		// error left by a malformed payload.
+		_ = r.Reset(emptyReader{}, nil)
+		flateReaderPool.Put(r)
+	}()
 	// MultiReader rather than a buffer seeded with data: bytes.NewBuffer adopts
 	// the slice it is given as its backing array, so appending the marker would
 	// write into the caller's spare capacity -- on the receive path that slice
 	// is a view into a websocket read buffer.
-	r := flate.NewReader(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)))
-	defer func() { _ = r.Close() }()
-	out := bytes.NewBuffer(nil)
-	out.Grow(len(data))
+	_ = r.Reset(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)), nil)
+
+	out := bytes.NewBuffer(make([]byte, 0, undeflatedSizeHint(len(data))))
 	_, _ = io.Copy(out, r)
 	return out.Bytes()
+}
+
+// maxUndeflateSizeHint is a speculative-allocation budget, not a limit on
+// message size. A payload that really decompresses to more than this still
+// decodes in full; the buffer simply grows the rest of the way. The cap only
+// stops a caller-supplied length from being multiplied into an arbitrarily
+// large up-front allocation.
+//
+// The figure is 8x the 1 MB frame ceiling that Conn.Read enforces in amp/ws.
+// That ceiling binds the websocket path only -- Undeflate is exported and its
+// callers are not bound by it, which is the reason to cap rather than a reason
+// to trust the length.
+const maxUndeflateSizeHint = 8 << 20 // 8 MiB
+
+// undeflatedSizeHint sizes the output buffer up front. amp payloads are
+// repetitive JSON and compress to roughly an eighth of their size, so the old
+// hint of len(data) was short by about 8x and regrew the buffer several times
+// per message.
+//
+// The comparison comes before the multiplication: compressed*8 overflows to a
+// negative number for a large enough input, and min would happily return it for
+// make to panic on.
+func undeflatedSizeHint(compressed int) int {
+	if compressed > maxUndeflateSizeHint/8 {
+		return maxUndeflateSizeHint
+	}
+	return compressed * 8
 }
 
 // Marshal the message that will be sent to the client.
@@ -283,10 +354,17 @@ func payloadKey(compression, version uint8) uint8 {
 // block) with a 2-byte fixed-Huffman one, and the blind 4-byte cut then ate two
 // bytes of real data.
 func deflate(src []byte) []byte {
-	dest := bytes.NewBuffer(nil)
-	c, _ := flate.NewWriter(dest, flate.DefaultCompression)
-	_, _ = c.Write(src)
-	_ = c.Flush()
+	// Compressed amp payloads run well under a quarter of the source, so this
+	// keeps the common case to a single allocation for the payload.
+	dest := bytes.NewBuffer(make([]byte, 0, len(src)/4+len(syncFlushMarker)+1))
+
+	w := flateWriterPool.Get().(*flate.Writer)
+	w.Reset(dest)
+	_, _ = w.Write(src)
+	_ = w.Flush()
+	w.Reset(io.Discard) // drop the reference to dest so the pool does not pin the payload
+	flateWriterPool.Put(w)
+
 	buf := dest.Bytes()
 	if bytes.HasSuffix(buf, syncFlushMarker) {
 		return buf[:len(buf)-len(syncFlushMarker)]
