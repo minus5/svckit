@@ -176,14 +176,21 @@ func ParseWithMeta(buf []byte, query url.Values) *Msg {
 	return m
 }
 
-// Undeflate enodes ws deflated message
+// syncFlushMarker is the 4-byte tail that a permessage-deflate sender strips
+// and the receiver appends back (RFC 7692 section 7.2.1).
+var syncFlushMarker = []byte{0x00, 0x00, 0xff, 0xff}
+
+// Undeflate decodes a websocket deflated message
 func Undeflate(data []byte) []byte {
-	buf := bytes.NewBuffer(data)
-	buf.Write([]byte{0x00, 0x00, 0xff, 0xff})
-	r := flate.NewReader(buf)
-	defer r.Close()
+	// MultiReader rather than a buffer seeded with data: bytes.NewBuffer adopts
+	// the slice it is given as its backing array, so appending the marker would
+	// write into the caller's spare capacity -- on the receive path that slice
+	// is a view into a websocket read buffer.
+	r := flate.NewReader(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)))
+	defer func() { _ = r.Close() }()
 	out := bytes.NewBuffer(nil)
-	io.Copy(out, r)
+	out.Grow(len(data))
+	_, _ = io.Copy(out, r)
 	return out.Bytes()
 }
 
@@ -267,15 +274,27 @@ func payloadKey(compression, version uint8) uint8 {
 	return version*4 + compression
 }
 
+// deflate compresses src and cuts the stream at the trailing 4-byte sync-flush
+// marker, which the peer appends back (RFC 7692 section 7.2.1).
+//
+// Flush, not Close: a sync flush is specified to end the stream with
+// 00 00 FF FF, so the truncation is exact. Close guarantees nothing about the
+// bytes it emits -- Go 1.27 replaced its final empty block (a 5-byte stored
+// block) with a 2-byte fixed-Huffman one, and the blind 4-byte cut then ate two
+// bytes of real data.
 func deflate(src []byte) []byte {
 	dest := bytes.NewBuffer(nil)
 	c, _ := flate.NewWriter(dest, flate.DefaultCompression)
-	c.Write(src)
-	c.Close()
+	_, _ = c.Write(src)
+	_ = c.Flush()
 	buf := dest.Bytes()
-	if len(buf) > 4 {
-		return buf[0 : len(buf)-4]
+	if bytes.HasSuffix(buf, syncFlushMarker) {
+		return buf[:len(buf)-len(syncFlushMarker)]
 	}
+	// Flush always ends with the marker. Should that ever stop holding, send the
+	// stream whole rather than cutting blindly: the peer appends the marker and
+	// decodes one harmless extra empty block, which costs 4 bytes and loses no
+	// data. Cutting blindly is what broke under Go 1.27.
 	return buf
 }
 

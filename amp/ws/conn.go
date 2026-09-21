@@ -178,12 +178,17 @@ func (c *Conn) GetCookie() string {
 	return c.cap.cookie
 }
 
-// undeflate uncomresses websocket payload
+// syncFlushMarker is the 4-byte tail a permessage-deflate sender strips and the
+// receiver appends back (RFC 7692 section 7.2.1).
+var syncFlushMarker = []byte{0x00, 0x00, 0xff, 0xff}
+
+// undeflate decompresses a websocket per-message-deflate payload
 func undeflate(data []byte) []byte {
-	buf := bytes.NewBuffer(data)
-	buf.Write([]byte{0x00, 0x00, 0xff, 0xff})
-	r := flate.NewReader(buf)
-	defer r.Close()
+	// MultiReader rather than a buffer seeded with data: bytes.NewBuffer adopts
+	// the slice it is given as its backing array, so appending the marker would
+	// write past the payload into the websocket read buffer.
+	r := flate.NewReader(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)))
+	defer func() { _ = r.Close() }()
 	out := bytes.NewBuffer(nil)
 	_, _ = io.Copy(out, r)
 	return out.Bytes()
