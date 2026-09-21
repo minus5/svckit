@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -178,13 +179,78 @@ func (c *Conn) GetCookie() string {
 	return c.cap.cookie
 }
 
-// undeflate uncomresses websocket payload
+// syncFlushMarker is the 4-byte tail a permessage-deflate sender strips and the
+// receiver appends back (RFC 7692 section 7.2.1).
+var syncFlushMarker = []byte{0x00, 0x00, 0xff, 0xff}
+
+// flateReader is what flate.NewReader returns, with the reset method spelled
+// out so the type assertion happens in one place.
+type flateReader interface {
+	io.ReadCloser
+	flate.Resetter
+}
+
+// flateReaderPool reuses the decompressor state across messages. flate.NewReader
+// allocates it (tens of KB of window and Huffman tables) on every call, on a
+// path that runs for every inbound message; Reset lets a pooled instance be
+// reused. Each call takes its own instance, so concurrent use is safe.
+//
+// Only the decompressor is pooled -- the decoded payload is returned to the
+// caller and must never be recycled.
+var flateReaderPool = sync.Pool{New: func() interface{} {
+	return flate.NewReader(bytes.NewReader(nil)).(flateReader)
+}}
+
+// emptyReader is what a pooled decompressor is reset to on the way back into the
+// pool: it drops the reference to the caller's payload without dropping the
+// decompressor's own read buffer. flate.Resetter keeps that 4 KB bufio.Reader
+// across resets, but only while it is handed a plain io.Reader -- reset it with
+// something that is already an io.ByteReader (bytes.Reader, say) and it throws
+// the buffer away, to be reallocated on the next message.
+type emptyReader struct{}
+
+func (emptyReader) Read([]byte) (int, error) { return 0, io.EOF }
+
+// maxUndeflateSizeHint is a speculative-allocation budget, not a limit on
+// message size. A payload that really decompresses to more than this still
+// decodes in full; the buffer simply grows the rest of the way. The cap only
+// stops a caller-supplied length from being multiplied into an arbitrarily
+// large up-front allocation.
+//
+// The figure is 8x the 1 MB frame ceiling Conn.Read enforces, so an accepted
+// frame can always ask for its whole plausible expansion in one go.
+const maxUndeflateSizeHint = 8 << 20 // 8 MiB
+
+// undeflatedSizeHint sizes the output buffer up front. Inbound amp payloads are
+// repetitive JSON and compress to roughly an eighth of their size; the buffer
+// used to start empty and double its way up on every message.
+//
+// The comparison comes before the multiplication: compressed*8 overflows to a
+// negative number for a large enough input, and min would happily return it for
+// make to panic on.
+func undeflatedSizeHint(compressed int) int {
+	if compressed > maxUndeflateSizeHint/8 {
+		return maxUndeflateSizeHint
+	}
+	return compressed * 8
+}
+
+// undeflate decompresses a websocket per-message-deflate payload
 func undeflate(data []byte) []byte {
-	buf := bytes.NewBuffer(data)
-	buf.Write([]byte{0x00, 0x00, 0xff, 0xff})
-	r := flate.NewReader(buf)
-	defer r.Close()
-	out := bytes.NewBuffer(nil)
+	r := flateReaderPool.Get().(flateReader)
+	defer func() {
+		// Drop the reference to data so the pool does not pin the read buffer,
+		// then return the reader. Reset also clears any error left behind by a
+		// malformed payload.
+		_ = r.Reset(emptyReader{}, nil)
+		flateReaderPool.Put(r)
+	}()
+	// MultiReader rather than a buffer seeded with data: bytes.NewBuffer adopts
+	// the slice it is given as its backing array, so appending the marker would
+	// write past the payload into the websocket read buffer.
+	_ = r.Reset(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)), nil)
+
+	out := bytes.NewBuffer(make([]byte, 0, undeflatedSizeHint(len(data))))
 	_, _ = io.Copy(out, r)
 	return out.Bytes()
 }
