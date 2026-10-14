@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -178,13 +179,49 @@ func (c *Conn) GetCookie() string {
 	return c.cap.cookie
 }
 
-// undeflate uncomresses websocket payload
+// syncFlushMarker is stripped by the sender and appended by the receiver (RFC 7692 7.2.1).
+var syncFlushMarker = []byte{0x00, 0x00, 0xff, 0xff}
+
+// flateReader is what flate.NewReader returns.
+type flateReader interface {
+	io.ReadCloser
+	flate.Resetter
+}
+
+// flateReaderPool pools decompressor state only; the output escapes to the caller.
+var flateReaderPool = sync.Pool{New: func() interface{} {
+	return flate.NewReader(bytes.NewReader(nil)).(flateReader)
+}}
+
+// emptyReader releases the payload on reset. Not an io.ByteReader, so flate keeps
+// its internal bufio.Reader.
+type emptyReader struct{}
+
+func (emptyReader) Read([]byte) (int, error) { return 0, io.EOF }
+
+// maxUndeflateSizeHint caps the up-front allocation, not the message size.
+const maxUndeflateSizeHint = 8 << 20 // 8 MiB
+
+// undeflatedSizeHint assumes amp JSON compresses about 8x.
+// Clamp before multiplying, so compressed*8 cannot overflow.
+func undeflatedSizeHint(compressed int) int {
+	if compressed > maxUndeflateSizeHint/8 {
+		return maxUndeflateSizeHint
+	}
+	return compressed * 8
+}
+
+// undeflate decompresses a websocket per-message-deflate payload
 func undeflate(data []byte) []byte {
-	buf := bytes.NewBuffer(data)
-	buf.Write([]byte{0x00, 0x00, 0xff, 0xff})
-	r := flate.NewReader(buf)
-	defer r.Close()
-	out := bytes.NewBuffer(nil)
+	r := flateReaderPool.Get().(flateReader)
+	defer func() {
+		_ = r.Reset(emptyReader{}, nil)
+		flateReaderPool.Put(r)
+	}()
+	// MultiReader: appending to bytes.NewBuffer(data) would write into the read buffer.
+	_ = r.Reset(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)), nil)
+
+	out := bytes.NewBuffer(make([]byte, 0, undeflatedSizeHint(len(data))))
 	_, _ = io.Copy(out, r)
 	return out.Bytes()
 }

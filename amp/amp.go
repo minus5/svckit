@@ -176,15 +176,58 @@ func ParseWithMeta(buf []byte, query url.Values) *Msg {
 	return m
 }
 
-// Undeflate enodes ws deflated message
+// syncFlushMarker is stripped by the sender and appended by the receiver (RFC 7692 7.2.1).
+var syncFlushMarker = []byte{0x00, 0x00, 0xff, 0xff}
+
+// flateReader is what flate.NewReader returns.
+type flateReader interface {
+	io.ReadCloser
+	flate.Resetter
+}
+
+// Pooled codec state; flate.NewWriter allocates ~1 MB per call.
+// Payload buffers escape to the caller and are never pooled.
+var (
+	flateWriterPool = sync.Pool{New: func() interface{} {
+		w, _ := flate.NewWriter(io.Discard, flate.DefaultCompression)
+		return w
+	}}
+	flateReaderPool = sync.Pool{New: func() interface{} {
+		return flate.NewReader(bytes.NewReader(nil)).(flateReader)
+	}}
+)
+
+// emptyReader releases the payload on reset. Not an io.ByteReader, so flate keeps
+// its internal bufio.Reader.
+type emptyReader struct{}
+
+func (emptyReader) Read([]byte) (int, error) { return 0, io.EOF }
+
+// Undeflate decodes a websocket deflated message
 func Undeflate(data []byte) []byte {
-	buf := bytes.NewBuffer(data)
-	buf.Write([]byte{0x00, 0x00, 0xff, 0xff})
-	r := flate.NewReader(buf)
-	defer r.Close()
-	out := bytes.NewBuffer(nil)
-	io.Copy(out, r)
+	r := flateReaderPool.Get().(flateReader)
+	defer func() {
+		_ = r.Reset(emptyReader{}, nil)
+		flateReaderPool.Put(r)
+	}()
+	// MultiReader: appending to bytes.NewBuffer(data) would write into the caller's buffer.
+	_ = r.Reset(io.MultiReader(bytes.NewReader(data), bytes.NewReader(syncFlushMarker)), nil)
+
+	out := bytes.NewBuffer(make([]byte, 0, undeflatedSizeHint(len(data))))
+	_, _ = io.Copy(out, r)
 	return out.Bytes()
+}
+
+// maxUndeflateSizeHint caps the up-front allocation, not the message size.
+const maxUndeflateSizeHint = 8 << 20 // 8 MiB
+
+// undeflatedSizeHint assumes amp JSON compresses about 8x.
+// Clamp before multiplying, so compressed*8 cannot overflow.
+func undeflatedSizeHint(compressed int) int {
+	if compressed > maxUndeflateSizeHint/8 {
+		return maxUndeflateSizeHint
+	}
+	return compressed * 8
 }
 
 // Marshal the message that will be sent to the client.
@@ -267,15 +310,23 @@ func payloadKey(compression, version uint8) uint8 {
 	return version*4 + compression
 }
 
+// deflate compresses src and strips the trailing sync-flush marker.
+// Flush, not Close: only Flush guarantees the stream ends with the marker.
 func deflate(src []byte) []byte {
-	dest := bytes.NewBuffer(nil)
-	c, _ := flate.NewWriter(dest, flate.DefaultCompression)
-	c.Write(src)
-	c.Close()
+	dest := bytes.NewBuffer(make([]byte, 0, len(src)/4+len(syncFlushMarker)+1))
+
+	w := flateWriterPool.Get().(*flate.Writer)
+	w.Reset(dest)
+	_, _ = w.Write(src)
+	_ = w.Flush()
+	w.Reset(io.Discard)
+	flateWriterPool.Put(w)
+
 	buf := dest.Bytes()
-	if len(buf) > 4 {
-		return buf[0 : len(buf)-4]
+	if bytes.HasSuffix(buf, syncFlushMarker) {
+		return buf[:len(buf)-len(syncFlushMarker)]
 	}
+	// No marker: send the stream whole rather than cut blindly.
 	return buf
 }
 
