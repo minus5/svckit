@@ -6,7 +6,14 @@ function merge(full, diff, skipEnrichment) {
       delete full["_"+key+"Change"];
       continue;
     }
-    if (typeof d === 'object' && full[key] !== undefined && !Array.isArray(d)) {
+    if (typeof d === 'object' && !Array.isArray(d)) {
+      // no enrichment: new subtrees never had _collection/_parent/_key and consumers iterate their keys
+      if (typeof full[key] !== 'object' || full[key] === null || Array.isArray(full[key])) {
+        delete full["_"+key+"Change"];
+        full[key] = {};
+        merge(full[key], d, true);
+        continue;
+      }
       let parent = full["_collection"];
       if (!!d["_isStruct"]){
         parent = full;
