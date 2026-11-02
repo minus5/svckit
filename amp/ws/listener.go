@@ -20,6 +20,29 @@ import (
 type listener struct {
 	ln        net.Listener
 	onNewConn func(*Conn)
+
+	deflateIgnoresUA bool
+}
+
+// ListenOption configures the listener started by Listen.
+type ListenOption func(*listener)
+
+// DeflateIgnoringUserAgent skips the "Mac OS X" user-agent rule that disables
+// deflate (an iOS 15 workaround that also hits desktop Mac browsers).
+// Use only for services without iPhone/iPad clients, e.g. backoffice.
+func DeflateIgnoringUserAgent() ListenOption {
+	return func(l *listener) { l.deflateIgnoresUA = true }
+}
+
+func newListener(ln net.Listener, h func(*Conn), opts ...ListenOption) *listener {
+	l := &listener{
+		ln:        ln,
+		onNewConn: h,
+	}
+	for _, o := range opts {
+		o(l)
+	}
+	return l
 }
 
 // Open opens new tcp port.
@@ -45,11 +68,8 @@ func MustOpen(port int) net.Listener {
 
 // Listen starts listening for new connections, blocks until ctx closed.
 // Then stops listening for new connections, and waits for current to finish.
-func Listen(ctx context.Context, ln net.Listener, h func(*Conn)) {
-	l := &listener{
-		ln:        ln,
-		onNewConn: h,
-	}
+func Listen(ctx context.Context, ln net.Listener, h func(*Conn), opts ...ListenOption) {
+	l := newListener(ln, h, opts...)
 	go func() {
 		<-ctx.Done()
 		_ = l.ln.Close()
@@ -139,7 +159,7 @@ func (l *listener) upgrade(tc net.Conn) (connCap, error) {
 			case "user-agent":
 				cc.userAgent = value
 				// na iOS 15, 16, ... ne radi vise web kompresija
-				if strings.Contains(value, "Mac OS X") {
+				if !l.deflateIgnoresUA && strings.Contains(value, "Mac OS X") {
 					cc.deflateDisabled = true
 					cc.deflateSupported = false
 				}
