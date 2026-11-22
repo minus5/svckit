@@ -213,14 +213,14 @@ func parseAsBackend(buf []byte) *Backend {
 	rawHeader := parts[0]
 	msg, err := parseHeader(rawHeader)
 	if len(parts) == 1 || err != nil {
-		msg.Body, _ = compress.GunzipIf(buf)
+		msg.Body, _, _ = compress.DecompressIf(buf)
 		msg.RawBody = buf
 		msg.RawHeader = nil
 		return msg
 	}
 	body := parts[1]
 	msg.RawBody = body
-	msg.Body, _ = compress.GunzipIf(body)
+	msg.Body, _, _ = compress.DecompressIf(body)
 	msg.rawMsg = buf
 	return msg
 }

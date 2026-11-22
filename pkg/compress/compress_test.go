@@ -178,3 +178,43 @@ func BenchmarkNewGzipper(b *testing.B) {
 		cacheAdd(gzd)
 	}
 }
+
+func TestZstd(t *testing.T) {
+	plain := []byte("iso medo u ducan")
+	c := Zstd(plain)
+	assert.True(t, IsZstd(c))
+	assert.False(t, IsZstd(plain))
+	assert.False(t, IsGziped(c))
+
+	u, err := Unzstd(c)
+	assert.NoError(t, err)
+	assert.Equal(t, plain, u)
+}
+
+func TestDecompressIf(t *testing.T) {
+	plain := []byte("iso medo u ducan")
+	for _, tc := range []struct {
+		name string
+		in   []byte
+		enc  Encoding
+	}{
+		{"none", plain, EncodingNone},
+		{"gzip", Gzip(plain), EncodingGzip},
+		{"zstd", Zstd(plain), EncodingZstd},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.enc, Detect(tc.in))
+			out, enc, err := DecompressIf(tc.in)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.enc, enc)
+			assert.Equal(t, plain, out)
+		})
+	}
+}
+
+func TestDecompressIfCorruptZstd(t *testing.T) {
+	c := Zstd(bytes.Repeat([]byte("iso medo u ducan "), 100))
+	_, enc, err := DecompressIf(c[:len(c)/2])
+	assert.Error(t, err)
+	assert.Equal(t, EncodingZstd, enc)
+}
